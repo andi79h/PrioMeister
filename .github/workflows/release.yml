@@ -60,7 +60,8 @@ jobs:
         if: steps.version.outputs.release == 'nein'
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # release.sh aus v2 liest GITHUB_API_TOKEN oder GITHUB_OAUTH; GH_API_TOKEN kennt erst die neuere Fassung
+          GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Gebaut wird immer der Stand des Tags, auch wenn main inzwischen weiter ist.
           git checkout -q "v${{ steps.version.outputs.version }}"
