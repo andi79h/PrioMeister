@@ -431,6 +431,10 @@ local ITEMS = {
 	[99002] = { "Testdolch der Schildhand", 4, 2, 15, "Dolche", "INVTYPE_WEAPONOFFHAND" },
 	[99003] = { "Testzauberstab", 4, 2, 19, "Zauberstäbe", "INVTYPE_RANGEDRIGHT" },
 	[99004] = { "Testrobe der Priester", 4, 4, 1, "Stoff", "INVTYPE_ROBE", { "PRIEST" } },
+	-- nur für die Tests von „An Entzauberer“ ohne Würfelrunde, niemand hat Prio darauf
+	[99005] = { "Testumhang", 3, 4, 1, "Stoff", "INVTYPE_CLOAK" },
+	[99006] = { "Testschwert", 2, 2, 7, "Einhandschwerter", "INVTYPE_WEAPON" },
+	[99007] = { "Testkette", 4, 4, 0, "Verschiedenes", "INVTYPE_NECK" },
 	[2589] = { "Leinenstoff", 0 },
 	[18259] = { "Formel: Waffe - Zauberkraft", 4, 9, 8, "Verzauberkunst" },
 	[20861] = { "Bronzeskarabäus", 2, 12, 0, "Quest" }, [20863] = { "Tonskarabäus", 2, 12, 0, "Quest" },

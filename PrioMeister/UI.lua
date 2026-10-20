@@ -132,7 +132,7 @@ end
 local ROLE_HELP = {
 	lootHelper = T("Bekommt automatisch alles bis zur eingestellten Qualität, was nicht auf der Liste des Schatzmeisters steht (Reiter „Plündern“ im Hauptfenster)."),
 	treasurer = T("Bekommt automatisch nur die Items der Liste, z. B. Skarabäen und Schlüssel in AQ. Jede Instanz hat ihre eigene Liste (Reiter „Plündern“ im Hauptfenster)."),
-	disenchanter = T("Bekommt Items, auf die niemand würfelt: in der Würfelrunde auf „An Entzauberer“ klicken. Ändert seine Würfelstufe nicht."),
+	disenchanter = T("Bekommt Items, auf die niemand würfelt: „An Entzauberer“ am Item im Panel oder in der Würfelrunde. Ändert seine Würfelstufe nicht."),
 }
 
 function UI:CreateRoleButton(parent, role, width)
@@ -353,6 +353,14 @@ local function CreateRow(parent)
 	end)
 	UI.Tooltip(row.random, "Zufällig vergeben",
 		T("Würfelt 1 bis Anzahl der Spieler im Raid. Gezählt wird wie im Raidfenster durch die Gruppen 1 bis 8, der Spieler auf diesem Platz bekommt das Item. Im Chat steht „zufällig vergeben“. Hat jemand Prio auf das Item oder schon dafür gewürfelt, fragt das Addon vorher nach."))
+	-- ohne Würfelrunde an den Entzauberer, ab der Qualität aus dem Reiter Plündern
+	row.de = UI.Button(row, "An Entzauberer", 106, 18, true)
+	row.de:SetScript("OnClick", function(b)
+		local d = b:GetParent().data
+		if d then PM:GiveItemToDisenchanter(d.itemID, d.slot) end
+	end)
+	UI.Tooltip(row.de, "An Entzauberer",
+		T("Gibt das Item ohne Würfelrunde an den Entzauberer. Der Knopf steht bei Rüstung und Waffen ab der Qualität, die im Reiter Plündern beim Entzauberer eingestellt ist, und nur, solange kein anwesender Spieler Prio hat. Bei epischen Items und wenn schon jemand gewürfelt hat, fragt das Addon vorher nach."))
 	row.btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	row.btn:SetScript("OnClick", function(b, mouseButton) RowAction(b:GetParent(), mouseButton) end)
 	UI.Tooltip(row.btn, "PrioMeister",
@@ -527,8 +535,14 @@ function UI:RefreshPanel()
 		if single then row.give:SetText(format(T("An %s"), d.res.topHolders[1].name)) end
 		row.random:ClearAllPoints()
 		row.random:SetPoint("TOPRIGHT", 0, single and -41 or -21)
+		local showDE = PM:ShowDisenchantButton(d)
+		row.de:SetShown(showDE)
+		if showDE then
+			row.de:ClearAllPoints()
+			row.de:SetPoint("TOPRIGHT", 0, single and -61 or -41)
+		end
 		local h = 18 + row.info:GetStringHeight() + 6
-		local minHeight = single and 62 or 42
+		local minHeight = (single and 62 or 42) + (showDE and 20 or 0)
 		if h < minHeight then h = minHeight end
 		row:SetHeight(h)
 		row:Show()

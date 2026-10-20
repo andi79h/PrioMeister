@@ -1303,6 +1303,76 @@ mock.Fire("LOOT_SLOT_CLEARED", 1)
 check(mock.ChatContains("Zenec erhält") and mock.ChatContains("zum Entzaubern"), "bestätigtes Entzaubern protokolliert", table.concat(mock.chat, "\n"))
 mock.CloseLoot()
 
+-- „An Entzauberer“ ohne Würfelrunde (1.22.0): an jedem Item ab der eingestellten Qualität, nur
+-- bei Rüstung und Waffen und nicht, solange ein anwesender Spieler Prio hat
+do
+	eq(PM.db.settings.deButtonQuality, 2, "Knopf „An Entzauberer“ voreingestellt ab Grün")
+	mock.OpenLoot({ { id = 99005 }, { id = 99006 }, { id = 99007 }, { id = 16929 }, { id = 18259 } }, "Creature-Entzaubern")
+	local function deShown(id) local r = rowFor(id) return r and r.de:IsShown() or false end
+	check(deShown(99005) and deShown(99006) and deShown(99007), "Knopf an blauer Rüstung, grüner Waffe und epischer Kette")
+	check(not deShown(16929), "kein Knopf, solange ein anwesender Spieler Prio hat")
+	check(not deShown(18259), "kein Knopf an Rezepten, die lassen sich nicht entzaubern")
+	local cloak = rowFor(99005)
+	local p = cloak.de._points[1]
+	check(p and p[1] == "TOPRIGHT" and p[3] == -41, "Knopf steht unter „Zufällig vergeben“", p and tostring(p[3]))
+	check(cloak:GetHeight() >= 62, "Zeile hoch genug für drei Knöpfe", cloak:GetHeight())
+
+	-- blaues Item ohne Würfe: direkt an den Entzauberer
+	mock.chat, mock.given, mock.popup = {}, {}, nil
+	cloak.de._scripts.OnClick(cloak.de)
+	check(mock.popup == nil, "blaues Item ohne Würfe: keine Rückfrage")
+	eq(mock.given[1] and mock.candidates[mock.given[1].index], "Zenec", "Umhang direkt an den Entzauberer")
+	mock.loot[1] = false
+	mock.Fire("LOOT_SLOT_CLEARED", 1)
+	check(mock.ChatContains("Zenec erhält") and mock.ChatContains("zum Entzaubern"), "als Entzaubern protokolliert", table.concat(mock.chat, "\n"))
+	eq(L.CountAwards(PM:Raid(), "zenec"), 0, "Entzaubern zählt nicht als eigener Gewinn")
+
+	-- episches Item: erst nach Rückfrage
+	mock.given, mock.popup = {}, nil
+	rowFor(99007).de._scripts.OnClick(rowFor(99007).de)
+	check(mock.popup and mock.popup.name == "PRIOMEISTER_DE_ITEM", "episches Item: Rückfrage")
+	check(mock.popup and mock.popup.text:find("Sicher an Entzauberer Zenec geben?", 1, true), "Rückfrage nennt den Entzauberer", mock.popup and mock.popup.text)
+	eq(#mock.given, 0, "ohne Bestätigung nichts vergeben")
+	mock.AcceptPopup()
+	eq(mock.given[1] and mock.given[1].slot, 3, "nach Bestätigung die Kette vergeben")
+	mock.loot[3] = false
+	mock.Fire("LOOT_SLOT_CLEARED", 3)
+
+	-- schon gewürfelt: Rückfrage nennt die Würfe
+	rowFor(99006).btn._scripts.OnClick(rowFor(99006).btn, "LeftButton")
+	mock.Roll("Veldore", 55)
+	mock.given, mock.popup = {}, nil
+	rowFor(99006).de._scripts.OnClick(rowFor(99006).de)
+	check(mock.popup and mock.popup.name == "PRIOMEISTER_DE_ITEM" and mock.popup.text:find("Gewürfelt: Veldore 55", 1, true),
+		"nach einem Wurf: Rückfrage nennt ihn", mock.popup and mock.popup.text)
+	mock.AcceptPopup()
+	eq(mock.given[1] and mock.candidates[mock.given[1].index], "Zenec", "nach Bestätigung das Schwert an den Entzauberer")
+	mock.loot[2] = false
+	mock.Fire("LOOT_SLOT_CLEARED", 2)
+	mock.CloseLoot()
+
+	-- Einstellung im Reiter Plündern: nie, ab Grün, ab Blau, nur Episch
+	UI:GetMain()
+	local dd = _G.PrioMeisterDisenchantDropdown
+	eq(dd._selected, "Knopf ab Grün", "Auswahl zeigt ab Grün")
+	mock.OpenLoot({ { id = 99005 }, { id = 99006 } }, "Creature-Entzaubern-2")
+	mock.PickDropdown(dd, 3)
+	eq(PM.db.settings.deButtonQuality, 3, "ab Blau gespeichert")
+	check(deShown(99005) and not deShown(99006), "ab Blau: Knopf am blauen Umhang, nicht am grünen Schwert")
+	mock.PickDropdown(dd, 1)
+	eq(PM.db.settings.deButtonQuality, false, "nie gespeichert")
+	eq(dd._selected, "Knopf: nie", "Auswahl zeigt nie")
+	check(not deShown(99005), "nie: kein Knopf")
+	mock.PickDropdown(dd, 2)
+	PM:SetRole("disenchanter", "-")
+	UI:RefreshAll()
+	check(not deShown(99005), "ohne Entzauberer kein Knopf")
+	PM:SetRole("disenchanter", "Zenec")
+	UI:RefreshAll()
+	check(deShown(99005), "mit Entzauberer wieder da")
+	mock.CloseLoot()
+end
+
 -- Reste vergebener Items: WoW liefert für einen vergebenen Platz noch einen
 -- leeren Link ohne Item-ID, daraus darf keine Zeile „Item 60“ werden
 mock.OpenLoot({ { id = 18813 }, { id = 18205 } }, "Creature-Reste")
