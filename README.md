@@ -106,6 +106,7 @@ Im Reiter **Plündern** des Hauptfensters:
 - **Vorbelegt unter „Immer verwürfeln“:** Zul'Gurub mit Gri'leks Blut, Renatakis Zahn, Wushoolays Mähne und Hazza'rahs Traumfaden.
 - **Immer verwürfeln:** Diese Items gehen nie automatisch an Plünderhelfer oder Schatzmeister. Sie stehen immer im Panel und in der Beute-Ansage, auch unter der Plündergrenze. Mit Prio gehen sie an den Prio-Halter, sonst gibt es einen Wurf ohne Stufen.
 - Items mit Prio werden nie automatisch verteilt. Wer beim Öffnen der Beute Shift hält, verteilt nichts automatisch.
+- Beute aus einem Behälter in der eigenen Tasche, beim Angeln und aus Kräutern oder Erzadern läuft nicht über den Plündermeister. Das Addon sagt sie nicht an, verteilt nichts und zeigt kein Panel. Boss-Truhen behandelt es wie Leichen.
 - Vergaben an Plünderhelfer und Schatzmeister stehen gesammelt in einer Zeile im Chat. Graue und weiße Items an den Plünderhelfer erscheinen dort nur mit dem passenden Häkchen unter **Optionen**. Vergaben an den Schatzmeister stehen immer im eigenen Chatfenster, im Raidchat nur mit dem Häkchen „Vergaben an den Schatzmeister im Raidchat melden“ (Standard aus).
 
 ## Plündermeister-Liste
@@ -170,6 +171,8 @@ Veröffentlicht wird über GitHub, von Hand muss niemand eine Zip bauen:
 1. Version in `PrioMeister/PrioMeister.toc` und `PrioMeister/Core.lua` erhöhen, oben im Changelog in `PrioMeister/Main.lua` einen Eintrag ergänzen und seine englische Fassung in `PrioMeister/Locale.lua`.
 2. `lua5.1 scripts/changelog.lua > CHANGELOG.md` erzeugt die englischen Release-Notizen. Die Tests prüfen, dass die Datei aktuell ist.
 3. Pull Request nach `main` mergen. Hat die Version noch keinen Tag, setzt GitHub den Tag `v<Version>`, baut die Zip mit dem [BigWigs-Packager](https://github.com/BigWigsMods/packager) (Einstellungen in `.pkgmeta`) und veröffentlicht sie als GitHub-Release und auf CurseForge.
+
+Die Beschreibung auf CurseForge ändert das Release nicht. Sie steht fertig zum Einfügen in `curseforge/beschreibung.md`, erst Englisch aus `README.en.md`, dann Deutsch aus `curseforge/beschreibung.de.md`. Nach einer Änderung an einer der beiden Dateien `lua5.1 scripts/curseforge.lua > curseforge/beschreibung.md` ausführen und den Inhalt im CurseForge-Projekt unter Description ersetzen. Die Tests prüfen, dass die Datei aktuell ist.
 
 Das CurseForge-Projekt 1755238 steht in der TOC (`## X-Curse-Project-ID`). Hochladen kann der Lauf, sobald das Repo das Secret `CF_API_TOKEN` mit einem [CurseForge-API-Schlüssel](https://authors.curseforge.com/#/settings/api-tokens) hat. Ohne Schlüssel überspringt er CurseForge, das GitHub-Release entsteht trotzdem.
 

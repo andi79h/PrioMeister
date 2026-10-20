@@ -12,6 +12,7 @@ manual-changelog:
 ignore:
   - tests
   - scripts
+  - curseforge
   - logo
   - dist
   - README.md

@@ -27,6 +27,7 @@ Open the main window with `/pm` or a left-click on the minimap button. A right-c
 - **Treasurer** gets only the items on the treasurer list (e.g. scarabs and keys in AQ).
 - **Disenchanter** gets items nobody rolls for. With a disenchanter set, every armor or weapon item in the panel gets a “To disenchanter” button, no roll needed. The minimum quality is set next to the disenchanter in the Loot tab: never, green and up, blue and up or epic only, green and up by default. The button is missing while a present player has prio. For epic items the addon asks first.
 - Lists exist per instance (“All instances” plus the current one) in the Loot tab. “Always roll” items are always rolled, never given to loot helper or treasurer.
+- Loot from a container in your bags, from fishing and from herbs or ore veins does not go through the master looter. The addon does not announce it, gives nothing away and shows no panel. Boss chests are handled like corpses.
 
 ## Hand-overs
 

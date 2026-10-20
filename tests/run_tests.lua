@@ -1529,6 +1529,45 @@ eq(L.CountAwards(PM:Raid(), "loladina"), 0, "Plünderhelfer zählt nicht als eig
 eq(L.CountAwards(PM:Raid(), "nanuheal"), 0, "Schatzmeister zählt nicht als eigener Gewinn")
 eq(L.AllowedMax(PM:Raid(), "nanuheal"), 100, "Schatzmeister behält seine Stufe")
 mock.CloseLoot()
+
+-- Beute, die nicht über den Plündermeister läuft (1.22.1): Behälter aus der eigenen Tasche, Angeln,
+-- Kräuter und Erzadern. Nichts ansagen, nichts verteilen, kein Panel.
+do
+	local function opened(slots, source)
+		mock.given, mock.chat, mock.sent = {}, {}, {}
+		mock.OpenLoot(slots, source)
+		mock.RunTimers()
+	end
+	opened({ { id = 4500 }, { id = 20861 }, { id = 18813 } }, "Item-5096-0-4000000ABCDEF12")
+	eq(#mock.given, 0, "Behälter aus der Tasche: nichts an Plünderhelfer oder Schatzmeister")
+	eq(#mock.sent, 0, "Behälter aus der Tasche: keine Ansage im Raid")
+	check(not mock.ChatContains("kann diese Beute nicht erhalten"), "Behälter aus der Tasche: keine Fehlermeldung", table.concat(mock.chat, "\n"))
+	eq(#PM.lootItems, 0, "Behälter aus der Tasche: nichts im Panel")
+	check(not panel:IsShown(), "Behälter aus der Tasche: Panel bleibt zu")
+	mock.Fire("GET_ITEM_INFO_RECEIVED", 4500)
+	mock.RunTimers()
+	eq(#mock.given + #mock.sent, 0, "auch nach nachgeladenen Itemdaten nichts")
+	mock.CloseLoot()
+	-- Kraut oder Erzader: ein Objekt ohne Kandidaten für die Plündermeister-Liste
+	local savedCandidates = mock.candidates
+	mock.candidates = {}
+	opened({ { id = 4500 } }, "GameObject-0-5096-309-0-180168-0000ABCDEF")
+	eq(#mock.given + #mock.sent, 0, "Kraut: nichts verteilt, nichts angesagt")
+	check(not mock.ChatContains("kann diese Beute nicht erhalten"), "Kraut: keine Fehlermeldung", table.concat(mock.chat, "\n"))
+	mock.CloseLoot()
+	mock.candidates = savedCandidates
+	-- Boss-Truhe: auch ein Objekt, aber mit Kandidaten, also wie bisher
+	opened({ { id = 4500 }, { id = 18813 } }, "GameObject-0-5096-409-0-179703-0000ABCDEF")
+	eq(#mock.given, 1, "Boss-Truhe: Weiß an den Plünderhelfer wie bisher")
+	check(mock.SentContains("Ring der Bindung"), "Boss-Truhe: Ansage wie bisher", sentText())
+	mock.CloseLoot()
+	-- Angeln
+	mock.fishing = true
+	opened({ { id = 4500 } }, "GameObject-0-5096-309-0-35591-0000ABCDEF")
+	eq(#mock.given + #mock.sent, 0, "Angeln: nichts verteilt, nichts angesagt")
+	mock.fishing = nil
+	mock.CloseLoot()
+end
 -- nur Grau und Weiß: ohne Häkchen keine Meldung, mit Häkchen gezählt
 mock.chat, mock.sent = {}, {}
 mock.OpenLoot({ { id = 4000 }, { id = 4500 } })
@@ -3608,6 +3647,19 @@ do
 	if fh then fh:close() end
 	eq(text, render(root), "CHANGELOG.md aktuell (neu erzeugen: lua5.1 scripts/changelog.lua > CHANGELOG.md)")
 	check(text and text:find("^# PrioMeister " .. PM.version:gsub("%.", "%%.") .. " "), "CHANGELOG.md nennt die aktuelle Version", text)
+end
+
+-- Beschreibung für CurseForge: Englisch zuerst, dann Deutsch, Links absolut auf GitHub
+do
+	local root = TESTDIR .. "/.."
+	local render = assert(loadfile(root .. "/scripts/curseforge.lua"))("module")
+	local fh = io.open(root .. "/curseforge/beschreibung.md", "rb")
+	local text = fh and fh:read("*a")
+	if fh then fh:close() end
+	eq(text, render(root), "curseforge/beschreibung.md aktuell (neu erzeugen: lua5.1 scripts/curseforge.lua > curseforge/beschreibung.md)")
+	local en, de = text and text:find("# PrioMeister\n", 1, true), text and text:find("# PrioMeister (Deutsch)", 1, true)
+	check(en == 1 and de and de > en, "Beschreibung: Englisch zuerst, dann Deutsch")
+	check(text and not text:find("%]%(LICENSE"), "Beschreibung: keine relativen Links", text and text:match("%]%([^)]*%)"))
 end
 
 print(("%d bestanden, %d fehlgeschlagen"):format(passed, failed))

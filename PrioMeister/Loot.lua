@@ -43,6 +43,27 @@ function PM:LootSource(slot)
 	return (GetLootSourceInfo(slot))
 end
 
+-- Beute, die nicht über den Plündermeister läuft: ein Behälter aus der eigenen Tasche (Quelle
+-- beginnt mit „Item-“), Angeln oder, als Plündermeister, ein Objekt wie ein Kraut oder eine
+-- Erzader (Quelle „GameObject-“), bei dem kein Platz Kandidaten für die Plündermeister-Liste hat.
+-- Boss-Truhen sind auch Objekte, haben aber Kandidaten.
+function PM:PersonalLoot()
+	if IsFishingLoot and IsFishingLoot() then return true end
+	local object = false
+	for slot = 1, GetNumLootItems() do
+		local source = self:LootSource(slot)
+		if type(source) == "string" then
+			if source:find("^Item%-") then return true end
+			if source:find("^GameObject%-") then object = true end
+		end
+	end
+	if not object or not self:IsMasterLooter() then return false end
+	for slot = 1, GetNumLootItems() do
+		if self:GetCandidates(slot) then return false end
+	end
+	return true
+end
+
 -- Herkunft eines Items im offenen Plünderfenster.
 function PM:ContextForItem(itemID)
 	local slot = self:SlotOfItem(itemID)
@@ -66,6 +87,10 @@ end
 -- below: liegt unter der Plündergrenze, geht also nur per Handel.
 -- loading: WoW hat die Itemdaten noch nicht, sie kommen mit GET_ITEM_INFO_RECEIVED.
 function PM:ScanLoot()
+	if self.personalLoot then
+		self.lootItems, self.slotLinks = {}, {}
+		return
+	end
 	local items, links = {}, {}
 	local threshold = GetLootThreshold and GetLootThreshold() or 2
 	local roll = self:ActiveItemList("roll")
@@ -230,6 +255,7 @@ function PM:AutoLoot()
 	local s = self.db.settings
 	if not (s.lootHelper or s.treasurer) or not self:IsMasterLooter() then return end
 	if self.lootShift then return end -- Shift beim Öffnen: nichts automatisch
+	if self.personalLoot then return end -- läuft nicht über den Plündermeister
 	local rules = self:AutoLootRules()
 	if not next(rules.qualities) and not next(rules.items) then return end
 	local threshold = GetLootThreshold and GetLootThreshold() or 2
@@ -639,12 +665,20 @@ function PM:LOOT_OPENED()
 	self.autoGiving = {}
 	self.announcedNow = {}
 	self.lootShift = IsShiftKeyDown and IsShiftKeyDown() or false
+	self.personalLoot = false
 	if not self:IsEnabled() then
 		ns.UI:HidePanel()
 		return
 	end
 	if self.testMode then
 		self:ScanLoot()
+		return
+	end
+	-- Behälter aus der Tasche, Angeln, Kräuter, Erz: nichts ansagen, nichts verteilen, kein Panel
+	self.personalLoot = self:PersonalLoot()
+	if self.personalLoot then
+		self:ScanLoot()
+		ns.UI:HidePanel()
 		return
 	end
 	self:AutoLoot()
@@ -663,6 +697,7 @@ function PM:LOOT_CLOSED()
 	self.lootOpen = false
 	self.lootItems = {}
 	self.autoGiving = {}
+	self.personalLoot = false
 	if not self.testMode and not self.panelPinned then ns.UI:HidePanel() end
 end
 
