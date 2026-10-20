@@ -48,6 +48,8 @@ Spalten, getrennt durch Semikolon:
 | Raid | Beginn des Raids, `16.10.2026 19:06` |
 | Zeitstempel | Sekunden seit 1970, für die genaue Reihenfolge |
 
+Auf priomeister.de fügst du den Export im Prio-Run im Reiter „Vergaben“ ein. Das darf die Raidleitung auf ihrer Leitungsseite und der Plündermeister auf der Spielerseite.
+
 Die ersten zehn Spalten sind dieselben wie vor Version 1.17. Wer nur sie liest, bekommt die Vergaben wie bisher und überspringt die Würfe an der Art `Wurf`.
 
 ## Raid fortsetzen

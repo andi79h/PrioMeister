@@ -38,7 +38,7 @@ To see who in the raid has not entered prios yet without closing the sign-up on 
 
 ## Export
 
-The Awards tab exports all awards and rolls as CSV for priomeister.de or a spreadsheet. The column names and values of the export stay German in both languages, because priomeister.de reads them (e.g. type “Wurf” for rolls, “Weitergabe” for hand-overs).
+The Awards tab exports all awards and rolls as CSV for priomeister.de or a spreadsheet. On priomeister.de, paste it in the “Awards” tab of the prio run: the raid lead on the lead page, the master looter on the player page. The column names and values of the export stay German in both languages, because priomeister.de reads them (e.g. type “Wurf” for rolls, “Weitergabe” for hand-overs).
 
 ## Commands
 

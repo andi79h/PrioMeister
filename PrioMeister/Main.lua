@@ -551,7 +551,7 @@ function UI:BuildAwardsPage(page)
 		UI:ShowText("PrioMeister – Export", PM:ExportCSV({ PM:ViewRaid(page.view) }))
 	end)
 	self.Tooltip(export, "Export (CSV)",
-		"Alle Vergaben und Würfe des gewählten Raids als CSV, zum Einfügen auf priomeister.de oder für eine Tabelle. Würfe stehen als Art „Wurf“ mit Runde und Status darin.")
+		"Alle Vergaben und Würfe des gewählten Raids als CSV, zum Einfügen auf priomeister.de im Reiter „Vergaben“ des Prio-Runs oder für eine Tabelle. Einfügen dürfen Raidleitung und Plündermeister. Würfe stehen als Art „Wurf“ mit Runde und Status darin.")
 	local exportAll = self.Button(page, "Export alle Raids", CONTENT_W - 150 - 138 - 134 - 18, 22)
 	exportAll:SetPoint("LEFT", export, "RIGHT", 6, 0)
 	exportAll:SetScript("OnClick", function() UI:ShowText(T("PrioMeister – Export aller Raids"), PM:ExportText(true)) end)
