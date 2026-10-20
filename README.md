@@ -106,6 +106,7 @@ Im Reiter **Plündern** des Hauptfensters:
 - **Vorbelegt unter „Immer verwürfeln“:** Zul'Gurub mit Gri'leks Blut, Renatakis Zahn, Wushoolays Mähne und Hazza'rahs Traumfaden.
 - **Immer verwürfeln:** Diese Items gehen nie automatisch an Plünderhelfer oder Schatzmeister. Sie stehen immer im Panel und in der Beute-Ansage, auch unter der Plündergrenze. Mit Prio gehen sie an den Prio-Halter, sonst gibt es einen Wurf ohne Stufen.
 - Items mit Prio werden nie automatisch verteilt. Wer beim Öffnen der Beute Shift hält, verteilt nichts automatisch.
+- Beute aus einem Behälter in der eigenen Tasche, beim Angeln und aus Kräutern oder Erzadern läuft nicht über den Plündermeister. Das Addon sagt sie nicht an, verteilt nichts und zeigt kein Panel. Boss-Truhen behandelt es wie Leichen.
 - Vergaben an Plünderhelfer und Schatzmeister stehen gesammelt in einer Zeile im Chat. Graue und weiße Items an den Plünderhelfer erscheinen dort nur mit dem passenden Häkchen unter **Optionen**. Vergaben an den Schatzmeister stehen immer im eigenen Chatfenster, im Raidchat nur mit dem Häkchen „Vergaben an den Schatzmeister im Raidchat melden“ (Standard aus).
 
 ## Plündermeister-Liste

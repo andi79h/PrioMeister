@@ -1203,6 +1203,9 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.22.1", "20.10.2026", {
+		"Beute aus einem Behälter in der eigenen Tasche, etwa dem Immergrünkrautgehäuse, sagt das Addon nicht mehr an und verteilt sie nicht an Plünderhelfer oder Schatzmeister. Dasselbe gilt beim Angeln und für Kräuter und Erzadern. Diese Beute läuft nicht über den Plündermeister, das Zuweisen schlug fehl.",
+	} },
 	{ "1.22.0", "20.10.2026", {
 		"„An Entzauberer“ steht jetzt auch ohne Würfelrunde an jedem Item im Panel: bei Rüstung und Waffen, solange kein anwesender Spieler Prio hat. Ab welcher Qualität, stellst du im Reiter Plündern neben dem Entzauberer ein, voreingestellt ab Grün. Bei epischen Items und wenn schon jemand gewürfelt hat, fragt das Addon vorher nach.",
 	} },

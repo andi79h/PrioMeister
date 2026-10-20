@@ -588,6 +588,7 @@ function GetLootSlotInfo(slot)
 	return "Interface\\Icons\\Item" .. s.id, it[1], s.qty or 1, nil, it[2], false
 end
 local CLASSES = { Magier = "MAGE", Priester = "PRIEST", Krieger = "WARRIOR", Paladin = "PALADIN", Druide = "DRUID", Hexenmeister = "WARLOCK", ["Jäger"] = "HUNTER", Schurke = "ROGUE" }
+function IsFishingLoot() return mock.fishing and true or false end
 function GetMasterLootCandidate(slot, i)
 	local name = mock.candidates[i]
 	if not name then return nil end
