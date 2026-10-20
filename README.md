@@ -16,7 +16,7 @@ Plündermeister-Hilfe für WoW Classic Era (1.15.9). Das Addon liest die Priolis
 5. Rechts neben dem Plünderfenster erscheint das Panel. Pro Item steht dort, wer Prio hat, wer fehlt und wer schon etwas bekommen hat (orange `+1`).
 6. **Ansagen** nennt den einzigen Prio-Halter, darunter gibt **An Name** ihm das Item direkt, bei epischen Items nach Rückfrage wie bei „An Name (Wurf)“. **Würfeln** startet die Würfelrunde und sagt sie an. Rechtsklick startet einen freien Wurf, auch wenn jemand Prio hat. Die Würfe stehen unten im Panel, bis das Item vergeben ist. Darunter gibt „An Name (Wurf)“ das Item dem Gewinner, bei mehreren Exemplaren dem nächsten. Bei epischen Items fragt das Addon vorher nach, wie Blizzards Plündermeister-Liste, abschaltbar unter **Optionen**. „Beenden“ schließt die Runde: Neue Würfe zählen nicht mehr, die bisherigen bleiben gültig, und das Item lässt sich weiter an den Gewinner oder den Entzauberer geben.
 7. **Zufällig vergeben** würfelt 1 bis Anzahl der Spieler im Raid und gibt das Item dem Spieler auf diesem Platz, gezählt wie im Raidfenster durch die Gruppen 1 bis 8. Gedacht ist das etwa für Teile von Kartensets. Im Chat steht dann „zufällig vergeben“ mit dem Platz. Hat ein anwesender Spieler Prio auf das Item oder wurde dafür schon gewürfelt, fragt das Addon vorher „Sicher?“ und nennt Prio-Halter und Würfe.
-8. Würfelt niemand, gibt „An Entzauberer“ das Item an den Entzauberer. Hat schon jemand gewürfelt oder ist es eine Prio-Runde, fragt das Addon vorher nach und nennt die Würfe.
+8. Würfelt niemand, gibt „An Entzauberer“ das Item an den Entzauberer. Hat schon jemand gewürfelt oder ist es eine Prio-Runde, fragt das Addon vorher nach und nennt die Würfe. Ohne Würfelrunde geht es auch: Ist ein Entzauberer bestimmt, steht „An Entzauberer“ an jedem Item im Panel, bei Rüstung und Waffen ab der Qualität, die du im Reiter **Plündern** neben dem Entzauberer einstellst (nie, ab Grün, ab Blau oder nur Episch, voreingestellt ab Grün). Hat ein anwesender Spieler Prio, fehlt der Knopf. Bei epischen Items fragt das Addon vorher nach.
 9. Items unter der Plündergrenze, die auf „Immer verwürfeln“ stehen, erscheinen trotzdem im Panel und in der Ansage. Du plünderst sie selbst und handelst sie an den Gewinner. Die Frage von WoW, ob du ein gebundenes Item aufheben willst, bleibt dabei bestehen, denn das Addon plündert nie selbst. Den Handel trägt das Addon als Vergabe ein, wenn der Empfänger gewürfelt hat, Prio hat, zufällig gezogen oder als Entzauberer gewählt wurde. Behältst du das Item selbst, trägst du es mit `/pm vergabe Name` ein.
 10. Jede bestätigte Vergabe steht im Raidchat, damit ein anderer Spieler sie mitschreiben kann, zum Beispiel:
    `Gustl erhält [Ring der Bindung] – freier Wurf 88 (1-100) – würfelt ab jetzt mit /roll 99`
@@ -47,6 +47,8 @@ Spalten, getrennt durch Semikolon:
 | Instanz | Name der Instanz, sofern bekannt |
 | Raid | Beginn des Raids, `16.10.2026 19:06` |
 | Zeitstempel | Sekunden seit 1970, für die genaue Reihenfolge |
+
+Auf priomeister.de fügst du den Export im Prio-Run im Reiter „Vergaben“ ein. Das darf die Raidleitung auf ihrer Leitungsseite und der Plündermeister auf der Spielerseite.
 
 Die ersten zehn Spalten sind dieselben wie vor Version 1.17. Wer nur sie liest, bekommt die Vergaben wie bisher und überspringt die Würfe an der Art `Wurf`.
 

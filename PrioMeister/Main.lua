@@ -15,6 +15,7 @@ UI.LOGO = MEDIA .. "Logo.tga"
 UI.LOGO_ROUND = MEDIA .. "Round.tga"
 
 local MAIN_W, MAIN_H = 620, 570
+local DE_DROPDOWN_W = 110
 local CONTENT_W = MAIN_W - 32
 -- Reiter enden bei -58, darunter je 10 Abstand bis zur Trennlinie und bis zum Inhalt
 local DIVIDER_Y, PAGE_TOP = -68, -78
@@ -550,7 +551,7 @@ function UI:BuildAwardsPage(page)
 		UI:ShowText("PrioMeister – Export", PM:ExportCSV({ PM:ViewRaid(page.view) }))
 	end)
 	self.Tooltip(export, "Export (CSV)",
-		"Alle Vergaben und Würfe des gewählten Raids als CSV, zum Einfügen auf priomeister.de oder für eine Tabelle. Würfe stehen als Art „Wurf“ mit Runde und Status darin.")
+		"Alle Vergaben und Würfe des gewählten Raids als CSV, zum Einfügen auf priomeister.de im Reiter „Vergaben“ des Prio-Runs oder für eine Tabelle. Einfügen dürfen Raidleitung und Plündermeister. Würfe stehen als Art „Wurf“ mit Runde und Status darin.")
 	local exportAll = self.Button(page, "Export alle Raids", CONTENT_W - 150 - 138 - 134 - 18, 22)
 	exportAll:SetPoint("LEFT", export, "RIGHT", 6, 0)
 	exportAll:SetScript("OnClick", function() UI:ShowText(T("PrioMeister – Export aller Raids"), PM:ExportText(true)) end)
@@ -783,9 +784,30 @@ function UI:BuildLootPage(page)
 
 	page.de = self:CreateRoleButton(page, "disenchanter", 200)
 	page.de:SetPoint("TOPLEFT", 0, -192)
-	local deHint = self.Label(page, "GameFontHighlightSmall", CONTENT_W - 210)
+	-- Knopf „An Entzauberer“ an jedem Item im Panel ab dieser Qualität: wie die Plündergrenze oben,
+	-- Beschriftung davor und die Qualitäten in ihren Farben, bündig mit dem rechten Rand
+	local deQuality = CreateFrame("DropdownButton", "PrioMeisterDisenchantDropdown", page, "WowStyle1DropdownTemplate")
+	deQuality:SetWidth(DE_DROPDOWN_W)
+	deQuality:SetPoint("LEFT", page.de, "LEFT", CONTENT_W - DE_DROPDOWN_W, 0)
+	deQuality:SetupMenu(function(_, root)
+		local function isSelected(value) return value == (PM.db.settings.deButtonQuality or "nie") end
+		local function pick(value)
+			PM.db.settings.deButtonQuality = (value ~= "nie") and value or false
+			UI:RefreshAll()
+		end
+		root:CreateRadio(T("nie"), isSelected, pick, "nie")
+		for q = 2, 4 do root:CreateRadio(PM:QualityLabel(q), isSelected, pick, q) end
+	end)
+	self.Tooltip(deQuality, "Knopf „An Entzauberer“",
+		"Ab welcher Qualität im Panel an jedem Item der Knopf „An Entzauberer“ steht, auch ohne Würfelrunde. Gilt für Rüstung und Waffen, solange kein anwesender Spieler Prio hat.")
+	page.deQuality = deQuality
+	local deLabel = self.Label(page, "GameFontHighlightSmall")
+	deLabel:SetText(T("Knopf ab:"))
+	deLabel:SetPoint("RIGHT", deQuality, "LEFT", -6, 0)
+	page.deLabel = deLabel
+	local deHint = self.Label(page, "GameFontHighlightSmall", CONTENT_W - 210 - DE_DROPDOWN_W - 80)
 	deHint:SetPoint("LEFT", page.de, "RIGHT", 10, 0)
-	deHint:SetText(T("bekommt Items, auf die niemand würfelt (Knopf im Panel)"))
+	deHint:SetText(T("bekommt, worauf niemand würfelt"))
 
 	-- Listen je Instanz: links die Instanz, oben rechts die Art der Liste
 	page.kind = "treasurer"
@@ -894,6 +916,7 @@ function UI:BuildLootPage(page)
 		end
 		page.ml:SetText(s.masterLooterName or format(T("ich (%s)"), UnitName("player") or "?"))
 		if page.threshold.GenerateMenu then page.threshold:GenerateMenu() end
+		if page.deQuality.GenerateMenu then page.deQuality:GenerateMenu() end
 		for q, b in pairs(page.qualityButtons) do
 			if s.autoLootQualities[q] then
 				b:SetText(format(T("%s: ja"), PM:QualityLabel(q)))
@@ -1180,6 +1203,9 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.22.0", "20.10.2026", {
+		"„An Entzauberer“ steht jetzt auch ohne Würfelrunde an jedem Item im Panel: bei Rüstung und Waffen, solange kein anwesender Spieler Prio hat. Ab welcher Qualität, stellst du im Reiter Plündern neben dem Entzauberer ein, voreingestellt ab Grün. Bei epischen Items und wenn schon jemand gewürfelt hat, fragt das Addon vorher nach.",
+	} },
 	{ "1.21.1", "20.10.2026", {
 		"PrioMeister hat ein Logo: im Fensterkopf, auf dem Minimap-Knopf und als Symbol in der Addon-Liste. Wer im laufenden Spiel aktualisiert, muss WoW einmal neu starten, damit die Bilder erscheinen.",
 	} },

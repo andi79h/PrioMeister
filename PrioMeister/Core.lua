@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.21.1"
+PM.version = "1.22.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -45,6 +45,7 @@ local DEFAULTS = {
 	helperLowChat = false,    -- graue und weiße Items an den Plünderhelfer im Chat melden
 	treasurerChat = false,    -- Vergaben an den Schatzmeister im Raidchat melden
 	confirmEpicWinner = true, -- „An Name“: bei epischen Items vorher nachfragen
+	deButtonQuality = 2,      -- „An Entzauberer“ an jedem Item im Panel ab dieser Qualität, false: nie
 	usableRolls = true,       -- Würfe auf Items, die die Klasse nicht tragen kann, zählen nicht
 	lootLists = L.DefaultLootLists(), -- Schatzmeister: Item-IDs je Instanz, 0 = alle Instanzen
 	rollLists = L.DefaultRollLists(), -- immer verwürfeln: Item-IDs je Instanz, 0 = alle Instanzen
@@ -137,6 +138,14 @@ function PM:ShareLabel(channel, target)
 		end
 	end
 	return channel
+end
+
+-- Entzaubern lassen sich nur Rüstung (Klasse 4) und Waffen (Klasse 2). Die Klasse kennt der
+-- Client auch ohne geladene Itemdaten.
+function PM:Disenchantable(itemID)
+	local instant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+	local classID = instant and itemID and select(6, instant(itemID))
+	return classID == 2 or classID == 4
 end
 
 function PM:QualityLabel(q)

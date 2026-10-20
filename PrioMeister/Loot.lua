@@ -361,6 +361,77 @@ function PM:GiveToDisenchanter(confirmed)
 		s.link or T("Das Item"), de)
 end
 
+-- „An Entzauberer“ an jedem Item im Panel, auch ohne Würfelrunde: Entzauberer bestimmt, Rüstung
+-- oder Waffe ab der Qualität aus dem Reiter Plündern, und kein anwesender Spieler hat Prio.
+function PM:ShowDisenchantButton(d)
+	local s = self.db.settings
+	local min = s.deButtonQuality
+	if not (s.disenchanter and min and d and d.itemID and d.res) or d.loading then return false end
+	local quality = d.quality or select(3, GetItemInfo(d.itemID))
+	if not quality or quality < min then return false end
+	return self:Disenchantable(d.itemID) and not L.HasHolders(d.res)
+end
+
+Popup("PRIOMEISTER_DE_ITEM", {
+	text = "%s\n\nSicher an Entzauberer %s geben?",
+	button1 = YES, button2 = NO,
+	OnAccept = function(_, data)
+		if data then PM:GiveItemToDisenchanter(data.itemID, data.slot, true) end
+	end,
+	timeout = 0, whileDead = true, hideOnEscape = true,
+})
+
+-- Gibt ein Item der Beute ohne Würfelrunde an den Entzauberer („An Entzauberer“ in der Zeile des
+-- Items). Rückfrage bei epischen Items und wenn um genau dieses Item schon gewürfelt wurde.
+-- confirmed: die Rückfrage wurde bestätigt.
+function PM:GiveItemToDisenchanter(itemID, slot, confirmed)
+	if not self:IsEnabled() then
+		self:Print("PrioMeister ist ausgeschaltet (Optionen).")
+		return
+	end
+	local de = self.db.settings.disenchanter
+	if not de then
+		self:Print("Kein Entzauberer bestimmt.")
+		return
+	end
+	local link, quality, source
+	if self.testMode then
+		link = self:ItemLabel(itemID)
+		for _, it in ipairs(self.testItems or {}) do
+			if it.itemID == itemID and it.link then link = it.link end
+		end
+		quality = select(3, GetItemInfo(itemID))
+	else
+		local l, id = self:LootSlotItem(slot)
+		if not (self.lootOpen and id and L.Canon(id) == L.Canon(itemID)) then
+			self:Print("Das Item liegt nicht mehr in der Beute.")
+			return
+		end
+		link, quality, source = l, select(5, GetLootSlotInfo(slot)), self:LootSource(slot)
+	end
+	if not confirmed then
+		local s = L.ActiveSession(self:Raid())
+		local same = s and L.Canon(s.itemID) == L.Canon(itemID) and (not s.source or not source or s.source == source)
+		local rolls = same and L.OpenRolls(s) or {}
+		if #rolls > 0 or (quality or 0) >= 4 then
+			StaticPopup_Show("PRIOMEISTER_DE_ITEM", L.ConfirmText(link, nil, rolls), de, { itemID = itemID, slot = slot })
+			return
+		end
+	end
+	if self.testMode then
+		self:ConfirmAward({ key = L.NameKey(de), name = de, itemID = itemID, link = link, reason = "de" })
+		return
+	end
+	if self:BelowThreshold(slot) then
+		self:AddTradeIntent(itemID, L.NameKey(de), "de")
+		self:Print("%s an Entzauberer %s: selbst plündern und handeln, das Addon trägt den Handel als Entzaubern ein.", link, de)
+		return
+	end
+	if not self:GiveSlot(slot, de, "de") then
+		self:Print("Entzauberer %s kann diese Beute nicht erhalten (nicht in der Nähe?).", de)
+	end
+end
+
 Popup("PRIOMEISTER_WINNER", {
 	text = "%s\n\nAn %s geben?",
 	button1 = YES, button2 = NO,
