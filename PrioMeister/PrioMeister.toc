@@ -1,0 +1,16 @@
+## Interface: 11509
+## Title: PrioMeister
+## Notes: Master looter helper: prio list from priomeister.de, roll tiers 100/99/98, 50 and recipe rolls, loot helper, treasurer and lists per instance, disenchanter, awards by trade, award log to share.
+## Notes-deDE: Plündermeister-Hilfe: Prioliste von priomeister.de, Würfelstufen 100/99/98, 50er- und Rezept-Würfe, Plünderhelfer, Schatzmeister und Listen je Instanz, Entzauberer, Vergabe per Handel, Vergabeprotokoll zum Teilen.
+## Author: Andreas Herbert (andi79h)
+## X-License: MIT
+## Version: 1.21.1
+## IconTexture: Interface\AddOns\PrioMeister\Media\Icon.tga
+## SavedVariables: PrioMeisterDB
+
+Locale.lua
+Logic.lua
+Core.lua
+UI.lua
+Main.lua
+Loot.lua
