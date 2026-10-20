@@ -63,6 +63,14 @@ The Awards tab exports all awards and rolls as CSV for priomeister.de or a sprea
 
 The German commands (`/pm stand`, `/pm erinnern`, `/pm teilen gilde` …) work as well.
 
+## Supported game versions
+
+WoW Classic 1.15.9: Classic Era, Hardcore and Season of Discovery realms, which all run on the same client. Burning Crusade Classic Anniversary, Mists of Pandaria Classic and retail are not supported.
+
+## Bug reports
+
+Please use the [bug report form on GitHub](https://github.com/andi79h/PrioMeister/issues/new/choose), in English or German.
+
 ## License
 
 MIT, see [LICENSE.txt](LICENSE.txt).

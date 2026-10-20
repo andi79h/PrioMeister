@@ -143,6 +143,14 @@ Darunter legst du die angehefteten Spieler fest.
 | `/pm helfer Name`, `/pm schatzmeister Name`, `/pm entzauberer Name` | Rollen setzen, `-` leert |
 | `/pm test` | Testmodus ohne Raid, dazu `/pm testwurf Name 87 99` und `/pm vergabe Name` |
 
+## Spielversionen
+
+WoW Classic 1.15.9: Realms von Classic Era, Hardcore und Season of Discovery, sie laufen alle mit demselben Client. Burning Crusade Classic Anniversary, Mists of Pandaria Classic und Retail unterstützt PrioMeister nicht.
+
+## Fehler melden
+
+Über das [Formular auf GitHub](https://github.com/andi79h/PrioMeister/issues/new/choose), auf Deutsch oder Englisch.
+
 ## Tests
 
 Die Tests laufen außerhalb des Spiels mit Lua 5.1 und einer Nachbildung der Classic-Era-Schnittstellen:
