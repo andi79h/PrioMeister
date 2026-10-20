@@ -15,7 +15,7 @@ UI.LOGO = MEDIA .. "Logo.tga"
 UI.LOGO_ROUND = MEDIA .. "Round.tga"
 
 local MAIN_W, MAIN_H = 620, 570
-local DE_DROPDOWN_W = 130
+local DE_DROPDOWN_W = 110
 local CONTENT_W = MAIN_W - 32
 -- Reiter enden bei -58, darunter je 10 Abstand bis zur Trennlinie und bis zum Inhalt
 local DIVIDER_Y, PAGE_TOP = -68, -78
@@ -784,7 +784,8 @@ function UI:BuildLootPage(page)
 
 	page.de = self:CreateRoleButton(page, "disenchanter", 200)
 	page.de:SetPoint("TOPLEFT", 0, -192)
-	-- Knopf „An Entzauberer“ an jedem Item im Panel ab dieser Qualität, bündig mit dem rechten Rand
+	-- Knopf „An Entzauberer“ an jedem Item im Panel ab dieser Qualität: wie die Plündergrenze oben,
+	-- Beschriftung davor und die Qualitäten in ihren Farben, bündig mit dem rechten Rand
 	local deQuality = CreateFrame("DropdownButton", "PrioMeisterDisenchantDropdown", page, "WowStyle1DropdownTemplate")
 	deQuality:SetWidth(DE_DROPDOWN_W)
 	deQuality:SetPoint("LEFT", page.de, "LEFT", CONTENT_W - DE_DROPDOWN_W, 0)
@@ -794,15 +795,19 @@ function UI:BuildLootPage(page)
 			PM.db.settings.deButtonQuality = (value ~= "nie") and value or false
 			UI:RefreshAll()
 		end
-		root:CreateRadio(T("Knopf: nie"), isSelected, pick, "nie")
-		for q = 2, 4 do root:CreateRadio(format(T("Knopf ab %s"), PM.QUALITY_TEXT[q]), isSelected, pick, q) end
+		root:CreateRadio(T("nie"), isSelected, pick, "nie")
+		for q = 2, 4 do root:CreateRadio(PM:QualityLabel(q), isSelected, pick, q) end
 	end)
 	self.Tooltip(deQuality, "Knopf „An Entzauberer“",
 		"Ab welcher Qualität im Panel an jedem Item der Knopf „An Entzauberer“ steht, auch ohne Würfelrunde. Gilt für Rüstung und Waffen, solange kein anwesender Spieler Prio hat.")
 	page.deQuality = deQuality
-	local deHint = self.Label(page, "GameFontHighlightSmall", CONTENT_W - 210 - DE_DROPDOWN_W - 10)
+	local deLabel = self.Label(page, "GameFontHighlightSmall")
+	deLabel:SetText(T("Knopf ab:"))
+	deLabel:SetPoint("RIGHT", deQuality, "LEFT", -6, 0)
+	page.deLabel = deLabel
+	local deHint = self.Label(page, "GameFontHighlightSmall", CONTENT_W - 210 - DE_DROPDOWN_W - 80)
 	deHint:SetPoint("LEFT", page.de, "RIGHT", 10, 0)
-	deHint:SetText(T("bekommt Items, auf die niemand würfelt"))
+	deHint:SetText(T("bekommt, worauf niemand würfelt"))
 
 	-- Listen je Instanz: links die Instanz, oben rechts die Art der Liste
 	page.kind = "treasurer"

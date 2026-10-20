@@ -396,7 +396,7 @@ EN["Setzt bei Bedarf zuerst den Plündermeister und danach die Grenze. Grau und 
 EN["bekommt:"] = "receives:"
 EN["alles in den Qualitäten mit „ja“, was auf keiner der Listen unten steht"] = "everything in the qualities marked “yes” that is not on one of the lists below"
 EN["bekommt nur die Items der Liste unten"] = "receives only the items of the list below"
-EN["bekommt Items, auf die niemand würfelt"] = "receives items nobody rolls for"
+EN["bekommt, worauf niemand würfelt"] = "receives what nobody rolls for"
 EN["Noch leer. Items per Shift-Klick ins Feld unten verlinken, hineinziehen oder die Item-ID eintippen."] = "Still empty. Link items into the field below with shift-click, drag them in or type the item ID."
 EN["Item für die gewählte Instanz: Shift-Klick, hineinziehen oder Item-ID"] = "Item for the selected instance: shift-click, drag in or item ID"
 EN["Es gilt jeweils „Alle Instanzen“ plus die Liste der Instanz, in der du gerade bist. Items mit Prio werden nie automatisch verteilt, Shift beim Öffnen der Beute verteilt nichts automatisch. Items unter der Plündergrenze plünderst du selbst und handelst sie an den Gewinner, das Addon trägt den Handel ein."] = "Always “All instances” plus the list of the instance you are currently in applies. Items with prio are never distributed automatically, holding Shift when opening the loot distributes nothing automatically. You loot items below the loot threshold yourself and trade them to the winner, the addon records the trade."
@@ -701,8 +701,8 @@ EN["Der Export für priomeister.de bleibt in beiden Sprachen gleich, mit deutsch
 -- Changelog 1.22.0 und „An Entzauberer“ ohne Würfelrunde
 EN["„An Entzauberer“ steht jetzt auch ohne Würfelrunde an jedem Item im Panel: bei Rüstung und Waffen, solange kein anwesender Spieler Prio hat. Ab welcher Qualität, stellst du im Reiter Plündern neben dem Entzauberer ein, voreingestellt ab Grün. Bei epischen Items und wenn schon jemand gewürfelt hat, fragt das Addon vorher nach."] = "“To disenchanter” now appears on every item in the panel, without a roll: for armor and weapons, as long as no present player has prio. Set the minimum quality in the Loot tab next to the disenchanter, green and up by default. For epic items and when someone has already rolled, the addon asks first."
 EN["Gibt das Item ohne Würfelrunde an den Entzauberer. Der Knopf steht bei Rüstung und Waffen ab der Qualität, die im Reiter Plündern beim Entzauberer eingestellt ist, und nur, solange kein anwesender Spieler Prio hat. Bei epischen Items und wenn schon jemand gewürfelt hat, fragt das Addon vorher nach."] = "Gives the item to the disenchanter without a roll. The button appears on armor and weapons from the quality set next to the disenchanter in the Loot tab, and only as long as no present player has prio. For epic items and when someone has already rolled, the addon asks first."
-EN["Knopf: nie"] = "Button: never"
-EN["Knopf ab %s"] = "Button: %s and up"
+EN["Knopf ab:"] = "Button from:"
+EN["nie"] = "never"
 EN["Knopf „An Entzauberer“"] = "“To disenchanter” button"
 EN["Ab welcher Qualität im Panel an jedem Item der Knopf „An Entzauberer“ steht, auch ohne Würfelrunde. Gilt für Rüstung und Waffen, solange kein anwesender Spieler Prio hat."] = "From which quality every item in the panel gets the “To disenchanter” button, even without a roll. Applies to armor and weapons as long as no present player has prio."
 -- Changelog 1.21.1

@@ -1354,14 +1354,20 @@ do
 	-- Einstellung im Reiter Plündern: nie, ab Grün, ab Blau, nur Episch
 	UI:GetMain()
 	local dd = _G.PrioMeisterDisenchantDropdown
-	eq(dd._selected, "Knopf ab Grün", "Auswahl zeigt ab Grün")
+	eq(dd._selected, PM:QualityLabel(2), "Auswahl zeigt Grün in seiner Farbe wie die Plündergrenze")
+	check(dd._entries[1].text == "nie" and dd._entries[4].text == PM:QualityLabel(4) and PM:QualityLabel(4):find("^|c"),
+		"Einträge: nie, dann die Qualitäten farbig", dd._entries[4] and dd._entries[4].text)
+	local mainPage = UI:GetMain().pages.loot
+	eq(mainPage.deLabel:GetText(), "Knopf ab:", "Beschriftung vor der Auswahl")
+	local lp = mainPage.deLabel._points[1]
+	check(lp and lp[1] == "RIGHT" and lp[2] == dd and lp[3] == "LEFT", "Beschriftung steht links an der Auswahl")
 	mock.OpenLoot({ { id = 99005 }, { id = 99006 } }, "Creature-Entzaubern-2")
 	mock.PickDropdown(dd, 3)
 	eq(PM.db.settings.deButtonQuality, 3, "ab Blau gespeichert")
 	check(deShown(99005) and not deShown(99006), "ab Blau: Knopf am blauen Umhang, nicht am grünen Schwert")
 	mock.PickDropdown(dd, 1)
 	eq(PM.db.settings.deButtonQuality, false, "nie gespeichert")
-	eq(dd._selected, "Knopf: nie", "Auswahl zeigt nie")
+	eq(dd._selected, "nie", "Auswahl zeigt nie")
 	check(not deShown(99005), "nie: kein Knopf")
 	mock.PickDropdown(dd, 2)
 	PM:SetRole("disenchanter", "-")
