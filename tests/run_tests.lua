@@ -3649,5 +3649,18 @@ do
 	check(text and text:find("^# PrioMeister " .. PM.version:gsub("%.", "%%.") .. " "), "CHANGELOG.md nennt die aktuelle Version", text)
 end
 
+-- Beschreibung für CurseForge: Englisch zuerst, dann Deutsch, Links absolut auf GitHub
+do
+	local root = TESTDIR .. "/.."
+	local render = assert(loadfile(root .. "/scripts/curseforge.lua"))("module")
+	local fh = io.open(root .. "/curseforge/beschreibung.md", "rb")
+	local text = fh and fh:read("*a")
+	if fh then fh:close() end
+	eq(text, render(root), "curseforge/beschreibung.md aktuell (neu erzeugen: lua5.1 scripts/curseforge.lua > curseforge/beschreibung.md)")
+	local en, de = text and text:find("# PrioMeister\n", 1, true), text and text:find("# PrioMeister (Deutsch)", 1, true)
+	check(en == 1 and de and de > en, "Beschreibung: Englisch zuerst, dann Deutsch")
+	check(text and not text:find("%]%(LICENSE"), "Beschreibung: keine relativen Links", text and text:match("%]%([^)]*%)"))
+end
+
 print(("%d bestanden, %d fehlgeschlagen"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)

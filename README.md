@@ -172,6 +172,8 @@ Veröffentlicht wird über GitHub, von Hand muss niemand eine Zip bauen:
 2. `lua5.1 scripts/changelog.lua > CHANGELOG.md` erzeugt die englischen Release-Notizen. Die Tests prüfen, dass die Datei aktuell ist.
 3. Pull Request nach `main` mergen. Hat die Version noch keinen Tag, setzt GitHub den Tag `v<Version>`, baut die Zip mit dem [BigWigs-Packager](https://github.com/BigWigsMods/packager) (Einstellungen in `.pkgmeta`) und veröffentlicht sie als GitHub-Release und auf CurseForge.
 
+Die Beschreibung auf CurseForge ändert das Release nicht. Sie steht fertig zum Einfügen in `curseforge/beschreibung.md`, erst Englisch aus `README.en.md`, dann Deutsch aus `curseforge/beschreibung.de.md`. Nach einer Änderung an einer der beiden Dateien `lua5.1 scripts/curseforge.lua > curseforge/beschreibung.md` ausführen und den Inhalt im CurseForge-Projekt unter Description ersetzen. Die Tests prüfen, dass die Datei aktuell ist.
+
 Das CurseForge-Projekt 1755238 steht in der TOC (`## X-Curse-Project-ID`). Hochladen kann der Lauf, sobald das Repo das Secret `CF_API_TOKEN` mit einem [CurseForge-API-Schlüssel](https://authors.curseforge.com/#/settings/api-tokens) hat. Ohne Schlüssel überspringt er CurseForge, das GitHub-Release entsteht trotzdem.
 
 ## Lizenz
