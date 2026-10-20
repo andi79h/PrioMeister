@@ -1,0 +1,78 @@
+name: Fehlermeldung
+description: Etwas in PrioMeister funktioniert nicht wie erwartet.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für die Meldung! Je mehr du ausfüllst, desto schneller lässt sich der Fehler finden.
+        English? Use the form “Bug report”.
+  - type: input
+    id: version
+    attributes:
+      label: Addon-Version
+      description: Steht im Titel des Hauptfensters (`/pm`), zum Beispiel 1.21.1.
+      placeholder: "1.21.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: realm
+    attributes:
+      label: Realm-Art
+      options:
+        - Classic Era
+        - Hardcore
+        - Season of Discovery
+        - Andere
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Spielsprache
+      options:
+        - Deutsch
+        - English
+        - Français
+        - Español
+        - Русский
+        - Andere
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Was ist passiert?
+      description: Was hast du gemacht, und was ging schief?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Was hast du erwartet?
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachstellen
+      description: Zum Beispiel wer was gewürfelt hat, welchen Knopf du gedrückt hast, ob du Plündermeister warst.
+      placeholder: |
+        1. Prioliste importieren
+        2. Beute von … öffnen
+        3. Auf … klicken
+  - type: textarea
+    id: error
+    attributes:
+      label: Lua-Fehler
+      description: Füge den Fehlertext aus dem Fehlerfenster oder aus BugSack ein. Fehler zeigt WoW nach `/console scriptErrors 1` an.
+      render: text
+  - type: textarea
+    id: export
+    attributes:
+      label: Vergaben und Würfe
+      description: Geht es um Vergaben oder Würfe, füge die passenden Zeilen aus `/pm export` ein.
+      render: text
+  - type: textarea
+    id: addons
+    attributes:
+      label: Andere Beute-Addons
+      description: Zum Beispiel RCLootCouncil, Gargul oder LootReserve, falls sie gleichzeitig laufen.

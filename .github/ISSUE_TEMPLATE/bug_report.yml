@@ -1,0 +1,78 @@
+name: Bug report
+description: Something in PrioMeister does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! The more of this you fill in, the faster the bug can be found.
+        Lieber auf Deutsch? Nimm das Formular „Fehlermeldung“.
+  - type: input
+    id: version
+    attributes:
+      label: Addon version
+      description: Shown in the title of the main window (`/pm`), for example 1.21.1.
+      placeholder: "1.21.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: realm
+    attributes:
+      label: Realm type
+      options:
+        - Classic Era
+        - Hardcore
+        - Season of Discovery
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Game language
+      options:
+        - English
+        - Deutsch
+        - Français
+        - Español
+        - Русский
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, and what went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: For example who rolled what, which button you clicked, whether you were master looter.
+      placeholder: |
+        1. Import the prio list
+        2. Open the loot of …
+        3. Click …
+  - type: textarea
+    id: error
+    attributes:
+      label: Lua error
+      description: Paste the error text from the error window or from BugSack. To show errors, type `/console scriptErrors 1`.
+      render: text
+  - type: textarea
+    id: export
+    attributes:
+      label: Awards and rolls
+      description: If the bug is about awards or rolls, paste the relevant lines from `/pm export`.
+      render: text
+  - type: textarea
+    id: addons
+    attributes:
+      label: Other loot addons
+      description: For example RCLootCouncil, Gargul or LootReserve, if they are active at the same time.
