@@ -34,6 +34,15 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: CurseForge-Schlüssel prüfen
+        # vor jedem Release, damit ein abgelaufener oder falscher Schlüssel auffällt, bevor ein Tag entsteht
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          if [ -z "$CF_API_TOKEN" ]; then echo "Kein CF_API_TOKEN, CurseForge wird übersprungen."; exit 0; fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H "x-api-token: $CF_API_TOKEN" https://wow.curseforge.com/api/game/wow/versions)
+          if [ "$code" != 200 ]; then echo "::error::CurseForge lehnt CF_API_TOKEN ab (HTTP $code)."; exit 1; fi
+          echo "CurseForge-Schlüssel gültig."
       - name: Version aus der TOC
         id: version
         env:
