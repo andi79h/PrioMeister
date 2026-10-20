@@ -1,0 +1,18 @@
+# Paketbau mit dem BigWigs-Packager (GitHub Actions, siehe .github/workflows/release.yml).
+# Das Addon liegt im Unterordner PrioMeister, move-folders hebt es in die oberste Ebene der Zip.
+package-as: PrioMeister
+
+move-folders:
+  PrioMeister/PrioMeister: PrioMeister
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - tests
+  - scripts
+  - logo
+  - dist
+  - README.md
+  - README.en.md

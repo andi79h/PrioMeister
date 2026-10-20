@@ -1,0 +1,62 @@
+# Tests bei jedem Push und Pull Request. Auf main: Hat die Version in PrioMeister.toc noch keinen Tag,
+# setzt der Lauf den Tag v<Version>, baut die Zip mit dem BigWigs-Packager (.pkgmeta) und veröffentlicht
+# sie als GitHub-Release und auf CurseForge (Projekt-ID in der TOC, Schlüssel im Secret CF_API_TOKEN).
+name: Tests und Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Lua 5.1 installieren
+        run: sudo apt-get update -q && sudo apt-get install -y -q lua5.1
+      - name: Tests
+        run: lua5.1 tests/run_tests.lua
+      - name: Keine neuen globalen Variablen
+        run: |
+          extra=$(for f in PrioMeister/*.lua; do luac5.1 -l -p "$f"; done | awk '/SETGLOBAL/ { print $NF }' | sort -u | grep -v -x -E 'PrioMeisterDB|SLASH_PRIOMEISTER[0-9]+' || true)
+          if [ -n "$extra" ]; then echo "Neue globale Variablen: $extra"; exit 1; fi
+
+  release:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Version aus der TOC
+        id: version
+        run: |
+          v=$(sed -n 's/^## Version: *//p' PrioMeister/PrioMeister.toc | tr -d '\r')
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$v" > /dev/null; then
+            echo "Version $v ist schon veröffentlicht, nichts zu tun."
+            echo "neu=nein" >> "$GITHUB_OUTPUT"
+          else
+            echo "neu=ja" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Tag setzen
+        if: steps.version.outputs.neu == 'ja'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.version.outputs.version }}" -m "PrioMeister ${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+      - name: Zip bauen und veröffentlichen
+        if: steps.version.outputs.neu == 'ja'
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -u  # Unix-Zeilenenden: die Zip enthält genau die getesteten Dateien
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
