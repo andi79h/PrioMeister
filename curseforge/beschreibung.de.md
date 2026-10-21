@@ -20,6 +20,7 @@ Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Re
 - **Verzicht:** Wer Prio hat und das Item nicht will, würfelt /roll 1. Dann ist die nächste Prio dran, die eigene Prio bleibt für ein späteres Exemplar.
 - **Nicht tragbare Items:** Würfe und Prios auf Items, die die Klasse nicht tragen kann (Rüstungsart, Waffenart, Klassenbeschränkung), zählen nicht.
 - **Gleichstand:** „Stichwurf“ lässt die Gleichplatzierten mit derselben Stufe noch einmal würfeln.
+- **Namen ohne Akzente:** Wie priomeister.de vergleicht das Addon Namen ohne Akzente. Steht auf der Liste „Leryssia“ und heißt der Charakter im Spiel „Leryssiá“, gilt der Eintrag für diesen Charakter. Im Chat steht dann einmal „Prioliste: Leryssia ist Leryssiá im Raid.“ Wer später in den Raid kommt, wird dann zugeordnet. Das gilt auch für den Priocheck und für Namen in Befehlen wie `/pm vergabe Name`. Der exakte Name gewinnt. Passen zwei Spieler im Raid zum selben Namen ohne Akzente und keiner exakt, ordnet das Addon niemanden zu.
 
 ## Rollen und Listen
 

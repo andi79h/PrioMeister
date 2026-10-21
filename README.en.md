@@ -20,6 +20,7 @@ Open the main window with `/pm` or a left-click on the minimap button. A right-c
 - **Pass:** a prio holder who does not want the item rolls /roll 1. The next prio is up, the prio stays for a later copy.
 - **Unusable items:** rolls and prios on items the class cannot use (armor type, weapon type, class restriction) do not count.
 - **Ties:** “Tiebreak” lets the tied players roll again with the same tier.
+- **Names without accents:** like priomeister.de, the addon compares names without accents. If the list says “Leryssia” and the character in the game is “Leryssiá”, the entry counts for that character. The chat then shows “Prio list: Leryssia is Leryssiá in the raid.” once. Players who join later are matched when they arrive. This also applies to the priocheck and to names in commands such as `/pm award Name`. The exact name wins. If two players in the raid match the same name without accents and neither is exact, the addon matches no one.
 
 ## Roles and lists
 
