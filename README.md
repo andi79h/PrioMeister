@@ -91,6 +91,7 @@ Eine Weitergabe zählt wie eine neue Vergabe an den Empfänger. Hat er Prio auf 
 - Bei **Gleichstand** an der Spitze erscheint im Panel der Knopf „Stichwurf“. Die Gleichplatzierten stechen mit derselben Stufe wie beim ersten Wurf, alle anderen Würfe zählen dann nicht. Steht es wieder gleich, folgt ein weiterer Stichwurf. Das Protokoll nennt beide Würfe, die Stufe sinkt nur einmal.
 - Ein Wurf zählt nur für das Exemplar, für das gewürfelt wurde. Das Addon erkennt die Beute an ihrer Leiche oder Truhe.
 - Steht ein Spieler doppelt auf der Liste, gilt der letzte Stand mit den meisten Items.
+- **Namen ohne Akzente:** Das Addon vergleicht Namen wie priomeister.de ohne Akzente. Steht auf der Liste „Leryssia“ und heißt der Charakter im Spiel „Leryssiá“, gilt der Eintrag für diesen Charakter. Im Chat steht dann einmal „Prioliste: Leryssia ist Leryssiá im Raid.“ Kommt jemand erst später in den Raid, ordnet das Addon den Eintrag dann zu. Das gilt auch für den Priocheck und für Namen in Befehlen wie `/pm vergabe Name` oder `/pm stufen Name 2`. Der exakte Name gewinnt. Passen zwei Spieler im Raid zum selben Namen ohne Akzente und keiner exakt, ordnet das Addon niemanden zu. Gespeicherte Vergaben, Würfelstufen und Würfe bleiben, wie sie sind.
 - Ein erhaltenes Prio-Item verbraucht genau diese Prio. Onyxias Kopf, Nefarians Kopf, Herz von Hakkar und Ossirians Kopf zählen zusammen mit ihren Quest-Belohnungen als ein Item.
 - Vergaben an Plünderhelfer, Schatzmeister und Entzauberer zählen nicht als eigener Gewinn und ändern keine Stufe.
 
