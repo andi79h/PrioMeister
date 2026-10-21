@@ -47,6 +47,58 @@ eq(L.NameKey("Sairá-Everlook"), "sairá", "NameKey ohne Realm")
 eq(L.NameKey("ÄRWIN"), "ärwin", "NameKey Umlaut groß")
 check(L.SortKey("Ärwin") < L.SortKey("Awfulkitty"), "Sortierung: Ä wie A")
 check(L.SortKey("Arcanielle") < L.SortKey("Ärwin"), "Sortierung: Arc vor Är")
+
+-- 1.23: Namen ohne Akzente, wie auf priomeister.de (klein, NFKD ohne Akzente, ß → ss, æ → ae,
+-- œ → oe, ø → o, đ und ð → d, þ → th, ł → l)
+do
+	for _, c in ipairs({
+		{ "Leryssiá-Lakeshire", "leryssia" }, { "ÁLVARÔ", "alvaro" }, { "Strauß", "strauss" }, { "Æsir", "aesir" },
+		{ "Œdipe", "oedipe" }, { "Øystein", "oystein" }, { "Ðan", "dan" }, { "Đorđe", "dorde" }, { "Þórr", "thorr" },
+		{ "Łukasz", "lukasz" }, { "Ýrsa", "yrsa" }, { "Ÿves", "yves" }, { "Ñandú", "nandu" }, { "Çãõ", "cao" },
+		{ "Šárka", "sarka" }, { "Ĳsbrand", "ijsbrand" }, { "Arcanaa", "arcanaa" },
+	}) do
+		eq(L.FoldKey(c[1]), c[2], "FoldKey " .. c[1])
+	end
+	eq(L.FoldKey(""), nil, "FoldKey: leer")
+	eq(L.FoldKey(nil), nil, "FoldKey: nil")
+	eq(L.NameKey("Leryssiá"), "leryssiá", "NameKey bleibt exakt, gespeicherte Schlüssel ändern sich nicht")
+	check(L.SortKey("Ãlvaro") < L.SortKey("Amon"), "Sortierung: Ã wie A")
+	check(L.SortKey("Šárka") < L.SortKey("Sb"), "Sortierung: Š wie S")
+
+	local function set(...)
+		local t = {}
+		for _, k in ipairs({ ... }) do t[k] = { name = k } end
+		return t
+	end
+	eq(L.MatchFolded(set("leryssia"), set("leryssiá", "gustl")).leryssia, "leryssiá", "ohne Akzent findet den Namen mit Akzent")
+	eq(L.MatchFolded(set("leryssiá"), set("leryssia"))["leryssiá"], "leryssia", "und umgekehrt")
+	eq(L.MatchFolded(set("leryssìa"), set("leryssiá"))["leryssìa"], "leryssiá", "andere Akzente passen auch")
+	eq(next(L.MatchFolded(set("leryssia"), set("leryssia", "leryssiá"))), nil, "exakter Name gewinnt, der andere bekommt nichts")
+	eq(next(L.MatchFolded(set("leryssia"), set("leryssiá", "leryssìa"))), nil, "zwei im Raid passen: kein Treffer")
+	eq(next(L.MatchFolded(set("leryssia", "léryssia"), set("leryssiá"))), nil, "zwei auf der Liste passen: kein Treffer")
+	eq(next(L.MatchFolded(set("arcanaa"), set("arcanaa"))), nil, "exakt gleich: nichts umzustellen")
+	eq(next(L.MatchFolded(set("gustl"), set("hesti"))), nil, "verschiedene Namen bleiben verschieden")
+
+	local players = { leryssia = { name = "Leryssia", p = { 16914, 0, 0 }, pn = { "", "", "" } },
+		gustl = { name = "Gustl", p = { 17965, 0, 0 }, pn = { "", "", "" } } }
+	local entry = players.leryssia
+	local moved = L.BindPlayers(players, set("Leryssiá", "gustl"))
+	eq(#moved, 1, "eine Zuordnung")
+	eq(moved[1] and moved[1].from, "Leryssia", "Zuordnung: Name auf der Liste")
+	eq(moved[1] and moved[1].to, "Leryssiá", "Zuordnung: Name im Spiel")
+	check(players.leryssia == nil and players["Leryssiá"] == entry and entry.name == "Leryssiá", "Eintrag unter dem Namen im Spiel, mit seinen Prios")
+	check(players.gustl and players.gustl.name == "Gustl", "exakte Namen bleiben")
+	eq(#L.BindPlayers(players, set("Leryssiá", "gustl")), 0, "zweiter Lauf ändert nichts")
+
+	local chk = L.ParsePrioCheck("# priocheck;v=1;instanzen=Zul'Gurub:3\nLeryssia;Priester;111\nGustl;Krieger;100\nAbwesend;Magier;111\n")
+	local res = L.CheckRaid(chk, { { key = "leryssiá", name = "Leryssiá" }, { key = "gustl", name = "Gustl" } })
+	eq(res.complete, 1, "Priocheck: Leryssiá vollständig über „Leryssia“")
+	eq(#res.none, 0, "Priocheck: niemand ohne Prios")
+	eq(#res.partial, 1, "Priocheck: Gustl unvollständig")
+	eq(res.away, 1, "Priocheck: nur Abwesend fehlt im Raid")
+	res = L.CheckRaid(chk, { { key = "leryssiá", name = "Leryssiá" }, { key = "leryssìa", name = "Leryssìa" } })
+	eq(table.concat(res.none, ","), "Leryssiá,Leryssìa", "Priocheck: zwei passen, keiner bekommt den Eintrag")
+end
 eq(L.ItemID("https://www.wowhead.com/classic/item=19885/jindos-auge"), 19885, "ItemID aus Wowhead-Link")
 eq(L.ItemID("Jin´dos Auge des Bösen-19885"), 19885, "ItemID aus TXT-Feld")
 eq(L.ItemID("|cff0070dd|Hitem:19708::::::::60:::::::::|h[Blaues Schmuckstück der Hakkari]|h|r"), 19708, "ItemID aus Itemlink")
@@ -3402,6 +3454,101 @@ do
 	eq(L.RollStatusText(PM.db.history[1].rollLog[1]), "zurückgezogen", "Archiv: ebenso")
 	local csv = PM:ExportCSV({ PM:Raid() })
 	check(csv:find(";Gustl;18813;Ring der Bindung;Wurf;1;55;1-100;;1;Prio;zurückgezogen;Verzicht mit /roll 1;", 1, true), "Export nach dem Update", csv)
+end
+
+-- 1.23: Namen ohne Akzente. Auf priomeister.de steht „Leryssia“, im Spiel heißt sie „Leryssiá“.
+do
+	mock.CloseLoot()
+	mock.ResetUI()
+	local rosterBefore, candidatesBefore = mock.raid, mock.candidates
+	mock.raid = { { "Arcanaa", "MAGE" }, { "Gustl", "WARRIOR" }, { "Leryssiá", "PRIEST" } }
+	mock.candidates = { "Arcanaa", "Gustl", "Leryssiá" }
+	PrioMeisterDB = { dbVersion = 8, settings = {}, pins = {}, history = {} }
+	loadAddon()
+	mock.Fire("ADDON_LOADED", "PrioMeister")
+	mock.Fire("PLAYER_LOGIN")
+	local head = "Name;Klasse;prio1itemid;prio2itemid;prio3itemid;\n"
+	mock.chat = {}
+	PM:ImportText(head .. "Leryssia;Priester;16914;0;0;\nGustl;Krieger;16914;0;0;\nArcanaa;Magier;18205;0;0;\nNandu;Jäger;19865;0;0;\n", true)
+	local raid = PM:Raid()
+	check(mock.ChatContains("Prioliste: Leryssia ist Leryssiá im Raid."), "Zuordnung im Chat", table.concat(mock.chat, "\n"))
+	check(raid.players["leryssiá"] and raid.players["leryssiá"].name == "Leryssiá" and raid.players.leryssia == nil,
+		"Eintrag unter dem Namen im Spiel")
+	check(mock.ChatContains("Auf der Prioliste, aber nicht im Raid: Nandu") and not mock.ChatContains("ohne Prio"),
+		"Leryssiá gilt als anwesend und mit Prio", table.concat(mock.chat, "\n"))
+
+	-- Prio-Runde um die Krone: Leryssiá ist dabei, ihr Wurf zählt
+	local present
+	for _, h in ipairs(PM:ResolveForItem(16914).levels[1]) do
+		if h.key == "leryssiá" then present = h.present end
+	end
+	eq(present, true, "Prio 1 auf die Krone, anwesend")
+	mock.sent = {}
+	local s = PM:StartRoll(16914, mock.Link(16914))
+	check(mock.SentContains("Prio 1: Gustl, Leryssiá – bitte /roll 100"), "Würfelaufruf nennt Leryssiá", sentText())
+	mock.Roll("Leryssiá", 80)
+	mock.Roll("Gustl", 40)
+	eq(s and s.rolls[1] and s.rolls[1].status, "ok", "ihr Wurf zählt in der Prio-Runde")
+
+	-- Befehle mit dem Namen ohne Akzent treffen Leryssiá
+	mock.chat = {}
+	SlashCmdList.PRIOMEISTER("vergabe leryssia " .. mock.Link(16914))
+	local aw = raid.awards[#raid.awards]
+	check(aw and aw.key == "leryssiá" and aw.name == "Leryssiá" and aw.kind == "prio" and aw.level == 1,
+		"/pm vergabe leryssia: Prio 1 für Leryssiá", aw and (aw.key .. "/" .. aw.kind))
+	check(#L.OpenEntriesFor(raid, "leryssiá", L.Canon(16914), 3) == 0, "ihre Prio ist damit erfüllt")
+	SlashCmdList.PRIOMEISTER("stufen leryssia 2")
+	eq(L.AllowedMax(raid, "leryssiá"), 98, "/pm stufen leryssia 2: Leryssiá würfelt mit 98")
+	eq(raid.adjust.leryssia, nil, "keine Würfelstufe unter einem fremden Schlüssel")
+	PM:TogglePin("LERYSSIA")
+	eq(PM.db.pins[1], "Leryssiá", "/pm pin: angeheftet in der Schreibweise des Spiels")
+	PM:TogglePin("Leryssiá")
+	eq(#PM.db.pins, 0, "zweites Mal: wieder gelöst")
+	PM:SetRole("treasurer", "leryssia")
+	eq(PM.db.settings.treasurer, "Leryssiá", "Rolle per Befehl: Schreibweise des Spiels")
+	PM:SetRole("treasurer", "-")
+
+	-- Priocheck mit „Leryssia“
+	PM:ApplyPrioCheck("# priocheck;v=1;run=ZG;instanzen=Zul'Gurub:3\nLeryssia;Priester;111\nGustl;Krieger;111\nArcanaa;Magier;111\n")
+	local res = PM:CheckResult()
+	check(res and #res.none == 0 and res.complete == 3 and res.away == 0, "Priocheck: alle drei vollständig, niemand abwesend",
+		res and (#res.none .. "/" .. res.complete .. "/" .. res.away))
+	raid.check = nil
+
+	-- kommt erst später in den Raid: Zuordnung, sobald er da ist
+	mock.chat = {}
+	table.insert(mock.raid, { "Ñandú", "HUNTER" })
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+	check(mock.ChatContains("Prioliste: Nandu ist Ñandú im Raid.") and raid.players["ñandú"] and raid.players.nandu == nil,
+		"später dazu: Eintrag wandert zum Namen im Spiel", table.concat(mock.chat, "\n"))
+	mock.chat = {}
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	check(not mock.ChatContains("Prioliste:"), "Zuordnung nur einmal gemeldet", table.concat(mock.chat, "\n"))
+
+	-- zwei passen zum Namen ohne Akzent: keiner bekommt den Eintrag
+	table.insert(mock.raid, { "Leryssìa", "MAGE" })
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.chat = {}
+	PM:ImportText(head .. "Leryssia;Priester;16914;0;0;\nGustl;Krieger;16914;0;0;\n", false)
+	check(raid.players.leryssia and raid.players["leryssiá"] == nil and raid.players["leryssìa"] == nil, "zwei passen: Eintrag bleibt ohne Zuordnung")
+	check(mock.ChatContains("Auf der Prioliste, aber nicht im Raid: Leryssia") and mock.ChatContains("Leryssiá, Leryssìa"),
+		"Hinweise: Leryssia fehlt, beide ohne Prio", table.concat(mock.chat, "\n"))
+	eq(PM:ResolveKey("Léryssia"), "léryssia", "eingegebener Name passt zu mehreren: kein Treffer")
+	eq(PM:ResolveKey("LERYSSÌA"), "leryssìa", "exakter Name im Raid gewinnt")
+
+	-- exakter Name im Raid gewinnt gegen den mit Akzent
+	mock.raid = { { "Arcanaa", "MAGE" }, { "Leryssia", "PRIEST" }, { "Leryssiá", "PRIEST" } }
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.chat = {}
+	PM:ImportText(head .. "Leryssia;Priester;16914;0;0;\n", false)
+	check(raid.players.leryssia and raid.players.leryssia.name == "Leryssia" and raid.players["leryssiá"] == nil, "Leryssia behält ihren Eintrag")
+	check(not mock.ChatContains("Prioliste:") and mock.ChatContains("Im Raid ohne Prios:|r Arcanaa, Leryssiá"),
+		"Leryssiá bekommt nichts", table.concat(mock.chat, "\n"))
+
+	mock.raid, mock.candidates = rosterBefore, candidatesBefore
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
 end
 
 -- 1.21: Englisch. Jeder Text, der übersetzt wird, hat eine englische Fassung (Quelltext durchsucht)

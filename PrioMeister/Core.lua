@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.22.1"
+PM.version = "1.23.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -296,6 +296,7 @@ function PM:ReopenRaid(entry)
 	elseif r.imported then
 		self:Print("Es gilt die Prioliste vom %s. Eine neuere Liste importierst du mit „Nur Liste ersetzen“.", date("%d.%m. %H:%M", r.imported))
 	end
+	self:BindListNames()
 	refreshUI()
 	return true
 end
@@ -353,6 +354,7 @@ function PM:ImportText(text, newRaid)
 	if #info.skipped > 0 then
 		self:Print("|cffffd100%d Zeile(n) nicht erkannt:|r %s", #info.skipped, info.skipped[1])
 	end
+	self:BindListNames()
 	self:ReportIgnoredPrios()
 	self:CheckPresence()
 	refreshUI()
@@ -412,6 +414,29 @@ function PM:UpdateRoster()
 	end)
 	self.roster = roster
 	self.rosterOrder = order
+end
+
+-- Prioliste an die Namen im Raid binden (seit 1.23): Steht jemand auf priomeister.de ohne
+-- Akzent und heißt im Spiel mit Akzent oder umgekehrt, gilt sein Eintrag unter dem Namen im
+-- Spiel. Gespeicherte Vergaben, Würfelstufen und Würfe bleiben unverändert.
+function PM:BindListNames()
+	if not self.db or not self.db.raid then return end
+	for _, m in ipairs(L.BindPlayers(self.db.raid.players, self.roster or {})) do
+		self:Print("Prioliste: %s ist %s im Raid.", m.from, m.to)
+	end
+end
+
+-- Eingegebener Name als Schlüssel: exakt wie im Raid, auf der Prioliste oder unter den
+-- Würflern, sonst ohne Akzente, wenn genau einer passt („leryssia“ findet Leryssiá).
+function PM:ResolveKey(name)
+	local key = L.NameKey(name)
+	if not key then return nil end
+	local raid, known = self:Raid(), {}
+	for _, set in ipairs({ self.roster or {}, raid.players or {}, raid.rolled or {} }) do
+		for k in pairs(set) do known[k] = true end
+	end
+	if known[key] then return key end
+	return L.MatchFolded({ [key] = true }, known)[key] or key
 end
 
 function PM:RosterList()
@@ -976,6 +1001,7 @@ function PM:PLAYER_LOGIN()
 	self:ApplyLanguage()
 	self:InstallHooks()
 	self:UpdateRoster()
+	self:BindListNames()
 	for _, ev in ipairs({
 		"GROUP_ROSTER_UPDATE", "LOOT_OPENED", "LOOT_CLOSED", "LOOT_SLOT_CLEARED", "LOOT_SLOT_CHANGED",
 		"CHAT_MSG_SYSTEM", "CHAT_MSG_LOOT", "UI_ERROR_MESSAGE", "GET_ITEM_INFO_RECEIVED", "PARTY_LOOT_METHOD_CHANGED",
@@ -988,6 +1014,7 @@ end
 
 function PM:GROUP_ROSTER_UPDATE()
 	self:UpdateRoster()
+	self:BindListNames()
 	refreshUI()
 	self:ScheduleNoPrioCheck()
 end
@@ -1517,7 +1544,7 @@ end
 
 -- Name wie im Raid oder auf der Prioliste, sonst mit großem Anfangsbuchstaben.
 function PM:HandoverName(text)
-	local key = L.NameKey(text)
+	local key = self:ResolveKey(text)
 	if not key then return nil end
 	local known = self:DisplayName(key, nil)
 	if known and known ~= key then return key, known end
@@ -1608,7 +1635,7 @@ function PM:ManualAward(text)
 		self:Print("Kein Item angegeben und keine Würfelrunde aktiv: /pm vergabe Name [Item]")
 		return
 	end
-	self:ConfirmAward({ key = L.NameKey(name), name = name, itemID = id, link = link or self:ItemLabel(id) })
+	self:ConfirmAward({ key = self:ResolveKey(name), name = name, itemID = id, link = link or self:ItemLabel(id) })
 end
 
 -- Raid für die Vergaben-Ansicht: 0 = aktueller Raid, sonst ein früherer (neuester zuerst).
@@ -1756,7 +1783,7 @@ function PM:PlayerLines(key, itemID)
 end
 
 function PM:PrintPlayer(nameOrKey)
-	local key = L.NameKey(nameOrKey)
+	local key = self:ResolveKey(nameOrKey)
 	if not key then return end
 	self:Print("%s:", self:ColoredName(key, self:DisplayName(key, nameOrKey)))
 	for _, line in ipairs(self:PlayerLines(key)) do DEFAULT_CHAT_FRAME:AddMessage("  " .. line) end
@@ -1845,7 +1872,7 @@ end
 -- Würfelstufe von Hand setzen; die Änderung steht mit Uhrzeit in der Vergabeliste.
 function PM:SetWins(name, wins)
 	local raid = self:Raid()
-	local key = L.NameKey(name)
+	local key = self:ResolveKey(name)
 	if not key or not wins then return end
 	local before, prevAdjust = L.AllowedMax(raid, key), raid.adjust[key]
 	raid.adjust[key] = 0
@@ -1871,10 +1898,10 @@ end
 -------------------------------------------------------------------------------
 
 function PM:TogglePin(name)
-	local key = L.NameKey(name)
+	local key = self:ResolveKey(name)
 	if not key then return end
 	for i, n in ipairs(self.db.pins) do
-		if L.NameKey(n) == key then
+		if self:ResolveKey(n) == key then
 			table.remove(self.db.pins, i)
 			self:Print("%s ist nicht mehr angeheftet.", n)
 			refreshUI()
@@ -1913,7 +1940,7 @@ function PM:SetRole(role, name)
 	if not self.ROLE_TEXT[role] then return end
 	name = name and L.Trim(name) or nil
 	if name == "" or name == "-" then name = nil end
-	if name then name = self:DisplayName(L.NameKey(name), name) end
+	if name then name = self:DisplayName(self:ResolveKey(name), name) end
 	self.db.settings[role] = name
 	if role == "treasurer" then self.treasurerHintShown = false end
 	self:Print("%s: %s", self.ROLE_TEXT[role], name or T("niemand"))

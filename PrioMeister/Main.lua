@@ -1203,6 +1203,10 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.23.0", "21.10.2026", {
+		"Namen ohne Akzente: Steht auf priomeister.de „Leryssia“ und heißt der Charakter im Spiel „Leryssiá“, gilt der Eintrag auf der Prioliste trotzdem. Das Addon meldet die Zuordnung einmal im Chat. Das gilt auch für den Priocheck und für Namen in Befehlen wie /pm vergabe oder /pm stufen.",
+		"Passen zwei Spieler im Raid zum selben Namen ohne Akzente, zählt der exakte Name. Ist keiner exakt, ordnet das Addon niemanden zu. Vergaben, Würfelstufen und Würfe bleiben, wie sie gespeichert sind.",
+	} },
 	{ "1.22.1", "20.10.2026", {
 		"Beute aus einem Behälter in der eigenen Tasche, etwa dem Immergrünkrautgehäuse, sagt das Addon nicht mehr an und verteilt sie nicht an Plünderhelfer oder Schatzmeister. Dasselbe gilt beim Angeln und für Kräuter und Erzadern. Diese Beute läuft nicht über den Plündermeister, das Zuweisen schlug fehl.",
 	} },
