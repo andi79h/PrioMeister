@@ -55,24 +55,59 @@ function L.NameKey(name)
 	return utf8lower(name)
 end
 
-local FOLD = {
-	["ä"] = "a", ["ö"] = "o", ["ü"] = "u", ["ß"] = "ss",
-	["á"] = "a", ["à"] = "a", ["â"] = "a", ["å"] = "a", ["æ"] = "ae",
-	["é"] = "e", ["è"] = "e", ["ê"] = "e", ["ë"] = "e",
-	["í"] = "i", ["ì"] = "i", ["î"] = "i", ["ï"] = "i",
-	["ó"] = "o", ["ò"] = "o", ["ô"] = "o", ["ø"] = "o",
-	["ú"] = "u", ["ù"] = "u", ["û"] = "u", ["ñ"] = "n", ["ç"] = "c", ["ÿ"] = "y",
-}
+-- Akzente weg, wie auf priomeister.de (klein, NFKD ohne Akzente, ß → ss, æ → ae, œ → oe,
+-- ø → o, đ und ð → d, þ → th, ł → l): Latin-1 und Lateinisch erweitert A, groß und klein.
+local FOLD = {}
+for base, letters in pairs({
+	a = "ÀÁÂÃÄÅàáâãäåĀāĂăĄą", ae = "Ææ", c = "ÇçĆćĈĉĊċČč", d = "ÐðĎďĐđ",
+	e = "ÈÉÊËèéêëĒēĔĕĖėĘęĚě", g = "ĜĝĞğĠġĢģ", h = "Ĥĥ", i = "ÌÍÎÏìíîïĨĩĪīĬĭĮįİ", ij = "Ĳĳ",
+	j = "Ĵĵ", k = "Ķķ", l = "ĹĺĻļĽľŁł", n = "ÑñŃńŅņŇň", o = "ÒÓÔÕÖØòóôõöøŌōŎŏŐő", oe = "Œœ",
+	r = "ŔŕŖŗŘř", s = "ŚśŜŝŞşŠšſ", ss = "ß", t = "ŢţŤť", th = "Þþ",
+	u = "ÙÚÛÜùúûüŨũŪūŬŭŮůŰűŲų", w = "Ŵŵ", y = "ÝýÿŶŷŸ", z = "ŹźŻżŽž",
+}) do
+	for ch in letters:gmatch("[\195-\197][\128-\191]") do FOLD[ch] = base end
+end
 
--- Sortierschlüssel: Umlaute wie Grundbuchstaben (Ä bei A statt hinter Z).
+-- Vergleichsschlüssel ohne Akzente: „Leryssiá“ und „Leryssia“ ergeben beide „leryssia“.
+function L.FoldKey(name)
+	local k = L.NameKey(name)
+	if not k then return nil end
+	return (k:gsub("[\195-\197][\128-\191]", FOLD))
+end
+
+-- Sortierschlüssel: Umlaute und Akzente wie Grundbuchstaben (Ä bei A statt hinter Z).
 function L.SortKey(name)
-	local k = L.NameKey(name) or ""
-	return (k:gsub("\195[\128-\191]", function(ch) return FOLD[ch] end))
+	return L.FoldKey(name) or ""
 end
 
 function L.SortNames(list)
 	tsort(list, function(a, b) return L.SortKey(a) < L.SortKey(b) end)
 	return list
+end
+
+-- Namen von außen (Prioliste, Priocheck, Eingabe) den Namen im Spiel zuordnen. Der exakte
+-- Name gewinnt. Sonst zählt der Name ohne Akzente, aber nur, wenn er auf beiden Seiten genau
+-- einmal übrig bleibt: lieber kein Treffer als ein falscher. outside, inside: Mengen von
+-- Schlüsseln (NameKey). Ergebnis: [Schlüssel außen] = Schlüssel innen für die Paare, die erst
+-- ohne Akzente zusammenpassen.
+function L.MatchFolded(outside, inside)
+	local function group(set, other)
+		local g = {}
+		for key in pairs(set) do
+			local f = not other[key] and L.FoldKey(key)
+			if f then
+				g[f] = g[f] or {}
+				g[f][#g[f] + 1] = key
+			end
+		end
+		return g
+	end
+	local outer, inner, map = group(outside, inside), group(inside, outside), {}
+	for f, keys in pairs(outer) do
+		local hits = inner[f]
+		if #keys == 1 and hits and #hits == 1 then map[keys[1]] = hits[1] end
+	end
+	return map
 end
 
 -- Item-ID aus Zahl, Itemlink, Wowhead-Link oder "Name-12345".
@@ -573,12 +608,16 @@ end
 
 -- Priocheck gegen den Raid: roster ist eine Liste { key, name }. Ergebnis: none (Namen ohne Prios),
 -- partial ({ name, detail }), complete (Anzahl vollständig), away (auf der Liste, aber nicht im Raid).
+-- Namen, die nur ohne Akzente passen, zählen wie bei der Prioliste (L.MatchFolded).
 function L.CheckRaid(check, roster)
 	local res = { none = {}, partial = {}, complete = 0, away = 0 }
-	local inRaid = {}
+	local inRaid, folded, matched = {}, {}, {}
+	for _, m in ipairs(roster) do inRaid[m.key] = true end
+	for checkKey, rosterKey in pairs(L.MatchFolded(check.players, inRaid)) do
+		folded[rosterKey], matched[checkKey] = checkKey, true
+	end
 	for _, m in ipairs(roster) do
-		inRaid[m.key] = true
-		local p = check.players[m.key]
+		local p = check.players[m.key] or check.players[folded[m.key]]
 		local missing = p and L.CheckMissing(check, p)
 		if not p or missing == "all" then
 			res.none[#res.none + 1] = m.name
@@ -589,7 +628,7 @@ function L.CheckRaid(check, roster)
 		end
 	end
 	for key in pairs(check.players) do
-		if not inRaid[key] then res.away = res.away + 1 end
+		if not inRaid[key] and not matched[key] then res.away = res.away + 1 end
 	end
 	L.SortNames(res.none)
 	tsort(res.partial, function(a, b) return L.SortKey(a.name) < L.SortKey(b.name) end)
@@ -665,6 +704,23 @@ function L.ParsePrioList(text)
 		end
 	end
 	return players, info
+end
+
+-- Prioliste an den Raid binden: Ein Eintrag, der nur ohne Akzente zu einem Raidmitglied passt
+-- („Leryssia“ auf priomeister.de, „Leryssiá“ im Spiel), bekommt dessen Schlüssel und Schreibweise
+-- und behält sie, auch wenn der Spieler den Raid wieder verlässt. roster: [Schlüssel] = { name }.
+-- Ergebnis: die umgestellten Namen als { from, to }.
+function L.BindPlayers(players, roster)
+	local moved = {}
+	for listKey, rosterKey in pairs(L.MatchFolded(players, roster)) do
+		local p = players[listKey]
+		local name = roster[rosterKey].name or p.name
+		moved[#moved + 1] = { from = p.name, to = name }
+		p.name = name
+		players[listKey], players[rosterKey] = nil, p
+	end
+	tsort(moved, function(a, b) return L.SortKey(a.to) < L.SortKey(b.to) end)
+	return moved
 end
 
 -- Geladene Prioliste als CSV im Format von sahne-team.de, alphabetisch.
