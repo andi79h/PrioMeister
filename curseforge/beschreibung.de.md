@@ -2,6 +2,8 @@
 
 Plündermeister-Hilfe für World of Warcraft Classic Era (1.15.x). PrioMeister liest eine Prioliste und zeigt in einem Panel neben dem Beutefenster, wer auf die Beute Prio hat. Es führt Würfelrunden mit Würfelstufen durch und protokolliert jede Vergabe. Die Oberfläche gibt es auf Deutsch und Englisch: Sie folgt der Spielsprache, unter Optionen lässt sie sich fest auf Deutsch oder Englisch stellen.
 
+Spieler brauchen das Addon nicht, sie tragen ihre Prios auf priomeister.de ein. Das Addon braucht, wer im Raid plündert. Wie beides zusammenspielt, erklärt die [Hilfe auf priomeister.de](https://priomeister.de/hilfe).
+
 Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Rechtsklick auf den Minimap-Knopf blendet das Panel ein und aus. Der Knopf „?“ oben rechts im Hauptfenster öffnet die Optionen, dort steht auch das Changelog (`/pm changelog`).
 
 ## Ablauf im Raid
