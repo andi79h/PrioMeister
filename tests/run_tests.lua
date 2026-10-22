@@ -155,6 +155,18 @@ do
 	eq(next(L.ParseSets(meta.sets)), nil, "ohne sets= keine Sets")
 end
 
+-- Priocheck der Seite: Wer auf einer Warteliste mit Prio 0 steht, hat in dieser Instanz lauter Einsen,
+-- auch ohne eigenen Eintrag („Joe;Magier;000;111“). In den anderen Instanzen fehlt er weiter.
+do
+	local chk = L.ParsePrioCheck("# priocheck;v=1;run=Ony+ZG;instanzen=Onyxias Hort:3|Zul'Gurub:3\nJoe;Magier;000;111\nMike;Krieger;111;111\n")
+	local res = L.CheckRaid(chk, { { key = "joe", name = "Joe" }, { key = "mike", name = "Mike" } })
+	eq(res.complete, 1, "Mike vollständig")
+	eq(#res.none, 0, "Joe ist nicht ohne Prios")
+	eq(res.partial[1] and res.partial[1].detail, "Onyxias Hort fehlt", "Joe: nur Onyxia fehlt, Zul'Gurub gesperrt und erledigt")
+	chk = L.ParsePrioCheck("# priocheck;v=1;run=ZG;instanzen=Zul'Gurub:3\nJoe;Magier;111\n")
+	eq(L.CheckRaid(chk, { { key = "joe", name = "Joe" } }).complete, 1, "nur Zul'Gurub: Joe vollständig")
+end
+
 -- Warteplatz vor jeder Prio, Verzicht, Vergabe, Ansage, Export
 do
 	local raid = L.NewRaid(0)
