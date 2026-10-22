@@ -4,6 +4,8 @@
 
 Plündermeister-Hilfe für WoW Classic Era (1.15.9). Das Addon liest die Prioliste von priomeister.de (gleiches Format wie sahne-team.de), sortiert die Plündermeister-Liste, prüft Würfelstufen, verteilt Kleinkram automatisch und protokolliert jede Vergabe im Raidchat.
 
+Spieler brauchen das Addon nicht, sie tragen ihre Prios auf priomeister.de ein. Das Addon braucht, wer im Raid plündert. Wie beides zusammenspielt, erklärt die [Hilfe auf priomeister.de](https://priomeister.de/hilfe).
+
 Öffnen: `/pm` oder Linksklick auf den Minimap-Knopf. Rechtsklick auf den Minimap-Knopf blendet das Panel ein und aus. Der Knopf „?“ oben rechts im Hauptfenster öffnet die Optionen, dort zeigt „Changelog“ alle Versionen mit ihren Änderungen, ebenso `/pm changelog`.
 
 ## Ablauf im Raid

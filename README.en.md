@@ -2,6 +2,8 @@
 
 Master looter helper for World of Warcraft Classic Era (1.15.x). PrioMeister reads a prio list, shows who has prio on the loot in a panel next to the loot window, runs roll rounds with roll tiers and records every award. The interface is available in English and German: it follows the game language, and in the options you can set it to English or German.
 
+Players do not need the addon, they enter their prios on priomeister.de. The addon is for whoever loots in the raid. The [help page on priomeister.de](https://priomeister.de/hilfe) explains how both work together, in English via the EN switch at the top.
+
 Open the main window with `/pm` or a left-click on the minimap button. A right-click on the minimap button shows and hides the panel. The “?” button at the top right of the main window opens the options; the changelog is there too (`/pm changelog`).
 
 ## Raid flow
