@@ -1,4 +1,5 @@
-# PrioMeister 1.23.0 (2026-10-21)
+# PrioMeister 1.24.0 (2026-10-22)
 
-- Names without accents: if priomeister.de lists “Leryssia” and the character in the game is “Leryssiá”, the prio list entry still counts. The addon reports the match once in the chat. This also applies to the priocheck and to names in commands such as /pm award or /pm tiers.
-- If two players in the raid match the same name without accents, the exact name counts. If none of them is exact, the addon matches no one. Awards, roll tiers and rolls stay as they are stored.
+- Waitlists from priomeister.de: for single items such as the mounts from Zul'Gurub or the Bindings of the Windseeker from Molten Core, the raid lead keeps ordered waitlists. They come into the addon with the prio list. The first player on the list who is present is up and beats every prio, even prio 0. If nobody from the list is present, the usual rules apply.
+- The announcement names the player, e.g. “[Item] – waitlist: Mike”. The panel shows the whole order, and “To Mike” gives the item directly. Passing with /roll 1 makes room for the next one. Whoever gets the item drops off the list for the rest of the raid. For sets with “complete the set”, players who already got another piece in this raid move up.
+- The export lists these awards with the type “Warteliste”. /pm status names the waitlists.

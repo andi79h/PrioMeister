@@ -443,6 +443,10 @@ local ITEMS = {
 	[21761] = { "Schlüssel für einen Skarabäuskasten", 1, 13, 0, "Schlüssel" },
 	[21762] = { "Schlüssel für einen großen Skarabäuskasten", 1, 13, 0, "Schlüssel" },
 	[19872] = { "Schneller Razzashiraptor", 4, 15, 5, "Reittier" },
+	-- Wartelisten (seit 1.24): Tiger aus Zul'Gurub, Bindungen des Windsuchers aus dem Geschmolzenen Kern
+	[19902] = { "Schneller zulianischer Tiger", 4, 15, 5, "Reittier" },
+	[18563] = { "Linke Bindung des Windsuchers", 5, 12, 0, "Quest" },
+	[18564] = { "Rechte Bindung des Windsuchers", 5, 12, 0, "Quest" },
 	[21218] = { "Blauer Qirajiresonanzkristall", 3, 15, 0, "Plunder" },
 	[19726] = { "Blutrebe", 2, 7, 0, "Handwerkswaren" }, [19698] = { "Zulianische Münze", 2, 15, 0, "Plunder" },
 	[19939] = { "Gri'leks Blut", 2, 15, 0, "Plunder" }, [19940] = { "Renatakis Zahn", 2, 15, 0, "Plunder" },
@@ -453,7 +457,7 @@ local ITEMS = {
 }
 -- Items, deren Daten der Client noch nicht geladen hat: leerer Link „[]“, kein Symbol
 mock.uncached = {}
-local QCOLOR = { [0] = "ff9d9d9d", [1] = "ffffffff", [2] = "ff1eff00", [3] = "ff0070dd", [4] = "ffa335ee" }
+local QCOLOR = { [0] = "ff9d9d9d", [1] = "ffffffff", [2] = "ff1eff00", [3] = "ff0070dd", [4] = "ffa335ee", [5] = "ffff8000" }
 function mock.Link(id)
 	local it = ITEMS[id]
 	return ("|c%s|Hitem:%d::::::::60:::::::|h[%s]|h|r"):format(QCOLOR[it[2]], id, it[1])

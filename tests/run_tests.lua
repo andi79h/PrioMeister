@@ -99,6 +99,94 @@ do
 	res = L.CheckRaid(chk, { { key = "leryssiá", name = "Leryssiá" }, { key = "leryssìa", name = "Leryssìa" } })
 	eq(table.concat(res.none, ","), "Leryssiá,Leryssìa", "Priocheck: zwei passen, keiner bekommt den Eintrag")
 end
+
+-- 1.24: Wartelisten aus der Kommentarzeile von priomeister.de (Schema 27)
+do
+	local meta = L.ParseMeta("# PrioMeister: rezepte=wuerfeln; wartelisten=18563:John,Mike|18564:*Anna,Mike, John-Lakeshire ,mike; sets=18563+18564")
+	local lists = L.ParseWaitlists(meta.wartelisten)
+	eq(lists[18563] and #lists[18563], 2, "Warteliste linke Bindung: zwei Namen")
+	eq(lists[18563] and lists[18563][1].name, "John", "Reihenfolge wie auf der Seite")
+	check(lists[18564] and lists[18564][1].star and lists[18564][1].name == "Anna", "Stern: hat schon ein Teil des Sets")
+	eq(lists[18564] and #lists[18564], 3, "doppelter Name nur einmal")
+	eq(lists[18564] and lists[18564][3].name, "John", "Realm abgeschnitten")
+	local sets = L.ParseSets(meta.sets)
+	check(sets[18563] and sets[18563] == sets[18564], "Set aus linker und rechter Bindung")
+	eq(next(L.ParseSets("")), nil, "ohne sets= keine Sets")
+	eq(next(L.ParseWaitlists("x:Mike|19902:")), nil, "kaputte Einträge zählen nicht")
+	eq(next(L.ParseWaitlists(nil)), nil, "ohne Wartelisten leer")
+	eq(L.ParseWaitlists("19902:John,Mike,Sara")[19902][3].name, "Sara", "echte Zeile der Seite")
+
+	local function keyOf(name) return L.NameKey(name), name end
+	local function names(list)
+		local t = {}
+		for _, w in ipairs(list) do t[#t + 1] = w.name end
+		return table.concat(t, ",")
+	end
+	local raid = L.NewRaid(0)
+	eq(names(L.WaitlistOrder(raid, 18564, lists, sets, keyOf)), "Anna,Mike,John", "ohne Vergaben wie auf der Seite")
+	raid.awards[1] = { key = "john", name = "John", itemID = 18563, kind = "waitlist", t = 1 }
+	eq(names(L.WaitlistOrder(raid, 18564, lists, sets, keyOf)), "Anna,John,Mike", "Set vervollständigen: John rückt hinter die Namen mit Stern")
+	eq(names(L.WaitlistOrder(raid, 18563, lists, sets, keyOf)), "Mike", "John hat die linke: fällt von ihrer Liste")
+	eq(names(L.WaitlistOrder(raid, 18564, lists, nil, keyOf)), "Anna,Mike,John", "ohne Set kein Vorrücken")
+	eq(names(L.WaitlistOrder(raid, 18564, L.ParseWaitlists("18564:Mike,John"), sets, keyOf)), "John,Mike", "ohne Stern ganz nach vorn")
+	raid.awards[1].givenTo, raid.awards[1].givenKey = "Mike", "mike"
+	raid.awards[2] = { key = "mike", name = "Mike", itemID = 18563, kind = "given", from = "John", fromKey = "john", t = 2 }
+	eq(names(L.WaitlistOrder(raid, 18563, lists, sets, keyOf)), "John", "Weitergabe: John wieder drauf, Mike nicht mehr")
+	eq(L.WaitlistPlace(L.WaitlistOrder(raid, 18563, lists, sets, keyOf), "john"), 1, "Platz auf der Liste")
+	eq(#L.WaitlistOrder(raid, 19902, lists, sets, keyOf), 0, "Item ohne Warteliste")
+end
+
+-- Warteplatz vor jeder Prio, Verzicht, Vergabe, Ansage, Export
+do
+	local raid = L.NewRaid(0)
+	raid.players = {
+		gustl = { name = "Gustl", p = { 19902, 19902, 19902 }, pn = { "", "", "" } },
+		mike = { name = "Mike", p = { 19902, 0, 0 }, pn = { "", "", "" } },
+	}
+	local wl = { { key = "john", name = "John" }, { key = "mike", name = "Mike" }, { key = "sara", name = "Sara" } }
+	local present = { mike = true, sara = true, gustl = true }
+	local function isPresent(k) return present[k] end
+	local res = L.ResolveItem(raid, 19902, isPresent, { prio0Mode = 3, waitlist = wl })
+	eq(res.top, L.WAITLIST, "Warteplatz schlägt Prio 0")
+	eq(res.mode, "single", "einer ist dran")
+	eq(res.topHolders[1].name, "Mike", "John fehlt: Mike ist dran")
+	check(res.waitlist and #res.waitlist == 3 and not res.waitlist[1].present, "Panel bekommt die ganze Liste, John fehlt")
+	check(L.HasHolders(res), "Warteliste zählt wie Prio-Halter")
+	eq(L.LootAnnouncement(res, "[Tiger]")[1], "[Tiger] – Warteliste: Mike", "Ansage beim Öffnen")
+	eq(#L.LootAnnouncement(res, "[Tiger]"), 1, "Prios werden dann nicht angesagt")
+	eq(L.BuildRollCall(raid, res, "[Tiger]", {})[1], "[Tiger] – Warteliste: Mike", "Ansage per Knopf")
+	local s = L.NewSession(raid, 19902, "[Tiger]", res, 4)
+	eq(L.SessionPrioText(s), "Warteliste: Mike", "Rückfrage nennt den Warteplatz")
+	eq(L.AddRoll(raid, s, "Gustl", 50, 1, 100, 4).reason, "nicht auf dem Warteplatz", "Wurf eines anderen zählt nicht")
+	raid.sessions, raid.activeId = {}, nil
+	local pass = L.RecordPass(raid, { key = "mike", name = "Mike", itemID = 19902, link = "[Tiger]", level = L.WAITLIST, source = "C1" }, 5)
+	res = L.ResolveItem(raid, 19902, isPresent, { prio0Mode = 3, waitlist = wl, passed = L.PassesFor(raid, 19902, "C1") })
+	eq(res.topHolders[1].name, "Sara", "nach Mikes Verzicht: Sara")
+	eq(L.PassMessages(pass, res)[1], "Mike verzichtet auf [Tiger] (Warteliste) – jetzt Warteliste: Sara", "Verzicht im Chat")
+	eq(L.AwardLine(pass), "Mike verzichtet auf [Tiger] (Warteliste)", "Verzicht in der Vergabeliste")
+	eq(L.AwardDetail(pass), "Verzicht auf den Warteplatz", "Verzicht im Detail")
+	res = L.ResolveItem(raid, 19902, function(k) return k == "gustl" end, { prio0Mode = 3, waitlist = wl })
+	check(res.top == 0 and res.topHolders[1].name == "Gustl", "niemand von der Liste da: Prio 0 gilt")
+	local aw = L.BuildAward(raid, "mike", "Mike", 19902, "[Tiger]", { prio0Mode = 3, waitlist = wl }, 10)
+	eq(aw.kind, "waitlist", "Vergabe per Warteliste")
+	eq(aw.uses, 1, "Mikes Prio 1 auf den Tiger ist damit erfüllt")
+	L.RecordAward(raid, aw)
+	eq(#L.OpenEntriesFor(raid, "mike", 19902, 3), 0, "keine offene Prio mehr")
+	eq(L.AllowedMax(raid, "mike"), 100, "Warteliste kostet keine Würfelstufe")
+	eq(L.AwardLine(aw), "Mike erhält [Tiger] – Warteliste", "Zeile in der Vergabeliste")
+	eq(L.CountAwards(raid, "mike"), 1, "zählt als eigener Gewinn")
+	eq(L.BuildAward(raid, "gustl", "Gustl", 19902, "[Tiger]", { prio0Mode = 3, waitlist = wl }, 11).kind, "prio", "Gustl: Prio wie bisher")
+	local free = L.NewSession(raid, 19902, "[Tiger]", { mode = "free", levels = {} }, 12)
+	L.AddRoll(raid, free, "Sara", 70, 1, 100, 12)
+	eq(L.BuildAward(raid, "sara", "Sara", 19902, "[Tiger]", { prio0Mode = 3, waitlist = wl }, 13).kind, "free",
+		"freier Wurf gewonnen: bleibt ein freier Wurf")
+	raid.sessions, raid.activeId = {}, nil
+	local csv = L.ExportCSV({ raid }, function(fmt) return fmt == "%H:%M" and "20:00" or "22.10.2026" end)
+	check(csv:find(";Mike;19902;Tiger;Warteliste;;;;;;;;;", 1, true), "Export: Art Warteliste, Prio leer", csv)
+	check(csv:find(";Mike;19902;Tiger;Verzicht;;;;;;;;Warteliste;", 1, true), "Export: Verzicht auf den Warteplatz", csv)
+	local given = L.RecordHandover(raid, #raid.awards, "sara", "Sara", 14, 3)
+	check(given and given.origin == "waitlist" and L.AllowedMax(raid, "sara") == 100, "Weitergabe: Sara bleibt bei 100")
+end
 eq(L.ItemID("https://www.wowhead.com/classic/item=19885/jindos-auge"), 19885, "ItemID aus Wowhead-Link")
 eq(L.ItemID("Jin´dos Auge des Bösen-19885"), 19885, "ItemID aus TXT-Feld")
 eq(L.ItemID("|cff0070dd|Hitem:19708::::::::60:::::::::|h[Blaues Schmuckstück der Hakkari]|h|r"), 19708, "ItemID aus Itemlink")
@@ -3545,6 +3633,104 @@ do
 	check(raid.players.leryssia and raid.players.leryssia.name == "Leryssia" and raid.players["leryssiá"] == nil, "Leryssia behält ihren Eintrag")
 	check(not mock.ChatContains("Prioliste:") and mock.ChatContains("Im Raid ohne Prios:|r Arcanaa, Leryssiá"),
 		"Leryssiá bekommt nichts", table.concat(mock.chat, "\n"))
+
+	mock.raid, mock.candidates = rosterBefore, candidatesBefore
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+end
+
+-- 1.24: Wartelisten im Spiel. Tiger: John fehlt, Mike ist dran. Bindungen mit „Set vervollständigen“.
+do
+	mock.CloseLoot()
+	mock.ResetUI()
+	local rosterBefore, candidatesBefore = mock.raid, mock.candidates
+	mock.raid = { { "Arcanaa", "MAGE" }, { "Mike", "WARRIOR" }, { "Sara", "PRIEST" }, { "Gustl", "WARRIOR" } }
+	mock.candidates = { "Arcanaa", "Mike", "Sara", "Gustl" }
+	PrioMeisterDB = { dbVersion = 8, settings = {}, pins = {}, history = {} }
+	loadAddon()
+	mock.Fire("ADDON_LOADED", "PrioMeister")
+	mock.Fire("PLAYER_LOGIN")
+	mock.isML, mock.threshold, mock.instance = true, 2, nil
+	PM.db.settings.autoLootQualities = {}
+	PM.db.settings.confirmEpicWinner, PM.db.settings.awardsToRaid, PM.db.settings.announceLoot = true, true, true
+	local head = "Name;Klasse;prio1itemid;prio2itemid;prio3itemid;\n"
+	mock.chat = {}
+	PM:ImportText(head .. "Gustl;Krieger;19902;19902;19902;\nMike;Krieger;18205;0;0;\n"
+		.. "# PrioMeister: rezepte=wuerfeln; reittiere=prio; run=ZG 22.10.; wartelisten=19902:John,Mike,Sara\n", true)
+	check(mock.ChatContains("Warteliste " .. mock.Link(19902) .. ": John, Mike, Sara"), "Import nennt die Warteliste", table.concat(mock.chat, "\n"))
+	local raid = PM:Raid()
+
+	mock.sent = {}
+	mock.OpenLoot({ { id = 19902 } })
+	check(mock.SentContains(mock.Link(19902) .. " – Warteliste: Mike"), "Ansage beim Öffnen: Mike", sentText())
+	check(not mock.SentContains("Prio 0"), "Gustls Prio 0 wird nicht angesagt", sentText())
+	local p = _G.PrioMeisterPanel
+	local info = p.rows[1].info:GetText()
+	check(info:find("Warteliste:", 1, true) and info:find("John (fehlt)", 1, true) and info:find("Vergabe an Mike (Warteliste)", 1, true),
+		"Panel: ganze Reihenfolge, John fehlt", info)
+	eq(p.rows[1].give:GetText(), "An Mike", "Knopf „An Mike“")
+	eq(p.rows[1].btn:GetText(), "Ansagen", "darüber „Ansagen“")
+	LootFrame.selectedSlot = 1
+	MasterLooterFrame_Show()
+	local tagged = {}
+	for i = 1, 40 do
+		local b = MasterLooterFrame["player" .. i]
+		if b and b._shown and b.pmTag then tagged[b.Name:GetText()] = b end
+	end
+	check(tagged.Mike and tagged.Mike.pmTag:GetText() == "W" and tagged.Mike.pmTag._color[2] == 1, "Plündermeister-Liste: Mike mit W in Grün")
+	check(tagged.Sara and tagged.Sara.pmTag:GetText() == "W" and tagged.Sara.pmTag._color[2] < 0.9, "Plündermeister-Liste: Sara mit W in Grau")
+	MasterLooterFrame:Hide()
+
+	-- Mike verzichtet mit /roll 1: Sara ist dran, sie bekommt den Tiger nach Rückfrage
+	mock.sent = {}
+	mock.Roll("Mike", 1, 1, 1)
+	check(mock.SentContains("Mike verzichtet auf " .. mock.Link(19902) .. " (Warteliste) – jetzt Warteliste: Sara"), "Verzicht: Sara ist dran", sentText())
+	eq(p.rows[1].give:GetText(), "An Sara", "Knopf jetzt „An Sara“")
+	mock.popup, mock.given = nil, {}
+	p.rows[1].give._scripts.OnClick(p.rows[1].give)
+	check(mock.popup and mock.popup.text:find("An Sara (Warteliste) geben?", 1, true), "Rückfrage nennt die Warteliste", mock.popup and mock.popup.text)
+	mock.AcceptPopup()
+	eq(mock.given[1] and mock.candidates[mock.given[1].index], "Sara", "Tiger an Sara")
+	mock.sent = {}
+	mock.loot[1] = false
+	mock.Fire("LOOT_SLOT_CLEARED", 1)
+	local aw = raid.awards[#raid.awards]
+	check(aw and aw.kind == "waitlist" and aw.key == "sara", "als Warteliste eingetragen", aw and aw.kind)
+	check(mock.SentContains("Sara erhält " .. mock.Link(19902) .. " – Warteliste"), "Vergabe im Raidchat", sentText())
+	mock.CloseLoot()
+	mock.OpenLoot({ { id = 19902 } })
+	eq(_G.PrioMeisterPanel.rows[1].give:GetText(), "An Mike", "zweiter Tiger: Mikes Verzicht galt nur dem ersten")
+	mock.CloseLoot()
+	local res = PM:ResolveForItem(19902, { arcanaa = 1, gustl = 4 })
+	check(res.top == 0 and res.topHolders[1].name == "Gustl", "niemand von der Liste da: Gustl mit Prio 0")
+	check(PM:ExportCSV({ raid }):find(";Sara;19902;Schneller zulianischer Tiger;Warteliste;", 1, true), "Export: Art Warteliste")
+	mock.chat = {}
+	SlashCmdList.PRIOMEISTER("stand")
+	check(mock.ChatContains("Warteliste " .. mock.Link(19902) .. ": John, Mike"), "/pm stand: Sara steht nicht mehr darauf", table.concat(mock.chat, "\n"))
+	local lines = table.concat(PM:PlayerLines("mike", 19902), "\n")
+	check(lines:find("Warteliste " .. mock.Link(19902) .. ": Platz 2", 1, true), "Spielerinfo nennt den Platz", lines)
+	-- Handel unter der Grenze an jemanden von der Warteliste wird eingetragen
+	mock.Trade("Mike", { { 19902, 1 } })
+	aw = raid.awards[#raid.awards]
+	check(aw and aw.kind == "waitlist" and aw.key == "mike", "Handel an Mike: per Warteliste eingetragen", aw and aw.kind)
+
+	-- Bindungen mit „Set vervollständigen“: Mike bekommt die linke, bei der rechten ist er vor Sara dran
+	PM:ImportText(head .. "Gustl;Krieger;18564;0;0;\n# PrioMeister: run=MC 22.10.; wartelisten=18563:Mike,Sara|18564:Sara,Mike; sets=18563+18564\n", true)
+	raid = PM:Raid()
+	mock.OpenLoot({ { id = 18563 } })
+	p = _G.PrioMeisterPanel
+	eq(p.rows[1].give:GetText(), "An Mike", "linke Bindung: Mike")
+	mock.popup, mock.given = nil, {}
+	p.rows[1].give._scripts.OnClick(p.rows[1].give)
+	mock.AcceptPopup()
+	mock.loot[1] = false
+	mock.Fire("LOOT_SLOT_CLEARED", 1)
+	mock.CloseLoot()
+	mock.OpenLoot({ { id = 18564 } })
+	eq(_G.PrioMeisterPanel.rows[1].give:GetText(), "An Mike", "rechte Bindung: Mike rückt vor Sara")
+	mock.CloseLoot()
+	PM:UndoLast()
+	eq(PM:ResolveForItem(18564).topHolders[1].name, "Sara", "nach dem Zurücknehmen: Sara wieder vorn")
 
 	mock.raid, mock.candidates = rosterBefore, candidatesBefore
 	mock.Fire("GROUP_ROSTER_UPDATE")
