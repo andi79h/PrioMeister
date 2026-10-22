@@ -3678,6 +3678,12 @@ do
 		.. "# PrioMeister: rezepte=wuerfeln; reittiere=prio; run=ZG 22.10.; wartelisten=19902:John,Mike,Sara\n", true)
 	check(mock.ChatContains("Warteliste " .. mock.Link(19902) .. ": John, Mike, Sara"), "Import nennt die Warteliste", table.concat(mock.chat, "\n"))
 	local raid = PM:Raid()
+	eq(table.concat(PM:NoPrioMembers(), ","), "Arcanaa,Sara", "ohne Häkchen: Sara ohne Prio")
+	raid.meta.wartelistenp0 = "19902"
+	eq(table.concat(PM:NoPrioMembers(), ","), "Arcanaa", "Warteliste gilt als Prio 0: Sara nicht ohne Prio")
+	raid.meta.wartelistenp0 = "16914"
+	eq(table.concat(PM:NoPrioMembers(), ","), "Arcanaa,Sara", "Prio 0 für ein anderes Item: Sara wieder ohne Prio")
+	raid.meta.wartelistenp0 = nil
 
 	mock.sent = {}
 	mock.OpenLoot({ { id = 19902 } })

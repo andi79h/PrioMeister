@@ -31,6 +31,7 @@ For single items, the raid lead keeps ordered waitlists on priomeister.de, e.g. 
 - Passing with `/roll 1` makes room for the next one. The pass only counts for this copy.
 - Whoever gets the item drops off the list for the rest of the raid. A second copy goes to the next one. Handing the item over puts the giver back on the old place. If the same item was also on prio, that prio is fulfilled.
 - If nobody from the list is present, the usual rules apply: prio, rolls, loot helper, treasurer.
+- If a waitlist counts as prio 0 on the site (`wartelistenp0=19902`), its players cannot choose their own prios there. The addon therefore does not list them under “In the raid without prio”.
 - **Complete the set:** for sets such as the left and right binding (`sets=18563+18564`), players who already got another piece in this raid move up. Only those who had a piece before according to the site stay ahead; they are marked with a star in the list.
 - The export lists these awards with the type `Warteliste`. The site then removes the names from the list.
 
@@ -124,6 +125,7 @@ Für einzelne Items führt die Raidleitung auf priomeister.de geordnete Wartelis
 - Wer nicht will, verzichtet mit `/roll 1`, dann ist der Nächste dran. Der Verzicht gilt nur für dieses Exemplar.
 - Wer das Item bekommt, fällt für den Rest des Raids von der Liste. Ein zweites Exemplar geht an den Nächsten. Wer das Item weitergibt, steht wieder auf dem alten Platz. Stand dasselbe Item auch auf Prio, ist diese Prio damit erfüllt.
 - Ist niemand von der Liste da, gelten die üblichen Regeln: Prio, Würfeln, Plünderhelfer, Schatzmeister.
+- Gilt eine Warteliste auf der Seite als Prio 0 (`wartelistenp0=19902`), können ihre Spieler dort keine eigenen Prios wählen. Das Addon nennt sie deshalb nicht unter „Im Raid ohne Prio“.
 - **Set vervollständigen:** Bei Sets wie der linken und rechten Bindung (`sets=18563+18564`) rückt nach vorn, wer im Raid schon ein anderes Teil bekommen hat. Davor bleiben nur die, die laut Seite schon vorher ein Teil hatten; sie stehen in der Liste mit Stern.
 - Im Export stehen diese Vergaben mit der Art `Warteliste`. Die Seite nimmt die Namen danach von der Liste.
 

@@ -538,11 +538,29 @@ function PM:NoPrioMembers()
 	if res then return res.none end
 	local raid = self:Raid()
 	if not next(raid.players) then return {} end
+	local covered = self:WaitlistPrioKeys(raid.meta)
 	local list = {}
 	for key, r in pairs(self.roster) do
-		if not raid.players[key] then list[#list + 1] = r.name end
+		if not raid.players[key] and not covered[key] then list[#list + 1] = r.name end
 	end
 	return L.SortNames(list)
+end
+
+-- Wer auf der Warteliste eines Items steht, deren Warteliste auf der Seite als Prio 0 gilt
+-- (wartelistenp0=16914,16900), kann dort keine eigenen Prios wählen. Fehlt so ein Spieler auf der
+-- Prioliste, etwa weil Reittiere gewürfelt werden, ist er trotzdem nicht „ohne Prio“.
+function PM:WaitlistPrioKeys(meta)
+	local set = {}
+	local items = meta and meta.wartelistenp0
+	if not items or items == "" or not meta.wartelisten then return set end
+	local lists = L.ParseWaitlists(meta.wartelisten)
+	for canon in pairs(L.ParseIDSet(items)) do
+		for _, w in ipairs(lists[canon] or {}) do
+			local key = self:ResolveKey(w.name)
+			if key then set[key] = true end
+		end
+	end
+	return set
 end
 
 function PM:CheckPresence()
