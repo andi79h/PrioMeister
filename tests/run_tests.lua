@@ -136,6 +136,25 @@ do
 	eq(#L.WaitlistOrder(raid, 19902, lists, sets, keyOf), 0, "Item ohne Warteliste")
 end
 
+-- Onyxia: neun T2-Helme in einer Zeile, je Helm die Namen der Klasse, ohne Sets
+do
+	local ids = { 16900, 16908, 16914, 16921, 16929, 16939, 16947, 16955, 16963 }
+	local parts = {}
+	for i, id in ipairs(ids) do
+		local c = string.char(96 + i)
+		parts[i] = ("%d:Held%sa,Held%sb,Held%sc,Held%sd,Held%se"):format(id, c, c, c, c, c)
+	end
+	local meta = L.ParseMeta("# PrioMeister: rezepte=wuerfeln; run=Ony 23.10.; wartelisten=" .. table.concat(parts, "|") .. "; stand=2026-10-23 18:00")
+	local lists = L.ParseWaitlists(meta.wartelisten)
+	local n = 0
+	for _ in pairs(lists) do n = n + 1 end
+	eq(n, 9, "neun Helme, neun Listen")
+	eq(lists[16963] and #lists[16963], 5, "letzter Helm: alle fünf Namen")
+	eq(lists[16963] and lists[16963][5].name, "Heldie", "letzter Helm, letzter Name")
+	eq(meta.stand, "2026-10-23 18:00", "Angaben nach den Wartelisten bleiben lesbar")
+	eq(next(L.ParseSets(meta.sets)), nil, "ohne sets= keine Sets")
+end
+
 -- Warteplatz vor jeder Prio, Verzicht, Vergabe, Ansage, Export
 do
 	local raid = L.NewRaid(0)
@@ -3731,6 +3750,17 @@ do
 	mock.CloseLoot()
 	PM:UndoLast()
 	eq(PM:ResolveForItem(18564).topHolders[1].name, "Sara", "nach dem Zurücknehmen: Sara wieder vorn")
+
+	-- klassengebundene Items wie die T2-Helme bei Onyxia: Wer das Item nicht tragen kann, wird übersprungen
+	table.insert(mock.raid, { "Kronolus", "PALADIN" })
+	table.insert(mock.candidates, "Kronolus")
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	PM:ImportText(head .. "Gustl;Krieger;16955;0;0;\n# PrioMeister: run=Ony 23.10.; wartelisten=16955:Gustl,Kronolus|16914:Arcanaa\n", true)
+	local helm = PM:ResolveForItem(16955)
+	check(helm.topHolders[1] and helm.topHolders[1].name == "Kronolus" and helm.waitlist[1].unusable,
+		"Krieger auf der Liste des Paladin-Helms: übersprungen, Kronolus ist dran")
+	check(UI:ResolutionText(helm):find("Gustl (nicht tragbar)", 1, true), "Panel: Gustl nicht tragbar", UI:ResolutionText(helm))
+	eq(PM:ResolveForItem(16914).topHolders[1].name, "Arcanaa", "jeder Helm hat seine eigene Liste")
 
 	mock.raid, mock.candidates = rosterBefore, candidatesBefore
 	mock.Fire("GROUP_ROSTER_UPDATE")
