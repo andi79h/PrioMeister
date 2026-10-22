@@ -859,7 +859,8 @@ end
 
 -- Vergaben, die einem Spieler selbst gehören (nicht Gildenbank oder Entzaubern).
 -- given: Weitergabe von einem anderen Spieler (seit 1.18).
-L.PERSONAL = { prio = true, free = true, sec = true, recipe = true, plain = true, random = true, none = true, given = true }
+L.PERSONAL = { prio = true, free = true, sec = true, recipe = true, plain = true, random = true, none = true, given = true,
+	waitlist = true }
 
 -- Hat der Spieler das Item noch? Eigene Vergabe, die er nicht weitergegeben hat.
 function L.Holds(aw)
@@ -894,8 +895,12 @@ function L.OpenEntriesFor(raid, key, canonItem, prio0Mode)
 	if not player or not canonItem then return {} end
 	local used = {}
 	for _, aw in ipairs(raid.awards) do
-		if aw.key == key and L.UsesPrio(aw) and L.Canon(aw.itemID) == canonItem then
-			used[aw.level] = true
+		if aw.key == key and L.Canon(aw.itemID) == canonItem then
+			if L.UsesPrio(aw) then
+				used[aw.level] = true
+			elseif aw.kind == "waitlist" and aw.uses and not aw.givenTo then
+				used[aw.uses] = true -- per Warteliste erhalten: die Prio auf dasselbe Item ist erfüllt
+			end
 		end
 	end
 	local open = {}
@@ -906,12 +911,115 @@ function L.OpenEntriesFor(raid, key, canonItem, prio0Mode)
 	return open
 end
 
+-------------------------------------------------------------------------------
+-- Wartelisten (seit 1.24): Für einzelne Items führt die Raidleitung auf priomeister.de
+-- geordnete Listen, etwa für Tiger und Raptor aus Zul'Gurub oder die Fesseln aus dem
+-- Geschmolzenen Kern. Der erste Anwesende der Liste hat den Warteplatz und schlägt jede
+-- Prio, auch Prio 0. Ist niemand von der Liste da, gelten die üblichen Regeln.
+-- Kommentarzeile: „wartelisten=19902:Mike,Sara|18563:*Anna,John“ und „sets=18563+18564“.
+-- Ein Stern markiert, wer laut Seite schon ein Teil des Sets hat.
+-------------------------------------------------------------------------------
+
+L.WAITLIST = -1 -- Stufe des Warteplatzes, vor Prio 0
+
+-- „Prio 1“ oder „Warteliste“
+function L.LevelText(level)
+	if level == L.WAITLIST then return T("Warteliste") end
+	return T("Prio ") .. tostring(level)
+end
+
+-- Wartelisten aus der Kommentarzeile: [kanonische Item-ID] = { { name, star }, … } in Reihenfolge
+function L.ParseWaitlists(text)
+	local lists = {}
+	for part in (tostring(text or "") .. "|"):gmatch("([^|]*)|") do
+		local id, names = part:match("^%s*(%d+)%s*:(.*)$")
+		local canon = L.Canon(tonumber(id))
+		if canon then
+			local list, seen = lists[canon] or {}, {}
+			for _, w in ipairs(list) do seen[L.NameKey(w.name)] = true end
+			for raw in (names .. ","):gmatch("([^,]*),") do
+				local name = L.Trim(raw)
+				local star = name:sub(1, 1) == "*"
+				if star then name = L.Trim(name:sub(2)) end
+				local key = L.NameKey(name)
+				if key and not seen[key] then
+					seen[key] = true
+					list[#list + 1] = { name = (name:gsub("%-.*$", "")), star = star }
+				end
+			end
+			if #list > 0 then lists[canon] = list end
+		end
+	end
+	return lists
+end
+
+-- Sets mit „Set vervollständigen“ aus „18563+18564|…“: [kanonische Item-ID] = alle Items des Sets
+function L.ParseSets(text)
+	local sets = {}
+	for part in (tostring(text or "") .. "|"):gmatch("([^|]*)|") do
+		local group = {}
+		for id in part:gmatch("%d+") do
+			local canon = L.Canon(tonumber(id))
+			if canon then group[#group + 1] = canon end
+		end
+		if #group > 1 then
+			for _, canon in ipairs(group) do sets[canon] = group end
+		end
+	end
+	return sets
+end
+
+-- Reihenfolge der Warteliste eines Items im laufenden Raid. Wer das Item hat, fehlt.
+-- Wer im Raid ein anderes Teil desselben Sets bekommen hat, rückt nach vorn, direkt hinter
+-- die Namen mit Stern. keyOf(name) liefert Schlüssel und Anzeigenamen eines Namens.
+-- Ergebnis: Liste { key, name }.
+function L.WaitlistOrder(raid, canon, lists, sets, keyOf)
+	local list = canon and lists and lists[canon]
+	if not list then return {} end
+	local holds = {}
+	for _, aw in ipairs(raid.awards or {}) do
+		local c = aw.key and L.Holds(aw) and L.Canon(aw.itemID)
+		if c then
+			holds[aw.key] = holds[aw.key] or {}
+			holds[aw.key][c] = true
+		end
+	end
+	local group = sets and sets[canon]
+	local starred, moved, rest, seen = {}, {}, {}, {}
+	for _, w in ipairs(list) do
+		local key, name = keyOf(w.name)
+		local own = key and holds[key] or {}
+		if key and not seen[key] and not own[canon] then
+			seen[key] = true
+			local hasPart = false
+			for _, other in ipairs(group or {}) do
+				if other ~= canon and own[other] then hasPart = true end
+			end
+			local target = (w.star and starred) or (hasPart and moved) or rest
+			target[#target + 1] = { key = key, name = name or w.name }
+		end
+	end
+	for _, e in ipairs(moved) do starred[#starred + 1] = e end
+	for _, e in ipairs(rest) do starred[#starred + 1] = e end
+	return starred
+end
+
+-- Platz eines Spielers auf einer Warteliste (aus L.WaitlistOrder) oder nil
+function L.WaitlistPlace(list, key)
+	for i, w in ipairs(list or {}) do
+		if w.key == key then return i end
+	end
+	return nil
+end
+
 -- Wer hat Prio auf das Item? isPresent(key) entscheidet über Anwesenheit.
 -- opts: prio0Mode, ignorePrio (Rezept oder Reittier ohne Prio), recipe, recipeRolls,
 -- profession, mount, plain (Item zum Verwürfeln ohne Stufen), passed (Spieler,
 -- die auf dieses Exemplar verzichtet haben: bleiben gelistet, zählen aber nicht),
--- unusable(key) (Grund, wenn der Spieler das Item nicht tragen kann: wie passed)
+-- unusable(key) (Grund, wenn der Spieler das Item nicht tragen kann: wie passed),
+-- waitlist (Warteliste des Items in Reihenfolge, siehe L.WaitlistOrder)
 -- mode: "single" (genau einer), "roll" (mehrere würfeln), "recipe", "plain" oder "free".
+-- Mit Warteplatz: res.top = L.WAITLIST, res.waitlist mit allen Einträgen der Liste.
 function L.ResolveItem(raid, itemID, isPresent, opts)
 	opts = normOpts(opts)
 	local canon = L.Canon(itemID)
@@ -944,6 +1052,25 @@ function L.ResolveItem(raid, itemID, isPresent, opts)
 			end
 		end
 	end
+	-- Warteliste: Der erste Anwesende, der nicht verzichtet hat und das Item tragen kann,
+	-- hat den Warteplatz vor jeder Prio.
+	if canon and opts.waitlist and #opts.waitlist > 0 then
+		res.waitlist = {}
+		for _, w in ipairs(opts.waitlist) do
+			local p = raid.players[w.key]
+			local e = {
+				key = w.key, name = w.name, token = p and p.token, level = L.WAITLIST,
+				present = isPresent(w.key) and true or false,
+				passed = opts.passed and opts.passed[w.key] and true or false,
+				unusable = opts.unusable and opts.unusable(w.key) or nil,
+				received = L.CountAwards(raid, w.key),
+			}
+			res.waitlist[#res.waitlist + 1] = e
+			if res.top == nil and e.present and not e.passed and not e.unusable then
+				res.top, res.topHolders = L.WAITLIST, { e }
+			end
+		end
+	end
 	local byName = function(x, y) return L.SortKey(x.name) < L.SortKey(y.name) end
 	tsort(res.ignored, byName)
 	for lvl = 0, 3 do
@@ -973,6 +1100,7 @@ function L.NoPrioMode(opts)
 end
 
 function L.HasHolders(res)
+	if res.waitlist and #res.waitlist > 0 then return true end
 	for lvl = 0, 3 do
 		if res.levels[lvl] and #res.levels[lvl] > 0 then return true end
 	end
@@ -1011,9 +1139,18 @@ end
 
 -- Chat nach einem Verzicht: wer, worauf und wer jetzt Prio hat.
 -- res: Prio-Auflösung des Exemplars nach dem Verzicht.
+-- „Anna verzichtet auf [Item] (Prio 1)“ bzw. „(Warteliste)“
+local function PassHead(aw)
+	local item = aw.link or (T("Item ") .. tostring(aw.itemID))
+	if aw.level == L.WAITLIST then return format(T("%s verzichtet auf %s (Warteliste)"), aw.name, item) end
+	return format(T("%s verzichtet auf %s (Prio %s)"), aw.name, item, tostring(aw.level))
+end
+
 function L.PassMessages(aw, res)
-	local head = format(T("%s verzichtet auf %s (Prio %s)"), aw.name, aw.link or (T("Item ") .. tostring(aw.itemID)), tostring(aw.level))
-	if res and res.top ~= nil then
+	local head = PassHead(aw)
+	if res and res.top == L.WAITLIST then
+		return { format(T("%s – jetzt Warteliste: %s"), head, res.topHolders[1].name) }
+	elseif res and res.top ~= nil then
 		local names = {}
 		for _, h in ipairs(res.topHolders) do names[#names + 1] = h.name end
 		return L.AppendChunks({}, format(T("%s – jetzt Prio %d: "), head, res.top), names, "")
@@ -1027,7 +1164,7 @@ end
 
 -- Weitergaben ohne Prio kosten den Empfänger eine Stufe wie ein freier Wurf, außer bei
 -- Items, die ohne Stufen verwürfelt werden (50er-, Rezept-Wurf, Wurf ohne Stufen).
-L.TIER_NEUTRAL = { sec = true, recipe = true, plain = true }
+L.TIER_NEUTRAL = { sec = true, recipe = true, plain = true, waitlist = true }
 
 -- Senkt diese Vergabe die Würfelstufe? Nur, solange der Spieler das Item hat.
 function L.CountsAsFreeWin(aw)
@@ -1195,6 +1332,12 @@ function L.RemainingEligible(s)
 	return n
 end
 
+-- Grund für einen Wurf ohne Berechtigung in einer Prio-Runde
+function L.NotEligibleText(s)
+	if s.level == L.WAITLIST then return T("nicht auf dem Warteplatz") end
+	return T("kein Prio ") .. tostring(s.level)
+end
+
 -- Bewertet einen Wurf. isMember(key) prüft die Raid-Zugehörigkeit (darf nil sein).
 -- status: ok, range (falscher Bereich), fremd (nicht berechtigt), doppelt,
 -- pass (Verzicht mit /roll 1), withdrawn (Wurf vor einem Verzicht).
@@ -1216,7 +1359,7 @@ function L.AddRoll(raid, s, name, value, low, high, now, isMember, unusable)
 		if s.winners[key] then
 			r.status, r.reason = "doppelt", T("hat schon erhalten")
 		elseif s.mode == "prio" and not s.eligible[key] then
-			r.status, r.reason = "fremd", T("kein Prio ") .. tostring(s.level)
+			r.status, r.reason = "fremd", L.NotEligibleText(s)
 		elseif isMember and not isMember(key) then
 			r.status, r.reason = "fremd", T("nicht im Raid")
 		else
@@ -1264,7 +1407,7 @@ function L.AddRoll(raid, s, name, value, low, high, now, isMember, unusable)
 	if why then
 		r.status, r.reason, r.unusable = "fremd", why, true
 	elseif s.mode == "prio" and not s.eligible[key] then
-		r.status, r.reason = "fremd", T("kein Prio ") .. tostring(s.level)
+		r.status, r.reason = "fremd", L.NotEligibleText(s)
 	elseif s.mode ~= "prio" and isMember and not isMember(key) then
 		r.status, r.reason = "fremd", T("nicht im Raid")
 	elseif hasValid then
@@ -1500,7 +1643,7 @@ function L.SessionPrioText(s)
 	end
 	L.SortNames(names)
 	if #names == 0 then return nil end
-	return format("Prio %s: %s", tostring(s.level), concat(names, ", "))
+	return L.LevelText(s.level) .. ": " .. concat(names, ", ")
 end
 
 -- Text einer Rückfrage: Item, Prio-Halter und bisherige Würfe, je eine Zeile.
@@ -1544,6 +1687,15 @@ function L.BuildAward(raid, key, name, itemID, link, opts, now)
 	if opts.reason == "random" then
 		aw.kind = "random"
 		if opts.place and opts.of then aw.roll, aw.low, aw.high = opts.place, 1, opts.of end
+		return aw
+	end
+
+	-- Warteliste: Wer auf der Liste des Items steht, bekommt es per Warteliste, außer er hat es in
+	-- einer Runde ohne Prio gewonnen. Eine offene Prio auf dasselbe Item ist damit erfüllt (aw.uses).
+	if L.WaitlistPlace(opts.waitlist, key) and not (s and roll and s.mode ~= "prio") then
+		aw.kind = "waitlist"
+		local own = not opts.ignorePrio and L.OpenEntriesFor(raid, key, canon, opts.prio0Mode)[1]
+		if own then aw.uses = own.level end
 		return aw
 	end
 
@@ -1738,7 +1890,7 @@ end
 L.KIND_TEXT = {
 	prio = "Prio", free = "freier Wurf", sec = "50er-Wurf", recipe = "Rezept-Wurf", plain = "Wurf ohne Stufen",
 	de = "Entzauberer", helper = "Plünderhelfer", treasurer = "Schatzmeister", random = "zufällig vergeben",
-	none = "ohne Wurf", tier = "Würfelstufe von Hand", pass = "Verzicht", given = "Weitergabe",
+	none = "ohne Wurf", tier = "Würfelstufe von Hand", pass = "Verzicht", given = "Weitergabe", waitlist = "Warteliste",
 }
 
 local function TiebreakText(values)
@@ -1752,7 +1904,10 @@ local function BaseDetail(aw)
 	if aw.kind == "tier" then
 		return format(T("Würfelstufe von Hand von %d auf %d"), aw.from or 100, aw.to or 100)
 	elseif aw.kind == "pass" then
+		if aw.level == L.WAITLIST then return T("Verzicht auf den Warteplatz") end
 		return format(T("Verzicht auf Prio %s"), tostring(aw.level))
+	elseif aw.kind == "waitlist" then
+		return T("Warteliste")
 	elseif aw.kind == "prio" then
 		local s = T("Prio ") .. tostring(aw.level)
 		if aw.roll then s = s .. format(T(", Wurf %d (%d-%d)"), aw.roll, aw.low, aw.high) .. TiebreakText(aw.tb) end
@@ -1794,7 +1949,7 @@ function L.AwardLine(aw)
 	if aw.kind == "tier" then
 		return format(T("%s: Würfelstufe von Hand von %d auf %d geändert"), aw.name, aw.from or 100, aw.to or 100)
 	elseif aw.kind == "pass" then
-		return format(T("%s verzichtet auf %s (Prio %s)"), aw.name, aw.link or (T("Item ") .. tostring(aw.itemID)), tostring(aw.level))
+		return PassHead(aw)
 	end
 	return format(T("%s erhält %s – %s"), aw.name, aw.link or (T("Item ") .. tostring(aw.itemID)), L.AwardDetail(aw))
 end
@@ -1832,6 +1987,10 @@ function L.BuildRollCall(raid, res, link, members, opts)
 	local copies = opts.copies or 1
 	if copies > 1 then link = link .. " x" .. copies end
 	local winners = (copies > 1) and format(T(", die %d höchsten Würfe gewinnen"), copies) or ""
+	if res.top == L.WAITLIST then
+		msgs[1] = format(T("%s – Warteliste: %s"), link, res.topHolders[1].name)
+		return msgs
+	end
 	if res.top ~= nil then
 		local names = {}
 		for _, h in ipairs(res.topHolders) do names[#names + 1] = h.name end
@@ -1880,6 +2039,7 @@ end
 -- Wer auf dieses Exemplar verzichtet hat oder es nicht tragen kann, fehlt.
 function L.LootAnnouncement(res, link, copies)
 	local label = link .. ((copies and copies > 1) and (" x" .. copies) or "")
+	if res.top == L.WAITLIST then return { format(T("%s – Warteliste: %s"), label, res.topHolders[1].name) } end
 	local out = {}
 	for lvl = 0, 3 do
 		local names = {}
@@ -2126,6 +2286,7 @@ function L.ExportCSV(raids, dateFn, opts)
 			local notes = {}
 			if aw.kind == "given" then notes[#notes + 1] = "von " .. tostring(aw.from or "?") end
 			if aw.givenTo then notes[#notes + 1] = "an " .. aw.givenTo end
+			if aw.kind == "pass" and aw.level == L.WAITLIST then notes[#notes + 1] = "Warteliste" end
 			rows[#rows + 1] = { t = at, order = 2, seq = i, text = concat({
 				dateFn("%d.%m.%Y", at),
 				dateFn("%H:%M", at),
@@ -2133,7 +2294,7 @@ function L.ExportCSV(raids, dateFn, opts)
 				tostring(aw.itemID or ""),
 				L.LinkName(aw.link) or "",
 				L.KIND_TEXT[aw.kind] or "ohne Wurf",
-				aw.level and tostring(aw.level) or "",
+				(aw.level and aw.level ~= L.WAITLIST) and tostring(aw.level) or "",
 				aw.roll and tostring(aw.roll) or "",
 				(aw.kind == "tier" and format("1-%d auf 1-%d", aw.from or 100, aw.to or 100))
 					or (aw.roll and format("%d-%d", aw.low or 1, aw.high or 100)) or "",
@@ -2155,12 +2316,12 @@ function L.ExportCSV(raids, dateFn, opts)
 				tostring(e.i or ""),
 				e.nm or "",
 				"Wurf",
-				e.lvl and tostring(e.lvl) or "",
+				(e.lvl and e.lvl ~= L.WAITLIST) and tostring(e.lvl) or "",
 				tostring(e.v or ""),
 				format("%d-%d", e.lo or 1, e.hi or 100),
 				e.tb and tostring(e.tb) or "",
 				e.sid and tostring(e.sid) or "",
-				L.MODE_TEXT[e.m] or "",
+				(e.lvl == L.WAITLIST and "Warteliste") or L.MODE_TEXT[e.m] or "",
 				L.RollStatusText(e),
 				e.why or "",
 				e.ins and instanceName(e.ins) or "",

@@ -1203,6 +1203,11 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.24.0", "22.10.2026", {
+		"Wartelisten von priomeister.de: Für einzelne Items wie die Reittiere aus Zul'Gurub oder die Bindungen des Windsuchers aus dem Geschmolzenen Kern führt die Raidleitung geordnete Wartelisten. Sie kommen mit der Prioliste ins Addon. Der erste Anwesende der Liste ist dran und schlägt jede Prio, auch Prio 0. Ist niemand von der Liste da, gelten die üblichen Regeln.",
+		"Die Ansage nennt den Namen, etwa „[Item] – Warteliste: Mike“. Das Panel zeigt die ganze Reihenfolge, „An Mike“ gibt das Item direkt. Wer mit /roll 1 verzichtet, macht Platz für den Nächsten. Wer das Item bekommt, fällt für den Rest des Raids von der Liste. Bei Sets mit „Set vervollständigen“ rückt nach vorn, wer im Raid schon ein anderes Teil bekommen hat.",
+		"Im Export stehen diese Vergaben mit der Art „Warteliste“. /pm stand nennt die Wartelisten. Gilt eine Warteliste auf der Seite als Prio 0, stehen ihre Spieler nicht unter „Im Raid ohne Prio“.",
+	} },
 	{ "1.23.0", "21.10.2026", {
 		"Namen ohne Akzente: Steht auf priomeister.de „Leryssia“ und heißt der Charakter im Spiel „Leryssiá“, gilt der Eintrag auf der Prioliste trotzdem. Das Addon meldet die Zuordnung einmal im Chat. Das gilt auch für den Priocheck und für Namen in Befehlen wie /pm vergabe oder /pm stufen.",
 		"Passen zwei Spieler im Raid zum selben Namen ohne Akzente, zählt der exakte Name. Ist keiner exakt, ordnet das Addon niemanden zu. Vergaben, Würfelstufen und Würfe bleiben, wie sie gespeichert sind.",

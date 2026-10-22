@@ -5,7 +5,7 @@
 ## Author: Andreas Herbert (andi79h)
 ## X-License: MIT
 ## X-Curse-Project-ID: 1755238
-## Version: 1.23.0
+## Version: 1.24.0
 ## IconTexture: Interface\AddOns\PrioMeister\Media\Icon.tga
 ## SavedVariables: PrioMeisterDB
 

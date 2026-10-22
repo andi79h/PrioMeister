@@ -24,6 +24,19 @@ Open the main window with `/pm` or a left-click on the minimap button. A right-c
 - **Ties:** “Tiebreak” lets the tied players roll again with the same tier.
 - **Names without accents:** like priomeister.de, the addon compares names without accents. If the list says “Leryssia” and the character in the game is “Leryssiá”, the entry counts for that character. The chat then shows “Prio list: Leryssia is Leryssiá in the raid.” once. Players who join later are matched when they arrive. This also applies to the priocheck and to names in commands such as `/pm award Name`. The exact name wins. If two players in the raid match the same name without accents and neither is exact, the addon matches no one.
 
+## Waitlists
+
+For single items, the raid lead keeps ordered waitlists on priomeister.de, e.g. for the mounts from Zul'Gurub or the Bindings of the Windseeker. They come into the addon with the prio list, in the comment line as `wartelisten=19902:John,Mike,Sara`. The import and `/pm status` show them in the chat.
+
+- The first player on the list who is present is up and beats every prio, even prio 0. If John is absent, Mike is up.
+- The announcement names only that player, e.g. “[Item] – waitlist: Mike”. The panel shows the whole order, absent players grey with “(absent)”. “To Mike” gives the item directly, for epic items after a confirmation. In the master looter list everyone on the list has a “W”, green only for the player who is up.
+- Passing with `/roll 1` makes room for the next one. The pass only counts for this copy.
+- Whoever gets the item drops off the list for the rest of the raid. A second copy goes to the next one. Handing the item over puts the giver back on the old place. If the same item was also on prio, that prio is fulfilled.
+- If nobody from the list is present, the usual rules apply: prio, rolls, loot helper, treasurer.
+- If a waitlist counts as prio 0 on the site (`wartelistenp0=19902`), its players cannot choose their own prios there. The addon therefore does not list them under “In the raid without prio”.
+- **Complete the set:** for sets such as the left and right binding (`sets=18563+18564`), players who already got another piece in this raid move up. Only those who had a piece before according to the site stay ahead; they are marked with a star in the list.
+- The export lists these awards with the type `Warteliste`. The site then removes the names from the list.
+
 ## Roles and lists
 
 - **Loot helper** gets everything up to the chosen quality that is on no list.
@@ -42,7 +55,7 @@ To see who in the raid has not entered prios yet without closing the sign-up on 
 
 ## Export
 
-The Awards tab exports all awards and rolls as CSV for priomeister.de or a spreadsheet. On priomeister.de, paste it in the “Awards” tab of the prio run: the raid lead on the lead page, the master looter on the player page. The column names and values of the export stay German in both languages, because priomeister.de reads them (e.g. type “Wurf” for rolls, “Weitergabe” for hand-overs).
+The Awards tab exports all awards and rolls as CSV for priomeister.de or a spreadsheet. On priomeister.de, paste it in the “Awards” tab of the prio run: the raid lead on the lead page, the master looter on the player page. The column names and values of the export stay German in both languages, because priomeister.de reads them (e.g. type “Wurf” for rolls, “Weitergabe” for hand-overs, “Warteliste” for waitlist awards).
 
 ## Commands
 
@@ -106,6 +119,19 @@ Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Re
 - **Nicht tragbare Items:** Würfe und Prios auf Items, die die Klasse nicht tragen kann (Rüstungsart, Waffenart, Klassenbeschränkung), zählen nicht.
 - **Gleichstand:** „Stichwurf“ lässt die Gleichplatzierten mit derselben Stufe noch einmal würfeln.
 - **Namen ohne Akzente:** Wie priomeister.de vergleicht das Addon Namen ohne Akzente. Steht auf der Liste „Leryssia“ und heißt der Charakter im Spiel „Leryssiá“, gilt der Eintrag für diesen Charakter. Im Chat steht dann einmal „Prioliste: Leryssia ist Leryssiá im Raid.“ Wer später in den Raid kommt, wird dann zugeordnet. Das gilt auch für den Priocheck und für Namen in Befehlen wie `/pm vergabe Name`. Der exakte Name gewinnt. Passen zwei Spieler im Raid zum selben Namen ohne Akzente und keiner exakt, ordnet das Addon niemanden zu.
+
+## Wartelisten
+
+Für einzelne Items führt die Raidleitung auf priomeister.de geordnete Wartelisten, etwa für die Reittiere aus Zul'Gurub oder die Bindungen des Windsuchers. Sie kommen mit der Prioliste ins Addon, in der Kommentarzeile als `wartelisten=19902:John,Mike,Sara`. Beim Import und unter `/pm stand` stehen sie im Chat.
+
+- Der erste Anwesende der Liste ist dran und schlägt jede Prio, auch Prio 0. Fehlt John, ist Mike dran.
+- Die Ansage nennt nur diesen Namen, etwa „[Item] – Warteliste: Mike“. Das Panel zeigt die ganze Reihenfolge, Abwesende grau mit „(fehlt)“. „An Mike“ gibt das Item direkt, bei epischen Items nach Rückfrage. In der Plündermeister-Liste steht „W“ bei allen von der Liste, grün nur bei dem, der dran ist.
+- Wer nicht will, verzichtet mit `/roll 1`, dann ist der Nächste dran. Der Verzicht gilt nur für dieses Exemplar.
+- Wer das Item bekommt, fällt für den Rest des Raids von der Liste. Ein zweites Exemplar geht an den Nächsten. Wer das Item weitergibt, steht wieder auf dem alten Platz. Stand dasselbe Item auch auf Prio, ist diese Prio damit erfüllt.
+- Ist niemand von der Liste da, gelten die üblichen Regeln: Prio, Würfeln, Plünderhelfer, Schatzmeister.
+- Gilt eine Warteliste auf der Seite als Prio 0 (`wartelistenp0=19902`), können ihre Spieler dort keine eigenen Prios wählen. Das Addon nennt sie deshalb nicht unter „Im Raid ohne Prio“.
+- **Set vervollständigen:** Bei Sets wie der linken und rechten Bindung (`sets=18563+18564`) rückt nach vorn, wer im Raid schon ein anderes Teil bekommen hat. Davor bleiben nur die, die laut Seite schon vorher ein Teil hatten; sie stehen in der Liste mit Stern.
+- Im Export stehen diese Vergaben mit der Art `Warteliste`. Die Seite nimmt die Namen danach von der Liste.
 
 ## Rollen und Listen
 

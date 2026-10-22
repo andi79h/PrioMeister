@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.23.0"
+PM.version = "1.24.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -355,6 +355,7 @@ function PM:ImportText(text, newRaid)
 		self:Print("|cffffd100%d Zeile(n) nicht erkannt:|r %s", #info.skipped, info.skipped[1])
 	end
 	self:BindListNames()
+	for _, line in ipairs(self:WaitlistLines()) do self:Print(line) end
 	self:ReportIgnoredPrios()
 	self:CheckPresence()
 	refreshUI()
@@ -435,8 +436,55 @@ function PM:ResolveKey(name)
 	for _, set in ipairs({ self.roster or {}, raid.players or {}, raid.rolled or {} }) do
 		for k in pairs(set) do known[k] = true end
 	end
+	for _, aw in ipairs(raid.awards or {}) do
+		if aw.key then known[aw.key] = true end
+	end
 	if known[key] then return key end
 	return L.MatchFolded({ [key] = true }, known)[key] or key
+end
+
+-- Wartelisten aus der Kommentarzeile der Prioliste (seit 1.24), zwischengespeichert:
+-- lists[kanonische Item-ID] = { { name, star } }, sets[kanonische Item-ID] = Items des Sets
+function PM:Waitlists(raid)
+	local meta = (raid or self:Raid()).meta
+	local text = meta and meta.wartelisten
+	if not text or text == "" then return nil end
+	local c = self.waitCache
+	if not c or c.text ~= text or c.sets ~= meta.sets then
+		c = { text = text, sets = meta.sets, lists = L.ParseWaitlists(text), groups = L.ParseSets(meta.sets) }
+		self.waitCache = c
+	end
+	if not next(c.lists) then return nil end
+	return c.lists, c.groups
+end
+
+-- Warteliste eines Items im laufenden Raid: { key, name } in Reihenfolge, ohne wer das Item
+-- schon hat; Namen wie im Raid. nil ohne Warteliste.
+function PM:WaitlistFor(itemID)
+	local raid = self:Raid()
+	local lists, groups = self:Waitlists(raid)
+	if not lists or not itemID then return nil end
+	local list = L.WaitlistOrder(raid, L.Canon(itemID), lists, groups, function(name)
+		local key = self:ResolveKey(name)
+		return key, self:DisplayName(key, name)
+	end)
+	return #list > 0 and list or nil
+end
+
+-- Zeilen für Import und /pm stand: je Item mit Warteliste die Reihenfolge
+function PM:WaitlistLines()
+	local lists = self:Waitlists()
+	if not lists then return {} end
+	local ids, lines = {}, {}
+	for canon in pairs(lists) do ids[#ids + 1] = canon end
+	table.sort(ids)
+	for _, canon in ipairs(ids) do
+		local names = {}
+		for _, w in ipairs(self:WaitlistFor(canon) or {}) do names[#names + 1] = w.name end
+		lines[#lines + 1] = format(T("Warteliste %s: %s"), self:ItemLabel(canon),
+			#names > 0 and table.concat(names, ", ") or T("alle haben es schon"))
+	end
+	return lines
 end
 
 function PM:RosterList()
@@ -490,11 +538,29 @@ function PM:NoPrioMembers()
 	if res then return res.none end
 	local raid = self:Raid()
 	if not next(raid.players) then return {} end
+	local covered = self:WaitlistPrioKeys(raid.meta)
 	local list = {}
 	for key, r in pairs(self.roster) do
-		if not raid.players[key] then list[#list + 1] = r.name end
+		if not raid.players[key] and not covered[key] then list[#list + 1] = r.name end
 	end
 	return L.SortNames(list)
+end
+
+-- Wer auf der Warteliste eines Items steht, deren Warteliste auf der Seite als Prio 0 gilt
+-- (wartelistenp0=16914,16900), kann dort keine eigenen Prios wählen. Fehlt so ein Spieler auf der
+-- Prioliste, etwa weil Reittiere gewürfelt werden, ist er trotzdem nicht „ohne Prio“.
+function PM:WaitlistPrioKeys(meta)
+	local set = {}
+	local items = meta and meta.wartelistenp0
+	if not items or items == "" or not meta.wartelisten then return set end
+	local lists = L.ParseWaitlists(meta.wartelisten)
+	for canon in pairs(L.ParseIDSet(items)) do
+		for _, w in ipairs(lists[canon] or {}) do
+			local key = self:ResolveKey(w.name)
+			if key then set[key] = true end
+		end
+	end
+	return set
 end
 
 function PM:CheckPresence()
@@ -681,6 +747,7 @@ function PM:ListInfo()
 		if link then lines[#lines + 1] = T("Aktueller Stand und Eintragen: ") .. link end
 		local exceptions = self:ExceptionLabels(meta)
 		if #exceptions > 0 then lines[#lines + 1] = T("Trotzdem auf Prio: ") .. table.concat(exceptions, ", ") end
+		for _, line in ipairs(self:WaitlistLines()) do lines[#lines + 1] = line end
 	else
 		lines[#lines + 1] = T("Ohne Angaben zum Prio-Run: Die Liste kommt nicht von priomeister.de.")
 	end
@@ -955,6 +1022,7 @@ function PM:ResolveForItem(itemID, candidates, source)
 	local opts = self:ResolveOpts(itemID)
 	opts.passed = L.PassesFor(raid, itemID, source)
 	opts.unusable = self:UnusableCheck(itemID)
+	opts.waitlist = self:WaitlistFor(itemID)
 	return L.ResolveItem(raid, itemID, function(key) return self:IsPresent(key, candidates) end, opts)
 end
 
@@ -967,6 +1035,7 @@ function PM:AwardOpts(itemID, reason, ctx)
 	o.treasurer = L.NameKey(s.treasurer)
 	o.disenchanter = L.NameKey(s.disenchanter)
 	o.listed = itemID and self:ActiveItemList("treasurer")[itemID] or false
+	o.waitlist = self:WaitlistFor(itemID)
 	return o
 end
 
@@ -1099,7 +1168,7 @@ function PM:RequestRandomAssign(itemID, link, slot)
 	if res.top ~= nil then
 		local names = {}
 		for _, h in ipairs(res.topHolders) do names[#names + 1] = h.name end
-		prioText = format("Prio %d: %s", res.top, table.concat(names, ", "))
+		prioText = L.LevelText(res.top) .. ": " .. table.concat(names, ", ")
 	end
 	local rolls = L.OpenRolls(L.FindSession(self:Raid(), itemID, ctx))
 	if prioText or #rolls > 0 then
@@ -1203,13 +1272,19 @@ function PM:PassCandidates(key)
 			seen[id] = true
 			local slot = open and it.slot or nil
 			local res = self:ResolveForItem(it.itemID, slot and self:GetCandidates(slot) or nil, it.source)
+			-- je Exemplar einmal, die Warteliste vor der Prio
+			local hit
+			for _, h in ipairs(res.waitlist or {}) do
+				if not hit and h.key == key and not h.passed and not h.unusable then hit = h end
+			end
 			for lvl = 0, 3 do
 				for _, h in ipairs(res.levels[lvl]) do
-					if h.key == key and not h.passed and not h.unusable then
-						out[#out + 1] = { itemID = it.itemID, link = it.loading and self:ItemLabel(it.itemID) or it.link,
-							source = it.source, slot = slot, level = lvl, name = h.name }
-					end
+					if not hit and h.key == key and not h.passed and not h.unusable then hit = h end
 				end
+			end
+			if hit then
+				out[#out + 1] = { itemID = it.itemID, link = it.loading and self:ItemLabel(it.itemID) or it.link,
+					source = it.source, slot = slot, level = hit.level, name = hit.name }
 			end
 		end
 	end
@@ -1506,7 +1581,11 @@ function PM:UndoLast()
 		if aw.kind == "tier" and self:PostTierChanges() then
 			self:Send(format(T("%s: Änderung der Würfelstufe zurückgenommen, wieder %d"), aw.name, aw.from or 100))
 		elseif aw.kind == "pass" and self.db.settings.awardsToRaid then
-			self:Send(format(T("%s: Verzicht auf %s zurückgenommen, wieder Prio %s"), aw.name, aw.link or T("das Item"), tostring(aw.level)))
+			if aw.level == L.WAITLIST then
+				self:Send(format(T("%s: Verzicht auf %s zurückgenommen, wieder auf dem Warteplatz"), aw.name, aw.link or T("das Item")))
+			else
+				self:Send(format(T("%s: Verzicht auf %s zurückgenommen, wieder Prio %s"), aw.name, aw.link or T("das Item"), tostring(aw.level)))
+			end
 		elseif aw.kind == "given" and self.db.settings.awardsToRaid then
 			self:Send(L.HandoverUndoLine(aw))
 		end
@@ -1763,6 +1842,20 @@ function PM:PlayerLines(key, itemID)
 	else
 		lines[#lines + 1] = T("|cff909090Nicht auf der Prioliste.|r")
 	end
+	local lists = self:Waitlists(raid)
+	if lists then
+		local ids = {}
+		for id in pairs(lists) do ids[#ids + 1] = id end
+		table.sort(ids)
+		for _, id in ipairs(ids) do
+			local place = L.WaitlistPlace(self:WaitlistFor(id), key)
+			if place then
+				local txt = format(T("Warteliste %s: Platz %d"), self:ItemLabel(id), place)
+				if canon and id == canon then txt = "|cffffd100>|r " .. txt end
+				lines[#lines + 1] = txt
+			end
+		end
+	end
 	local wins = L.FreeWins(raid, key)
 	if wins > 0 then
 		lines[#lines + 1] = format(T("Freie Würfe gewonnen: %d – würfelt mit /roll %d"), wins, L.AllowedMax(raid, key))
@@ -1771,8 +1864,8 @@ function PM:PlayerLines(key, itemID)
 		if aw.kind == "tier" then
 			lines[#lines + 1] = format(T("|cffffd100Von Hand:|r %s, %s Uhr"), L.AwardDetail(aw), date("%H:%M", aw.t or 0))
 		elseif aw.kind == "pass" then
-			lines[#lines + 1] = format(T("|cffb0b0b0Verzichtet:|r %s (Prio %s), %s Uhr"), aw.link or (T("Item ") .. tostring(aw.itemID)),
-				tostring(aw.level), date("%H:%M", aw.t or 0))
+			lines[#lines + 1] = format(T("|cffb0b0b0Verzichtet:|r %s (%s), %s Uhr"), aw.link or (T("Item ") .. tostring(aw.itemID)),
+				L.LevelText(aw.level), date("%H:%M", aw.t or 0))
 		else
 			local label = (aw.givenTo and T("|cff909090Weitergegeben:|r")) or (L.PERSONAL[aw.kind] and T("|cffff8000Erhalten:|r"))
 				or T("|cff909090Für die Gilde:|r")
@@ -1793,6 +1886,14 @@ function PM:PrintItem(itemID, link)
 	local res = self:ResolveForItem(itemID)
 	self:Print("%s:", link or self:ItemLabel(itemID))
 	local any = false
+	if res.waitlist then
+		any = true
+		local names = {}
+		for _, e in ipairs(res.waitlist) do
+			names[#names + 1] = (e.passed and (e.name .. T(" (verzichtet)"))) or (e.present and e.name) or (e.name .. T(" (fehlt)"))
+		end
+		DEFAULT_CHAT_FRAME:AddMessage(format(T("  Warteliste: %s"), table.concat(names, ", ")))
+	end
 	for lvl = 0, 3 do
 		local names = {}
 		for _, h in ipairs(res.levels[lvl]) do

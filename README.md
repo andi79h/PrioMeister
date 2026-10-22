@@ -39,12 +39,12 @@ Spalten, getrennt durch Semikolon:
 |---|---|
 | Datum, Uhrzeit | Zeitpunkt, `16.10.2026` und `21:17` |
 | Spieler, ItemID, Item | wer, welches Item |
-| Art | bei Vergaben wie in der Vergabeliste: Prio, freier Wurf, 50er-Wurf, Rezept-Wurf, Wurf ohne Stufen, zufällig vergeben, ohne Wurf, Entzauberer, Plünderhelfer, Schatzmeister, Verzicht, Würfelstufe von Hand, Weitergabe; bei Würfen immer `Wurf` |
+| Art | bei Vergaben wie in der Vergabeliste: Prio, Warteliste, freier Wurf, 50er-Wurf, Rezept-Wurf, Wurf ohne Stufen, zufällig vergeben, ohne Wurf, Entzauberer, Plünderhelfer, Schatzmeister, Verzicht, Würfelstufe von Hand, Weitergabe; bei Würfen immer `Wurf` |
 | Prio | Prio-Stufe der Vergabe bzw. der Prio-Runde |
 | Wurf, Bereich | Wert und Bereich, etwa `87` und `1-100`; bei „zufällig vergeben“ Platz und Anzahl |
 | Stichwurf | bei Vergaben die Stichwürfe, bei Würfen die Nummer der Stichwurf-Runde |
 | Runde | Nummer der Würfelrunde im Raid, verbindet Würfe und Vergabe |
-| Rundenart | bei Würfen: Prio, freier Wurf, Wurf ohne Stufen oder Rezept-Wurf |
+| Rundenart | bei Würfen: Prio, Warteliste, freier Wurf, Wurf ohne Stufen oder Rezept-Wurf |
 | Status, Grund | bei Würfen: zählt, falscher Bereich, doppelt, zählt nicht, nicht tragbar, verzichtet oder zurückgezogen (Wurf vor einem Verzicht mit /roll 1), dazu der Grund; bei Vergaben `weitergegeben` mit `an Name`, bei Weitergaben `von Name` |
 | Instanz | Name der Instanz, sofern bekannt |
 | Raid | Beginn des Raids, `16.10.2026 19:06` |
@@ -96,6 +96,19 @@ Eine Weitergabe zählt wie eine neue Vergabe an den Empfänger. Hat er Prio auf 
 - **Namen ohne Akzente:** Das Addon vergleicht Namen wie priomeister.de ohne Akzente. Steht auf der Liste „Leryssia“ und heißt der Charakter im Spiel „Leryssiá“, gilt der Eintrag für diesen Charakter. Im Chat steht dann einmal „Prioliste: Leryssia ist Leryssiá im Raid.“ Kommt jemand erst später in den Raid, ordnet das Addon den Eintrag dann zu. Das gilt auch für den Priocheck und für Namen in Befehlen wie `/pm vergabe Name` oder `/pm stufen Name 2`. Der exakte Name gewinnt. Passen zwei Spieler im Raid zum selben Namen ohne Akzente und keiner exakt, ordnet das Addon niemanden zu. Gespeicherte Vergaben, Würfelstufen und Würfe bleiben, wie sie sind.
 - Ein erhaltenes Prio-Item verbraucht genau diese Prio. Onyxias Kopf, Nefarians Kopf, Herz von Hakkar und Ossirians Kopf zählen zusammen mit ihren Quest-Belohnungen als ein Item.
 - Vergaben an Plünderhelfer, Schatzmeister und Entzauberer zählen nicht als eigener Gewinn und ändern keine Stufe.
+
+## Wartelisten
+
+Für einzelne Items führt die Raidleitung auf priomeister.de geordnete Wartelisten, etwa für die Reittiere aus Zul'Gurub oder die Bindungen des Windsuchers. Sie kommen mit der Prioliste ins Addon, in der Kommentarzeile als `wartelisten=19902:John,Mike,Sara`. Beim Import und unter `/pm stand` stehen sie im Chat.
+
+- Der erste Anwesende der Liste ist dran und schlägt jede Prio, auch Prio 0. Fehlt John, ist Mike dran.
+- Die Ansage nennt nur diesen Namen, etwa „[Item] – Warteliste: Mike“. Das Panel zeigt die ganze Reihenfolge, Abwesende grau mit „(fehlt)“. „An Mike“ gibt das Item direkt, bei epischen Items nach Rückfrage. In der Plündermeister-Liste steht „W“ bei allen von der Liste, grün nur bei dem, der dran ist.
+- Wer nicht will, verzichtet mit `/roll 1`, dann ist der Nächste dran. Der Verzicht gilt nur für dieses Exemplar.
+- Wer das Item bekommt, fällt für den Rest des Raids von der Liste. Ein zweites Exemplar geht an den Nächsten. Wer das Item weitergibt, steht wieder auf dem alten Platz. Stand dasselbe Item auch auf Prio, ist diese Prio damit erfüllt.
+- Ist niemand von der Liste da, gelten die üblichen Regeln: Prio, Würfeln, Plünderhelfer, Schatzmeister.
+- Gilt eine Warteliste auf der Seite als Prio 0 (`wartelistenp0=19902`), können ihre Spieler dort keine eigenen Prios wählen. Das Addon nennt sie deshalb nicht unter „Im Raid ohne Prio“.
+- **Set vervollständigen:** Bei Sets wie der linken und rechten Bindung (`sets=18563+18564`) rückt nach vorn, wer im Raid schon ein anderes Teil bekommen hat. Davor bleiben nur die, die laut Seite schon vorher ein Teil hatten; sie stehen in der Liste mit Stern.
+- Im Export stehen diese Vergaben mit der Art `Warteliste`. Die Seite nimmt die Namen danach von der Liste.
 
 ## Plündern
 

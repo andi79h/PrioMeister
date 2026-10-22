@@ -195,6 +195,12 @@ end
 
 function UI:ResolutionText(res)
 	local lines = {}
+	if res.waitlist then
+		local first = res.top == L.WAITLIST and res.topHolders[1]
+		local parts = {}
+		for _, h in ipairs(res.waitlist) do parts[#parts + 1] = HolderText(h, h == first) end
+		lines[#lines + 1] = format(T("|cff%sWarteliste:|r %s"), first and "40ff40" or "909090", table.concat(parts, ", "))
+	end
 	for lvl = 0, 3 do
 		local hs = res.levels[lvl]
 		if hs and #hs > 0 then
@@ -220,6 +226,8 @@ function UI:ResolutionText(res)
 			local tiers = self:TierText()
 			if tiers then lines[#lines + 1] = tiers end
 		end
+	elseif res.mode == "single" and res.top == L.WAITLIST then
+		lines[#lines + 1] = format(T("|cffffd100Vergabe an %s (Warteliste)|r"), res.topHolders[1].name)
 	elseif res.mode == "single" then
 		lines[#lines + 1] = format(T("|cffffd100Vergabe an %s (Prio %d)|r"), res.topHolders[1].name, res.top)
 	else
@@ -290,6 +298,11 @@ local function RowTooltip(row)
 	GameTooltip:AddLine(" ")
 	GameTooltip:AddLine("PrioMeister", 0.2, 1, 0.6)
 	local any = false
+	for i, h in ipairs(d.res.waitlist or {}) do
+		any = true
+		GameTooltip:AddLine(format(T("Warteliste %d: %s%s"), i, h.name,
+			(h.passed and T(" (verzichtet)")) or (h.unusable and (" (" .. h.unusable .. ")")) or (h.present and "") or T(" (fehlt)")), 1, 1, 1)
+	end
 	for lvl = 0, 3 do
 		for _, h in ipairs(d.res.levels[lvl]) do
 			any = true
@@ -344,7 +357,7 @@ local function CreateRow(parent)
 		if h then PM:GiveToHolder(d.itemID, d.slot, h.key) end
 	end)
 	UI.Tooltip(row.give, "An den Prio-Halter",
-		T("Gibt das Item dem einzigen anwesenden Prio-Halter. Bei epischen Items fragt das Addon vorher nach, abschaltbar unter Optionen. Will er es nicht, verzichtet er mit /roll 1, dann ist die nächste Prio dran oder es gibt einen Wurf ohne Prio. Liegt das Item unter der Plündergrenze, plünderst du es selbst und handelst es, das Addon trägt den Handel ein."))
+		T("Gibt das Item dem einzigen anwesenden Prio-Halter oder dem, der auf der Warteliste dran ist. Bei epischen Items fragt das Addon vorher nach, abschaltbar unter Optionen. Will er es nicht, verzichtet er mit /roll 1, dann ist der Nächste dran oder es gibt einen Wurf ohne Prio. Liegt das Item unter der Plündergrenze, plünderst du es selbst und handelst es, das Addon trägt den Handel ein."))
 	row.random = UI.Button(row, "Zufällig vergeben", 106, 18, true)
 	row.random:SetPoint("TOPRIGHT", 0, -21)
 	row.random:SetScript("OnClick", function(b)
@@ -566,7 +579,7 @@ function UI:RefreshPanel()
 		p.rollHeaderBox:ClearAllPoints()
 		p.rollHeaderBox:SetPoint("TOPLEFT", p, "TOPLEFT", 10, y)
 		p.rollHeaderBox:Show()
-		local what = (s.mode == "prio") and (T("Prio ") .. tostring(s.level))
+		local what = (s.mode == "prio") and L.LevelText(s.level)
 			or (s.mode == "recipe" and T("Rezept-Wurf")) or (s.mode == "plain" and T("Wurf ohne Stufen")) or T("freier Wurf")
 		local copies = (s.copies and s.copies > 1) and (" x" .. s.copies) or ""
 		p.rollHeader:SetText(format(T("Würfe: %s%s – %s%s"), s.link or "?", copies, what, s.closed and T(" |cff909090(beendet)|r") or ""))

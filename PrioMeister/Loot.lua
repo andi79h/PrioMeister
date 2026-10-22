@@ -548,12 +548,16 @@ function PM:GiveToHolder(itemID, slot, key, confirmed)
 	end
 	local link = GetLootSlotLink(slot)
 	if self:BelowThreshold(slot) then
-		self:Print("%s an %s: selbst plündern und handeln, das Addon trägt den Handel als Prio ein.", link, h.name)
+		if res.top == L.WAITLIST then
+			self:Print("%s an %s: selbst plündern und handeln, das Addon trägt den Handel für die Warteliste ein.", link, h.name)
+		else
+			self:Print("%s an %s: selbst plündern und handeln, das Addon trägt den Handel als Prio ein.", link, h.name)
+		end
 		return
 	end
 	local quality = select(5, GetLootSlotInfo(slot))
 	if not confirmed and self.db.settings.confirmEpicWinner and quality and quality >= (MASTER_LOOT_THREHOLD or 4) then
-		StaticPopup_Show("PRIOMEISTER_HOLDER", link, string.format("%s (Prio %d)", h.name, res.top),
+		StaticPopup_Show("PRIOMEISTER_HOLDER", link, string.format("%s (%s)", h.name, L.LevelText(res.top)),
 			{ itemID = itemID, slot = slot, key = h.key })
 		return
 	end
@@ -639,13 +643,14 @@ function PM:CommitTrade(t)
 			local drawn = lr and lr.key == key and lr.item == canon and GetTime() - lr.t < 7200
 			local prio = not self:IgnoredKind(it.itemID)
 				and L.OpenEntriesFor(raid, key, canon, self.db.settings.prio0Mode)[1] ~= nil
+			local waiting = L.WaitlistPlace(self:WaitlistFor(it.itemID), key) ~= nil
 			if intent then
 				p.reason = intent.reason
 				self:ConfirmAward(p)
 			elseif s then
 				p.session = s.id
 				self:ConfirmAward(p)
-			elseif drawn or prio then
+			elseif drawn or prio or waiting then
 				self:ConfirmAward(p)
 			elseif key == treasurer and listed[it.itemID] then
 				p.reason = "treasurer"
@@ -862,6 +867,12 @@ function PM:DecorateMasterLooterFrame()
 				holderPassed[h.key] = h.passed or h.unusable ~= nil
 			end
 		end
+		-- Warteliste vor der Prio; grün ist nur, wer den Warteplatz hat
+		local first = res.top == L.WAITLIST and res.topHolders[1]
+		for _, h in ipairs(res.waitlist or {}) do
+			holderLevel[h.key] = L.WAITLIST
+			holderPassed[h.key] = not (first and first.key == h.key)
+		end
 	end
 	local marks = {}
 	for _, pinName in ipairs(self.db.pins) do
@@ -898,7 +909,7 @@ function PM:DecorateMLButton(btn, c, holderLevel, res, marks, itemID, holderPass
 	local passed = key and holderPassed and holderPassed[key]
 	local tag
 	if lvl ~= nil then
-		tag = "P" .. lvl
+		tag = (lvl == L.WAITLIST) and "W" or ("P" .. lvl)
 		btn.pmTag:SetText(tag)
 		if res and res.top == lvl and not passed then
 			btn.pmTag:SetTextColor(0.3, 1, 0.3)
