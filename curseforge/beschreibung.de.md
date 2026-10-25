@@ -4,7 +4,7 @@ Plündermeister-Hilfe für World of Warcraft Classic Era (1.15.x). PrioMeister l
 
 Spieler brauchen das Addon nicht, sie tragen ihre Prios auf priomeister.de ein. Das Addon braucht, wer im Raid plündert. Wie beides zusammenspielt, erklärt die [Hilfe auf priomeister.de](https://priomeister.de/hilfe).
 
-Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Rechtsklick auf den Minimap-Knopf blendet das Panel ein und aus. Der Knopf „?“ oben rechts im Hauptfenster öffnet die Optionen, dort steht auch das Changelog (`/pm changelog`).
+Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Rechtsklick auf den Minimap-Knopf blendet das Panel ein und aus. Bringt ein anderes Addon die Bibliothek LibDBIcon mit, etwa SexyMap, nutzt PrioMeister sie für den Knopf. Minimap-Addons ordnen ihn dann wie die anderen am Rand an. Der Knopf „?“ oben rechts im Hauptfenster öffnet die Optionen, dort steht auch das Changelog (`/pm changelog`).
 
 ## Ablauf im Raid
 

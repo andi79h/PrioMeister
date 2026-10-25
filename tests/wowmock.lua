@@ -304,6 +304,7 @@ mock.shift = false
 function IsShiftKeyDown() return mock.shift end
 function InCombatLockdown() return false end
 Minimap = CreateWidget("Frame", "Minimap", UIParent)
+Minimap:SetSize(140, 140)
 mock.cursor = { 150, 120 }
 function GetCursorPosition() return mock.cursor[1], mock.cursor[2] end
 mock.cursorItem = nil

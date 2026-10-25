@@ -1203,6 +1203,9 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.24.1", "25.10.2026", {
+		"Der Minimap-Knopf sitzt jetzt auch auf eckigen Minimaps am Rand, etwa mit SexyMap. Bringt ein anderes Addon die Bibliothek LibDBIcon mit, nutzt PrioMeister sie. SexyMap und andere Minimap-Addons behandeln den Knopf dann wie alle anderen, mit Ausblenden und Verschieben. Ohne LibDBIcon richtet sich der eigene Knopf nach der Form der Minimap. Seine Position bleibt erhalten.",
+	} },
 	{ "1.24.0", "22.10.2026", {
 		"Wartelisten von priomeister.de: Für einzelne Items wie die Reittiere aus Zul'Gurub oder die Bindungen des Windsuchers aus dem Geschmolzenen Kern führt die Raidleitung geordnete Wartelisten. Sie kommen mit der Prioliste ins Addon. Der erste Anwesende der Liste ist dran und schlägt jede Prio, auch Prio 0. Ist niemand von der Liste da, gelten die üblichen Regeln.",
 		"Die Ansage nennt den Namen, etwa „[Item] – Warteliste: Mike“. Das Panel zeigt die ganze Reihenfolge, „An Mike“ gibt das Item direkt. Wer mit /roll 1 verzichtet, macht Platz für den Nächsten. Wer das Item bekommt, fällt für den Rest des Raids von der Liste. Bei Sets mit „Set vervollständigen“ rückt nach vorn, wer im Raid schon ein anderes Teil bekommen hat.",
@@ -1469,13 +1472,71 @@ function UI:ShowChangelog()
 end
 
 -------------------------------------------------------------------------------
--- Minimap-Knopf
+-- Minimap-Knopf (seit 1.24.1): Bringt ein anderes Addon LibDBIcon-1.0 und LibDataBroker-1.1 mit,
+-- etwa SexyMap, nutzt PrioMeister sie. Minimap-Addons behandeln den Knopf dann wie alle anderen:
+-- am Rand jeder Form, mit Ausblenden und Verschieben. Sonst baut PrioMeister den Knopf selbst
+-- und setzt ihn wie LibDBIcon nach GetMinimapShape an den Rand.
 -------------------------------------------------------------------------------
 
+-- Welche Viertel der Minimap rund sind: unten rechts, unten links, oben rechts, oben links
+local MINIMAP_SHAPES = {
+	["ROUND"] = { true, true, true, true },
+	["SQUARE"] = { false, false, false, false },
+	["CORNER-TOPLEFT"] = { false, false, false, true },
+	["CORNER-TOPRIGHT"] = { false, false, true, false },
+	["CORNER-BOTTOMLEFT"] = { false, true, false, false },
+	["CORNER-BOTTOMRIGHT"] = { true, false, false, false },
+	["SIDE-LEFT"] = { false, true, false, true },
+	["SIDE-RIGHT"] = { true, false, true, false },
+	["SIDE-TOP"] = { false, false, true, true },
+	["SIDE-BOTTOM"] = { true, true, false, false },
+	["TRICORNER-TOPLEFT"] = { false, true, true, true },
+	["TRICORNER-TOPRIGHT"] = { true, false, true, true },
+	["TRICORNER-BOTTOMLEFT"] = { true, true, false, true },
+	["TRICORNER-BOTTOMRIGHT"] = { true, true, true, false },
+}
+
+-- Versatz des Knopfs zur Mitte der Minimap für einen Winkel in Grad: auf runden Vierteln auf dem
+-- Kreis, auf eckigen bis in die Ecke, wie LibDBIcon.
+function UI.MinimapOffset(angle, shape, width, height)
+	local a = math.rad(angle or 225)
+	local x, y, q = math.cos(a), math.sin(a), 1
+	if x < 0 then q = q + 1 end
+	if y > 0 then q = q + 2 end
+	local w = ((width and width > 0) and width or 140) / 2 + 5
+	local h = ((height and height > 0) and height or 140) / 2 + 5
+	if (MINIMAP_SHAPES[shape] or MINIMAP_SHAPES.ROUND)[q] then return x * w, y * h end
+	local dw, dh = math.sqrt(2 * w * w) - 10, math.sqrt(2 * h * h) - 10
+	return math.max(-w, math.min(x * dw, w)), math.max(-h, math.min(y * dh, h))
+end
+
+-- Einstellungen des Knopfs im Format von LibDBIcon: minimapPos (Winkel in Grad) und hide.
+-- Der Winkel des früheren Knopfs (minimapAngle) gilt weiter.
+local function IconDB()
+	local s = PM.db.settings
+	if type(s.minimapIcon) ~= "table" then s.minimapIcon = { minimapPos = s.minimapAngle or 200 } end
+	s.minimapIcon.hide = not s.showMinimap
+	return s.minimapIcon
+end
+
+-- LibDataBroker und LibDBIcon, wenn ein anderes Addon sie geladen hat
+local function Broker()
+	local stub = _G.LibStub
+	if not stub then return nil end
+	local ldb, icon = stub("LibDataBroker-1.1", true), stub("LibDBIcon-1.0", true)
+	if ldb and icon then return ldb, icon end
+	return nil
+end
+
+local function MinimapClick(mouseButton)
+	if mouseButton == "RightButton" then UI:TogglePanel() else UI:ToggleMain() end
+end
+
 local function PositionMinimapButton(b)
-	local angle = math.rad(PM.db.settings.minimapAngle or 200)
+	local shape = GetMinimapShape and GetMinimapShape() or "ROUND"
+	local x, y = UI.MinimapOffset(IconDB().minimapPos, shape, Minimap:GetWidth(), Minimap:GetHeight())
 	b:ClearAllPoints()
-	b:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * 80, math.sin(angle) * 80)
+	b:SetPoint("CENTER", Minimap, "CENTER", x, y)
 end
 
 local function DragMinimapButton(b)
@@ -1483,8 +1544,28 @@ local function DragMinimapButton(b)
 	local px, py = GetCursorPosition()
 	local scale = Minimap:GetEffectiveScale()
 	px, py = px / scale, py / scale
-	PM.db.settings.minimapAngle = math.deg(math.atan2(py - my, px - mx)) % 360
+	IconDB().minimapPos = math.deg(math.atan2(py - my, px - mx)) % 360
 	PositionMinimapButton(b)
+end
+
+-- Knopf über LibDBIcon anmelden. Ergebnis: true, wenn das geklappt hat.
+function UI:RegisterBrokerIcon()
+	if self.brokerIcon then return true end
+	local ldb, icon = Broker()
+	if not ldb then return false end
+	local obj = ldb:GetDataObjectByName("PrioMeister") or ldb:NewDataObject("PrioMeister", {
+		type = "launcher", label = "PrioMeister", icon = UI.LOGO_ROUND,
+		OnClick = function(_, mouseButton) MinimapClick(mouseButton) end,
+		OnTooltipShow = function(tip)
+			tip:AddLine("PrioMeister")
+			tip:AddLine(T("Linksklick: Hauptfenster\nRechtsklick: Panel\nZiehen: verschieben"), 1, 1, 1)
+		end,
+	})
+	if not obj then return false end
+	if not icon:IsRegistered("PrioMeister") then icon:Register("PrioMeister", obj, IconDB()) end
+	self.brokerIcon = icon
+	if self.minimapButton then self.minimapButton:Hide() end
+	return true
 end
 
 function UI:GetMinimapButton()
@@ -1511,9 +1592,7 @@ function UI:GetMinimapButton()
 	border:SetSize(53, 53)
 	border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
 	border:SetPoint("TOPLEFT")
-	b:SetScript("OnClick", function(_, mouseButton)
-		if mouseButton == "RightButton" then UI:TogglePanel() else UI:ToggleMain() end
-	end)
+	b:SetScript("OnClick", function(_, mouseButton) MinimapClick(mouseButton) end)
 	b:SetScript("OnDragStart", function(self) self:SetScript("OnUpdate", DragMinimapButton) end)
 	b:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
 	self.Tooltip(b, "PrioMeister", "Linksklick: Hauptfenster\nRechtsklick: Panel\nZiehen: verschieben")
@@ -1523,6 +1602,10 @@ end
 
 function UI:UpdateMinimapButton()
 	if not PM.db then return end
+	if self:RegisterBrokerIcon() then
+		if IconDB().hide then self.brokerIcon:Hide("PrioMeister") else self.brokerIcon:Show("PrioMeister") end
+		return
+	end
 	if PM.db.settings.showMinimap then
 		local b = self:GetMinimapButton()
 		if b then
