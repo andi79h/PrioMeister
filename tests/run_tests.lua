@@ -3785,6 +3785,88 @@ do
 	mock.RunTimers()
 end
 
+-- 1.24.1: Minimap-Knopf. Mit LibDBIcon (etwa von SexyMap) meldet PrioMeister den Knopf dort an,
+-- sonst richtet sich der eigene Knopf nach der Form der Minimap (GetMinimapShape).
+do
+	local function near(a, b) return a and b and math.abs(a - b) < 0.1 end
+	local x, y = UI.MinimapOffset(315, "ROUND", 140, 140)
+	check(near(x, 53.03) and near(y, -53.03), "rund: auf dem Kreis", x .. "/" .. y)
+	x, y = UI.MinimapOffset(315, "SQUARE", 140, 140)
+	check(near(x, 67.93) and near(y, -67.93), "eckig: unten rechts bis in die Ecke", x .. "/" .. y)
+	x, y = UI.MinimapOffset(200, "SQUARE", 140, 140)
+	check(near(x, -75) and near(y, -32.86), "eckig: links auf dem Rand", x .. "/" .. y)
+	x, y = UI.MinimapOffset(315, "CORNER-BOTTOMRIGHT", 140, 140)
+	check(near(x, 53.03) and near(y, -53.03), "rundes Viertel bleibt rund", x .. "/" .. y)
+	check(near(UI.MinimapOffset(0, "SQUARE", 200, 200), 105), "größere Minimap: weiter außen")
+	check(near(UI.MinimapOffset(0, "UNBEKANNT", 0, 0), 75), "unbekannte Form ohne Größe: rund mit 140")
+
+	-- eigener Knopf auf der eckigen Minimap von SexyMap, ohne LibDBIcon
+	GetMinimapShape = function() return "SQUARE" end
+	PM.db.settings.minimapIcon, PM.db.settings.minimapAngle = nil, 315
+	UI:UpdateMinimapButton()
+	local b = UI.minimapButton
+	local p = b and b._points[1]
+	check(p and p[1] == "CENTER" and p[2] == Minimap and near(p[4], 67.93) and near(p[5], -67.93),
+		"eigener Knopf auf eckiger Minimap in der Ecke", p and (tostring(p[4]) .. "/" .. tostring(p[5])))
+	eq(PM.db.settings.minimapIcon.minimapPos, 315, "bisherige Position übernommen")
+	mock.cursor = { 150, 100 }
+	b._scripts.OnDragStart(b)
+	b._scripts.OnUpdate(b)
+	b._scripts.OnDragStop(b)
+	eq(PM.db.settings.minimapIcon.minimapPos, 0, "gezogen: Winkel 0")
+	check(near(b._points[1][4], 75) and near(b._points[1][5], 0), "gezogen: rechts auf dem Rand")
+	mock.cursor = { 150, 120 }
+	GetMinimapShape = nil
+
+	-- mit LibDBIcon und LibDataBroker aus einem anderen Addon: dort anmelden statt eigenem Knopf
+	local objects, icon = {}, { registered = {}, shown = {} }
+	function icon:Register(name, obj, db) self.registered[name] = { obj = obj, db = db }; self.shown[name] = not db.hide end
+	function icon:IsRegistered(name) return self.registered[name] ~= nil end
+	function icon:Show(name) self.registered[name].db.hide = false; self.shown[name] = true end
+	function icon:Hide(name) self.registered[name].db.hide = true; self.shown[name] = false end
+	local libs = {
+		["LibDataBroker-1.1"] = {
+			NewDataObject = function(_, name, obj)
+				if objects[name] then return nil end
+				objects[name] = obj
+				return obj
+			end,
+			GetDataObjectByName = function(_, name) return objects[name] end,
+		},
+		["LibDBIcon-1.0"] = icon,
+	}
+	LibStub = setmetatable({}, { __call = function(_, name) return libs[name] end })
+	mock.CloseLoot()
+	mock.ResetUI()
+	PrioMeisterDB = { dbVersion = 8, settings = { minimapAngle = 120 }, pins = {}, history = {} }
+	loadAddon()
+	mock.Fire("ADDON_LOADED", "PrioMeister")
+	mock.Fire("PLAYER_LOGIN")
+	local reg = icon.registered.PrioMeister
+	check(reg and reg.obj.type == "launcher" and reg.obj.icon == UI.LOGO_ROUND, "bei LibDBIcon angemeldet, mit rundem Logo")
+	eq(reg and reg.db.minimapPos, 120, "Position des bisherigen Knopfs übernommen")
+	check(icon.shown.PrioMeister, "Knopf sichtbar")
+	eq(UI.minimapButton, nil, "kein eigener Knopf")
+	reg.obj.OnClick(nil, "LeftButton")
+	check(UI:GetMain():IsShown(), "Linksklick: Hauptfenster")
+	reg.obj.OnClick(nil, "LeftButton")
+	check(not UI:GetMain():IsShown(), "zweiter Linksklick: Hauptfenster zu")
+	local before = UI:GetPanel():IsShown()
+	reg.obj.OnClick(nil, "RightButton")
+	check(UI:GetPanel():IsShown() ~= before, "Rechtsklick: Panel umgeschaltet")
+	reg.obj.OnClick(nil, "RightButton")
+	local lines = {}
+	reg.obj.OnTooltipShow({ AddLine = function(_, text) lines[#lines + 1] = text end })
+	check(lines[1] == "PrioMeister" and (lines[2] or ""):find("Linksklick", 1, true), "Tooltip wie beim eigenen Knopf")
+	PM:SetOption("showMinimap", false)
+	check(not icon.shown.PrioMeister and reg.db.hide == true, "Option aus: Knopf versteckt")
+	PM:SetOption("showMinimap", true)
+	check(icon.shown.PrioMeister and reg.db.hide == false, "Option an: Knopf wieder da")
+	UI:UpdateMinimapButton()
+	eq(UI.minimapButton, nil, "auch danach kein zweiter Knopf")
+	LibStub = nil
+end
+
 -- 1.21: Englisch. Jeder Text, der übersetzt wird, hat eine englische Fassung (Quelltext durchsucht)
 do
 	local LNS = {}

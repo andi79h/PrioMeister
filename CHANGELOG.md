@@ -1,5 +1,3 @@
-# PrioMeister 1.24.0 (2026-10-22)
+# PrioMeister 1.24.1 (2026-10-25)
 
-- Waitlists from priomeister.de: for single items such as the mounts from Zul'Gurub or the Bindings of the Windseeker from Molten Core, the raid lead keeps ordered waitlists. They come into the addon with the prio list. The first player on the list who is present is up and beats every prio, even prio 0. If nobody from the list is present, the usual rules apply.
-- The announcement names the player, e.g. “[Item] – waitlist: Mike”. The panel shows the whole order, and “To Mike” gives the item directly. Passing with /roll 1 makes room for the next one. Whoever gets the item drops off the list for the rest of the raid. For sets with “complete the set”, players who already got another piece in this raid move up.
-- The export lists these awards with the type “Warteliste”. /pm status names the waitlists. If a waitlist counts as prio 0 on the site, its players are not listed under “In the raid without prio”.
+- The minimap button now sits on the edge of square minimaps too, e.g. with SexyMap. If another addon brings the LibDBIcon library, PrioMeister uses it. SexyMap and other minimap addons then treat the button like all others, with fading and moving. Without LibDBIcon the addon's own button follows the shape of the minimap. Its position is kept.

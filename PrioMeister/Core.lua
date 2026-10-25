@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.24.0"
+PM.version = "1.24.1"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
