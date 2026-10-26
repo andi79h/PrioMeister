@@ -675,6 +675,9 @@ do
 	local lines = {}
 	for line in csv:gmatch("[^\n]+") do lines[#lines + 1] = line end
 	eq(lines[1], L.EXPORT_HEADER, "Kopfzeile")
+	-- priomeister.de verteilt „Export alle Raids“ über Instanz und Zeitstempel auf die Prio-Runs (seit 26.10.)
+	eq(L.EXPORT_HEADER, "Datum;Uhrzeit;Spieler;ItemID;Item;Art;Prio;Wurf;Bereich;Stichwurf;Runde;Rundenart;Status;Grund;Instanz;Raid;Zeitstempel",
+		"Spalten bleiben, wie priomeister.de sie liest")
 	eq(#lines, 6, "Kopf, vier Würfe, eine Vergabe")
 	local columns = select(2, L.EXPORT_HEADER:gsub(";", "")) + 1
 	eq(columns, 17, "17 Spalten")
