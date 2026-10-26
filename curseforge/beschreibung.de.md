@@ -12,7 +12,7 @@ Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Re
 2. **Beute öffnen:** Das Panel zeigt jedes Item mit seinen Prio-Haltern. Mit „Beute beim Öffnen ansagen, mit Prios“ stehen Beute und Prios im Raidchat.
 3. **Ansagen und Würfeln:** Hat nur ein Spieler Prio, gibt „An Name“ ihm das Item direkt. Bei mehreren startet „Würfeln“ eine Würfelrunde für die Prio-Halter, ohne Prio ist es ein freier Wurf. Ein Rechtsklick erzwingt einen freien Wurf.
 4. **Vergeben:** „An Name (Wurf)“ gibt das Item dem Gewinner. Bei epischen Items fragt das Addon vorher nach. „Zufällig vergeben“ würfelt über alle Spieler im Raid, „An Entzauberer“ gibt das Item dem Entzauberer.
-5. **Zurücknehmen:** „Letzte zurücknehmen“ im Reiter Vergaben nimmt den letzten Eintrag zurück.
+5. **Zurücknehmen:** „Letzte zurücknehmen“ im Reiter Beute nimmt den letzten Eintrag zurück.
 
 ## Regeln
 
@@ -41,13 +41,13 @@ Für einzelne Items führt die Raidleitung auf priomeister.de geordnete Wartelis
 
 - **Plünderhelfer** bekommt alles bis zur eingestellten Qualität, was auf keiner Liste steht.
 - **Schatzmeister** bekommt nur die Items seiner Liste, etwa Skarabäen und Schlüssel in AQ.
-- **Entzauberer** bekommt Items, auf die niemand würfelt. Ist ein Entzauberer bestimmt, hat jedes Rüstungs- oder Waffen-Item im Panel einen Knopf „An Entzauberer“, ganz ohne Würfelrunde. Ab welcher Qualität, stellst du im Reiter Plündern neben dem Entzauberer ein: nie, ab Grün, ab Blau oder nur Episch, voreingestellt ab Grün. Solange ein anwesender Spieler Prio hat, fehlt der Knopf. Bei epischen Items fragt das Addon vorher nach.
-- Listen gibt es je Instanz im Reiter Plündern, es gilt „Alle Instanzen“ plus die aktuelle Instanz. Items unter „Immer verwürfeln“ werden immer verwürfelt und gehen nie an Plünderhelfer oder Schatzmeister.
+- **Entzauberer** bekommt Items, auf die niemand würfelt. Ist ein Entzauberer bestimmt, hat jedes Rüstungs- oder Waffen-Item im Panel einen Knopf „An Entzauberer“, ganz ohne Würfelrunde. Ab welcher Qualität, stellst du im Reiter Plünderoptionen neben dem Entzauberer ein: nie, ab Grün, ab Blau oder nur Episch, voreingestellt ab Grün. Solange ein anwesender Spieler Prio hat, fehlt der Knopf. Bei epischen Items fragt das Addon vorher nach.
+- Listen gibt es je Instanz im Reiter Plünderoptionen, es gilt „Alle Instanzen“ plus die aktuelle Instanz. Items unter „Immer verwürfeln“ werden immer verwürfelt und gehen nie an Plünderhelfer oder Schatzmeister.
 - Beute aus einem Behälter in der eigenen Tasche, beim Angeln und aus Kräutern oder Erzadern läuft nicht über den Plündermeister. Das Addon sagt sie nicht an, verteilt nichts und zeigt kein Panel. Boss-Truhen behandelt es wie Leichen.
 
 ## Weitergaben
 
-Hat ein Spieler ein Item im Spiel an jemand anderen weitergegeben, klickst du die Vergabe im Reiter Vergaben mit rechts an und wählst den neuen Besitzer. Eine Weitergabe zählt wie eine neue Vergabe: Hat der Empfänger Prio auf das Item, ist sie erfüllt, sonst sinkt seine Stufe wie nach einem freien Wurf. Beim Geber ist die Prio wieder offen oder seine Stufe kommt zurück. Das geht auch für frühere Raids.
+Hat ein Spieler ein Item im Spiel an jemand anderen weitergegeben, klickst du die Vergabe im Reiter Beute mit rechts an und wählst den neuen Besitzer. Eine Weitergabe zählt wie eine neue Vergabe: Hat der Empfänger Prio auf das Item, ist sie erfüllt, sonst sinkt seine Stufe wie nach einem freien Wurf. Beim Geber ist die Prio wieder offen oder seine Stufe kommt zurück. Das geht auch für frühere Raids.
 
 ## Priocheck
 
@@ -55,7 +55,7 @@ So siehst du, wer im Raid noch keine Prios eingetragen hat, ohne die Eintragung 
 
 ## Export
 
-Der Reiter Vergaben exportiert alle Vergaben und Würfe als CSV für priomeister.de oder eine Tabelle. Auf priomeister.de fügst du den Export im Prio-Run im Reiter „Vergaben“ ein: die Raidleitung auf der Leitungsseite, der Plündermeister auf der Spielerseite. Spaltennamen und Werte des Exports sind in beiden Sprachen deutsch, weil priomeister.de sie so liest.
+Der Reiter Beute exportiert alle Vergaben und Würfe als CSV für priomeister.de oder eine Tabelle. Auf priomeister.de fügst du den Export im Prio-Run im Reiter „Vergaben“ ein: die Raidleitung auf der Leitungsseite, der Plündermeister auf der Spielerseite. Spaltennamen und Werte des Exports sind in beiden Sprachen deutsch, weil priomeister.de sie so liest.
 
 „Reset“ rechts neben der Auswahl der Raids löscht nach einer Rückfrage alle gespeicherten Raids, den laufenden und alle früheren, mit Vergaben, Würfelstufen, Wurf-Protokollen und Prioliste. Sie lassen sich danach nicht mehr aus dem Addon exportieren. Einstellungen, Listen und Rollen bleiben. Wer die Daten noch braucht, sichert sie vorher mit „Export alle Raids“.
 

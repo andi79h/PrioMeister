@@ -1822,6 +1822,10 @@ end
 UI:SelectTab("raid")
 -- 1.19.1: Optionen oben rechts statt als Reiter, ein zweiter Klick führt zurück; seit 1.19.2 roter Knopf „?“
 check(main.tabs.options == nil and main.tabs.raid and main.tabs.awards and main.tabs.loot, "Optionen ohne eigenen Reiter")
+-- seit 1.25: „Beute“ statt „Vergaben“, „Plünderoptionen“ statt „Plündern“, breit genug für den längeren Namen
+eq(main.tabs.awards:GetText(), "Beute", "Reiter Beute")
+eq(main.tabs.loot:GetText(), "Plünderoptionen", "Reiter Plünderoptionen")
+check(main.tabs.loot:GetWidth() >= 130, "Reiter Plünderoptionen breit genug")
 check(main.changelog == nil, "kein Changelog-Knopf mehr oben")
 eq(main.gear:GetText(), "?", "roter Knopf mit Fragezeichen")
 check(main.gear._w == 24 and main.gear._h == 24 and main.gear._points[1][1] == "RIGHT" and main.gear._points[1][2] == main.close
@@ -4092,8 +4096,8 @@ do
 	-- Hauptfenster: alle Reiter, Optionen, Changelog, Import mit Priocheck
 	UI:ShowMain("raid")
 	local main = _G.PrioMeisterMainFrame
-	eq(main.tabs.awards:GetText(), "Awards", "Reiter Awards")
-	eq(main.tabs.loot:GetText(), "Loot", "Reiter Loot")
+	eq(main.tabs.awards:GetText(), "Loot", "Reiter Loot")
+	eq(main.tabs.loot:GetText(), "Loot options", "Reiter Loot options")
 	for _, tab in ipairs({ "raid", "awards", "loot", "options" }) do UI:SelectTab(tab) end
 	eq(main.pages.options.language._selected, "Language: English", "Sprachwahl zeigt Englisch")
 	main.pages.options.changelog._scripts.OnClick(main.pages.options.changelog)

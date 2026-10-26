@@ -287,12 +287,12 @@ function PM:AutoLoot()
 	end
 	if #waiting > 0 and not self.treasurerHintShown then
 		self.treasurerHintShown = true
-		self:Print("Kein Schatzmeister bestimmt, diese Items der Liste bleiben liegen: %s. Bestimmen im Panel oder unter „Plündern“.",
+		self:Print("Kein Schatzmeister bestimmt, diese Items der Liste bleiben liegen: %s. Bestimmen im Panel oder unter „Plünderoptionen“.",
 			table.concat(waiting, ", "))
 	end
 	if blocked > 0 and not self.thresholdHintShown then
 		self.thresholdHintShown = true
-		self:Print("%d Item(s) für Plünderhelfer oder Schatzmeister liegen unter der Plündergrenze und lassen sich nicht automatisch verteilen. Die Grenze kannst du im Fenster unter „Plündern“ senken.", blocked)
+		self:Print("%d Item(s) für Plünderhelfer oder Schatzmeister liegen unter der Plündergrenze und lassen sich nicht automatisch verteilen. Die Grenze kannst du im Fenster unter „Plünderoptionen“ senken.", blocked)
 	end
 end
 
@@ -388,7 +388,7 @@ function PM:GiveToDisenchanter(confirmed)
 end
 
 -- „An Entzauberer“ an jedem Item im Panel, auch ohne Würfelrunde: Entzauberer bestimmt, Rüstung
--- oder Waffe ab der Qualität aus dem Reiter Plündern, und kein anwesender Spieler hat Prio.
+-- oder Waffe ab der Qualität aus dem Reiter Plünderoptionen, und kein anwesender Spieler hat Prio.
 function PM:ShowDisenchantButton(d)
 	local s = self.db.settings
 	local min = s.deButtonQuality

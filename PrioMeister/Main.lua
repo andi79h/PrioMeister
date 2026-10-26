@@ -20,19 +20,19 @@ local CONTENT_W = MAIN_W - 32
 -- Reiter enden bei -58, darunter je 10 Abstand bis zur Trennlinie und bis zum Inhalt
 local DIVIDER_Y, PAGE_TOP = -68, -78
 local ROLE_X = 60 -- Rollen im Reiter Raid: Abstand der Knöpfe vom linken Rand
-local FIELD_X = 110 -- Reiter Plündern: Knopf und Auswahl hinter „Plündermeister:“ und „Plündergrenze:“
+local FIELD_X = 110 -- Reiter Plünderoptionen: Knopf und Auswahl hinter „Plündermeister:“ und „Plündergrenze:“
 
 local TABS = {
 	{ key = "raid", label = "Raid" },
-	{ key = "awards", label = "Vergaben" },
-	{ key = "loot", label = "Plündern" },
+	{ key = "awards", label = "Beute" }, -- bis 1.24 „Vergaben“
+	{ key = "loot", label = "Plünderoptionen" }, -- bis 1.24 „Plündern“
 	{ key = "options", label = "Optionen", gear = true }, -- kein Reiter, Knopf „?“ oben rechts
 }
 
-local NEW_RAID_HELP = "Startet einen neuen Raid: Vergaben, Würfelstufen und Prioliste beginnen leer. Der bisherige Raid kommt ins Archiv, im Reiter „Vergaben“ siehst und exportierst du ihn weiter und kannst ihn fortsetzen."
+local NEW_RAID_HELP = "Startet einen neuen Raid: Vergaben, Würfelstufen und Prioliste beginnen leer. Der bisherige Raid kommt ins Archiv, im Reiter „Beute“ siehst und exportierst du ihn weiter und kannst ihn fortsetzen."
 
 Popup("PRIOMEISTER_NEWRAID", {
-	text = "Neuen Raid starten?\nVergaben, Würfelstufen und Prioliste beginnen leer. Der bisherige Raid kommt ins Archiv und lässt sich im Reiter „Vergaben“ wieder fortsetzen.",
+	text = "Neuen Raid starten?\nVergaben, Würfelstufen und Prioliste beginnen leer. Der bisherige Raid kommt ins Archiv und lässt sich im Reiter „Beute“ wieder fortsetzen.",
 	button1 = YES, button2 = NO,
 	OnAccept = function() PM:NewRaid() end,
 	timeout = 0, whileDead = true, hideOnEscape = true,
@@ -137,11 +137,11 @@ function UI:GetMain()
 	local x = 14
 	for _, t in ipairs(TABS) do
 		if not t.gear then
-			local b = self.Button(f, t.label, 110, 22)
+			local b = self.Button(f, t.label, 130, 22)
 			b:SetPoint("TOPLEFT", f, "TOPLEFT", x, -36)
 			b:SetScript("OnClick", function() UI:SelectTab(t.key) end)
 			f.tabs[t.key] = b
-			x = x + 114
+			x = x + 134
 		end
 		local page = CreateFrame("Frame", nil, f)
 		page:SetPoint("TOPLEFT", 16, PAGE_TOP)
@@ -379,7 +379,7 @@ function UI:BuildRaidPage(page)
 end
 
 -------------------------------------------------------------------------------
--- Reiter "Vergaben"
+-- Reiter "Beute"
 -------------------------------------------------------------------------------
 
 -- Instanzen eines Raids als Text, z. B. " · Onyxias Hort, Zul'Gurub". Leer, wenn
@@ -646,7 +646,7 @@ function UI:BuildAwardsPage(page)
 end
 
 -------------------------------------------------------------------------------
--- Reiter "Plündern"
+-- Reiter "Plünderoptionen"
 -------------------------------------------------------------------------------
 
 local HELPER_QUALITIES = { 0, 1, 2, 3 } -- Grau bis Blau, einzeln an- und abwählbar
@@ -1244,7 +1244,8 @@ end
 
 local CHANGELOG = {
 	{ "1.25.0", "26.10.2026", {
-		"Im Reiter Vergaben steht neben der Auswahl der Raids der Knopf „Reset“. Er löscht nach einer Rückfrage alle gespeicherten Raids, den laufenden und alle früheren. Danach lassen sie sich nicht mehr aus dem Addon exportieren. Einstellungen, Listen und Rollen bleiben.",
+		"Die Reiter heißen jetzt „Beute“ statt „Vergaben“ und „Plünderoptionen“ statt „Plündern“.",
+		"Im Reiter Beute steht neben der Auswahl der Raids der Knopf „Reset“. Er löscht nach einer Rückfrage alle gespeicherten Raids, den laufenden und alle früheren. Danach lassen sie sich nicht mehr aus dem Addon exportieren. Einstellungen, Listen und Rollen bleiben.",
 		"„Teilen“ steht jetzt direkt neben der Auswahl des Kanals. Nur beim Flüstern kommt das Namensfeld dazwischen.",
 	} },
 	{ "1.24.1", "25.10.2026", {

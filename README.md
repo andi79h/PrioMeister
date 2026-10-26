@@ -18,14 +18,14 @@ Spieler brauchen das Addon nicht, sie tragen ihre Prios auf priomeister.de ein. 
 5. Rechts neben dem Plünderfenster erscheint das Panel. Pro Item steht dort, wer Prio hat, wer fehlt und wer schon etwas bekommen hat (orange `+1`).
 6. **Ansagen** nennt den einzigen Prio-Halter, darunter gibt **An Name** ihm das Item direkt, bei epischen Items nach Rückfrage wie bei „An Name (Wurf)“. **Würfeln** startet die Würfelrunde und sagt sie an. Rechtsklick startet einen freien Wurf, auch wenn jemand Prio hat. Die Würfe stehen unten im Panel, bis das Item vergeben ist. Darunter gibt „An Name (Wurf)“ das Item dem Gewinner, bei mehreren Exemplaren dem nächsten. Bei epischen Items fragt das Addon vorher nach, wie Blizzards Plündermeister-Liste, abschaltbar unter **Optionen**. „Beenden“ schließt die Runde: Neue Würfe zählen nicht mehr, die bisherigen bleiben gültig, und das Item lässt sich weiter an den Gewinner oder den Entzauberer geben.
 7. **Zufällig vergeben** würfelt 1 bis Anzahl der Spieler im Raid und gibt das Item dem Spieler auf diesem Platz, gezählt wie im Raidfenster durch die Gruppen 1 bis 8. Gedacht ist das etwa für Teile von Kartensets. Im Chat steht dann „zufällig vergeben“ mit dem Platz. Hat ein anwesender Spieler Prio auf das Item oder wurde dafür schon gewürfelt, fragt das Addon vorher „Sicher?“ und nennt Prio-Halter und Würfe.
-8. Würfelt niemand, gibt „An Entzauberer“ das Item an den Entzauberer. Hat schon jemand gewürfelt oder ist es eine Prio-Runde, fragt das Addon vorher nach und nennt die Würfe. Ohne Würfelrunde geht es auch: Ist ein Entzauberer bestimmt, steht „An Entzauberer“ an jedem Item im Panel, bei Rüstung und Waffen ab der Qualität, die du im Reiter **Plündern** neben dem Entzauberer einstellst (nie, ab Grün, ab Blau oder nur Episch, voreingestellt ab Grün). Hat ein anwesender Spieler Prio, fehlt der Knopf. Bei epischen Items fragt das Addon vorher nach.
+8. Würfelt niemand, gibt „An Entzauberer“ das Item an den Entzauberer. Hat schon jemand gewürfelt oder ist es eine Prio-Runde, fragt das Addon vorher nach und nennt die Würfe. Ohne Würfelrunde geht es auch: Ist ein Entzauberer bestimmt, steht „An Entzauberer“ an jedem Item im Panel, bei Rüstung und Waffen ab der Qualität, die du im Reiter **Plünderoptionen** neben dem Entzauberer einstellst (nie, ab Grün, ab Blau oder nur Episch, voreingestellt ab Grün). Hat ein anwesender Spieler Prio, fehlt der Knopf. Bei epischen Items fragt das Addon vorher nach.
 9. Items unter der Plündergrenze, die auf „Immer verwürfeln“ stehen, erscheinen trotzdem im Panel und in der Ansage. Du plünderst sie selbst und handelst sie an den Gewinner. Die Frage von WoW, ob du ein gebundenes Item aufheben willst, bleibt dabei bestehen, denn das Addon plündert nie selbst. Den Handel trägt das Addon als Vergabe ein, wenn der Empfänger gewürfelt hat, Prio hat, zufällig gezogen oder als Entzauberer gewählt wurde. Behältst du das Item selbst, trägst du es mit `/pm vergabe Name` ein.
 10. Jede bestätigte Vergabe steht im Raidchat, damit ein anderer Spieler sie mitschreiben kann, zum Beispiel:
    `Gustl erhält [Ring der Bindung] – freier Wurf 88 (1-100) – würfelt ab jetzt mit /roll 99`
 
 ## Vergaben teilen
 
-Im Reiter **Vergaben** wählst du oben den Raid: den aktuellen oder einen früheren. So kannst du die Vergaben auch später noch teilen, wenn schon ein neuer Raid läuft. Die Auswahl nennt die Instanz, das Addon merkt sie sich seit Version 1.11 bei jeder Vergabe. Items in der Liste sind klickbar wie im Chat: Maus darüber zeigt das Item, Shift-Klick verlinkt es. Das gilt überall, wo Items farbig stehen, auch in den Listen unter **Plündern** und bei Rezepten und Reittieren im Reiter **Raid**.
+Im Reiter **Beute** wählst du oben den Raid: den aktuellen oder einen früheren. So kannst du die Vergaben auch später noch teilen, wenn schon ein neuer Raid läuft. Die Auswahl nennt die Instanz, das Addon merkt sie sich seit Version 1.11 bei jeder Vergabe. Items in der Liste sind klickbar wie im Chat: Maus darüber zeigt das Item, Shift-Klick verlinkt es. Das gilt überall, wo Items farbig stehen, auch in den Listen unter **Plünderoptionen** und bei Rezepten und Reittieren im Reiter **Raid**.
 
 „Reset“ rechts neben der Auswahl der Raids löscht nach einer Rückfrage alle gespeicherten Raids, den laufenden und alle früheren, mit Vergaben, Würfelstufen, Wurf-Protokollen und Prioliste. Sie lassen sich danach nicht mehr aus dem Addon exportieren. Einstellungen, Listen und Rollen bleiben. Wer die Daten noch braucht, sichert sie vorher mit „Export alle Raids“.
 
@@ -33,7 +33,7 @@ Unten wählst du bei „Teilen in“ den Kanal: Gilde, Offiziere, Schlachtzug, G
 
 ## Export und Wurf-Protokoll
 
-„Export (CSV)“ im Reiter **Vergaben**, „Export alle Raids“ und `/pm export` liefern das komplette Protokoll eines Raids, nach der Zeit sortiert: jede Vergabe, auch an Schatzmeister, Plünderhelfer und Entzauberer, jeden Verzicht, jede Korrektur der Würfelstufe und jeden Wurf in einer Würfelrunde, auch ungültige. Das Wurf-Protokoll bleibt beim Archivieren erhalten, für die letzten zehn Raids im Archiv, höchstens 3000 Würfe je Raid.
+„Export (CSV)“ im Reiter **Beute**, „Export alle Raids“ und `/pm export` liefern das komplette Protokoll eines Raids, nach der Zeit sortiert: jede Vergabe, auch an Schatzmeister, Plünderhelfer und Entzauberer, jeden Verzicht, jede Korrektur der Würfelstufe und jeden Wurf in einer Würfelrunde, auch ungültige. Das Wurf-Protokoll bleibt beim Archivieren erhalten, für die letzten zehn Raids im Archiv, höchstens 3000 Würfe je Raid.
 
 Spalten, getrennt durch Semikolon:
 
@@ -58,7 +58,7 @@ Die ersten zehn Spalten sind dieselben wie vor Version 1.17. Wer nur sie liest, 
 
 ## Raid fortsetzen
 
-Einen früheren Raid machst du wieder zum laufenden Raid, etwa nach einem versehentlichen „Neuer Raid“ oder am zweiten Abend. Im Reiter **Vergaben** wählst du ihn oben aus und klickst „Raid fortsetzen“, oder du nutzt `/pm fortsetzen`, ohne Nummer zeigt der Befehl die Liste. Vergaben und Würfelstufen gelten weiter, der laufende Raid kommt ins Archiv und lässt sich genauso wieder fortsetzen.
+Einen früheren Raid machst du wieder zum laufenden Raid, etwa nach einem versehentlichen „Neuer Raid“ oder am zweiten Abend. Im Reiter **Beute** wählst du ihn oben aus und klickst „Raid fortsetzen“, oder du nutzt `/pm fortsetzen`, ohne Nummer zeigt der Befehl die Liste. Vergaben und Würfelstufen gelten weiter, der laufende Raid kommt ins Archiv und lässt sich genauso wieder fortsetzen.
 
 Der Raid bekommt seine eigene Prioliste zurück, das Archiv speichert sie bei jedem Weg dorthin mit: „Neuer Raid“, `/pm neu`, „Import als neuer Raid“ und beim Fortsetzen eines anderen Raids. Die Rückfrage vor dem Fortsetzen nennt die Liste mit Spielerzahl und Importzeit. Eine neuere Liste importierst du danach mit „Nur Liste ersetzen“. Raids, die vor Version 1.14 ins Archiv kamen, haben ihre Liste nicht gespeichert. Sie starten ohne Liste, du importierst sie mit „Nur Liste ersetzen“. Die Korrekturen der Würfelstufe holt das Addon bei ihnen aus dem Protokoll.
 
@@ -70,7 +70,7 @@ Das Ergebnis steht im Chat und im Reiter **Raid** unter „Im Raid ohne Prio“:
 
 ## Weitergaben
 
-Hat ein Spieler ein Item im Spiel an einen anderen gegeben, ohne dich, trägst du das nach: Rechtsklick auf die Vergabe im Reiter **Vergaben**, dann den neuen Besitzer wählen oder eintippen. Die Rückfrage nennt die Folgen für Prio und Würfelstufe. Das geht auch in früheren Raids, ohne sie fortzusetzen. Im laufenden Raid steht die Weitergabe im Raidchat, wenn Vergaben dort gepostet werden.
+Hat ein Spieler ein Item im Spiel an einen anderen gegeben, ohne dich, trägst du das nach: Rechtsklick auf die Vergabe im Reiter **Beute**, dann den neuen Besitzer wählen oder eintippen. Die Rückfrage nennt die Folgen für Prio und Würfelstufe. Das geht auch in früheren Raids, ohne sie fortzusetzen. Im laufenden Raid steht die Weitergabe im Raidchat, wenn Vergaben dort gepostet werden.
 
 Eine Weitergabe zählt wie eine neue Vergabe an den Empfänger. Hat er Prio auf das Item, ist sie erfüllt, sonst sinkt seine Würfelstufe wie nach einem freien Wurf. Die Vergabe des Gebers zählt nicht mehr: Seine Prio ist wieder offen, ein freier Wurfsieg gibt ihm die Stufe zurück. Items aus 50er-Würfen, Rezept-Würfen und Würfen ohne Stufen ändern keine Stufe. Auch Items von Entzauberer, Plünderhelfer und Schatzmeister lassen sich so weitergeben, etwa nach einem Fehlklick.
 
@@ -112,9 +112,9 @@ Für einzelne Items führt die Raidleitung auf priomeister.de geordnete Wartelis
 - **Set vervollständigen:** Bei Sets wie der linken und rechten Bindung (`sets=18563+18564`) rückt nach vorn, wer im Raid schon ein anderes Teil bekommen hat. Davor bleiben nur die, die laut Seite schon vorher ein Teil hatten; sie stehen in der Liste mit Stern.
 - Im Export stehen diese Vergaben mit der Art `Warteliste`. Die Seite nimmt die Namen danach von der Liste.
 
-## Plündern
+## Plünderoptionen
 
-Im Reiter **Plündern** des Hauptfensters:
+Im Reiter **Plünderoptionen** des Hauptfensters:
 
 - **Plündermeister und Grenze:** Das Dropdown „Plündergrenze“ setzt bei Bedarf zuerst dich oder den gewählten Spieler als Plündermeister und danach die Grenze, von Grau bis Episch. Grau und Weiß gehen nur hier, nicht über Blizzards Menü. Das geht nur als Gruppen- bzw. Schlachtzugsleitung.
 - **Plünderhelfer:** Für Grau, Weiß, Grün und Blau gibt es je einen Ja/Nein-Knopf. Der Plünderhelfer bekommt automatisch alle Items der Qualitäten mit „ja“, die auf keiner Liste stehen. So gehen zum Beispiel nur weiße Items an ihn.

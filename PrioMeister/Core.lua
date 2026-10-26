@@ -1622,7 +1622,7 @@ function PM:UndoLast()
 end
 
 -------------------------------------------------------------------------------
--- Weitergaben (seit 1.18): Rechtsklick auf eine Vergabe im Reiter „Vergaben“, im
+-- Weitergaben (seit 1.18): Rechtsklick auf eine Vergabe im Reiter „Beute“, im
 -- laufenden Raid oder in einem früheren (view: 0 laufender Raid, sonst Archiv).
 -- Nur im laufenden Raid geht eine Meldung in den Raidchat.
 -------------------------------------------------------------------------------
