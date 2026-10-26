@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.24.1"
+PM.version = "1.25.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -299,6 +299,32 @@ function PM:ReopenRaid(entry)
 	self:BindListNames()
 	refreshUI()
 	return true
+end
+
+-- Was ein Reset löschen würde: { current = laufender Raid hat Daten, earlier = Zahl früherer Raids,
+-- awards = Vergaben zusammen } oder nil, wenn nichts gespeichert ist.
+function PM:StoredRaids()
+	local db = self.db
+	local r = db.raid
+	local current = #r.awards > 0 or next(r.players) ~= nil or (r.rollLog ~= nil and #r.rollLog > 0)
+	local awards = L.AwardCount(r)
+	for _, h in ipairs(db.history) do awards = awards + L.AwardCount(h) end
+	if not current and #db.history == 0 then return nil end
+	return { current = current, earlier = #db.history, awards = awards }
+end
+
+-- Reset (seit 1.25): alle gespeicherten Raids löschen, den laufenden und das Archiv, mit Vergaben,
+-- Würfelstufen, Wurf-Protokollen und Prioliste. Einstellungen, Listen, Rollen und angeheftete
+-- Spieler bleiben. Danach läuft ein neuer, leerer Raid.
+function PM:ResetAllRaids()
+	local db = self.db
+	if self.testMode then self:ToggleTest() end
+	db.history = {}
+	db.raid = L.NewRaid(time())
+	self.noPrioSeen = {}
+	self.lastRandom, self.randomRoll, self.lastCall, self.tradeIntents = nil, nil, nil, nil
+	self:Print("Alle gespeicherten Raids gelöscht. Ein neuer, leerer Raid läuft.")
+	refreshUI()
 end
 
 function PM:NewRaid(silent)
@@ -1596,7 +1622,7 @@ function PM:UndoLast()
 end
 
 -------------------------------------------------------------------------------
--- Weitergaben (seit 1.18): Rechtsklick auf eine Vergabe im Reiter „Vergaben“, im
+-- Weitergaben (seit 1.18): Rechtsklick auf eine Vergabe im Reiter „Beute“, im
 -- laufenden Raid oder in einem früheren (view: 0 laufender Raid, sonst Archiv).
 -- Nur im laufenden Raid geht eine Meldung in den Raidchat.
 -------------------------------------------------------------------------------

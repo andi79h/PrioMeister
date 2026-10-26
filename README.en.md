@@ -12,7 +12,7 @@ Open the main window with `/pm` or a left-click on the minimap button. A right-c
 2. **Open the loot:** the panel shows every item with its prio holders. With “Announce loot when opened” the raid chat gets the loot and the prios.
 3. **Announce / Roll:** with a single prio holder, “To Name” gives them the item directly. With several, “Roll” starts a roll round for the prio holders; without prio it is a free roll. A right-click forces a free roll.
 4. **Award:** “To Name (roll)” gives the item to the winner. For epic items the addon asks first. “Award randomly” rolls over all raid members, “To disenchanter” gives it to the disenchanter.
-5. **Undo:** “Undo last” in the Awards tab takes back the last entry.
+5. **Undo:** “Undo last” in the Loot tab takes back the last entry.
 
 ## Rules
 
@@ -41,13 +41,13 @@ For single items, the raid lead keeps ordered waitlists on priomeister.de, e.g. 
 
 - **Loot helper** gets everything up to the chosen quality that is on no list.
 - **Treasurer** gets only the items on the treasurer list (e.g. scarabs and keys in AQ).
-- **Disenchanter** gets items nobody rolls for. With a disenchanter set, every armor or weapon item in the panel gets a “To disenchanter” button, no roll needed. The minimum quality is set next to the disenchanter in the Loot tab: never, green and up, blue and up or epic only, green and up by default. The button is missing while a present player has prio. For epic items the addon asks first.
-- Lists exist per instance (“All instances” plus the current one) in the Loot tab. “Always roll” items are always rolled, never given to loot helper or treasurer.
+- **Disenchanter** gets items nobody rolls for. With a disenchanter set, every armor or weapon item in the panel gets a “To disenchanter” button, no roll needed. The minimum quality is set next to the disenchanter in the Loot options tab: never, green and up, blue and up or epic only, green and up by default. The button is missing while a present player has prio. For epic items the addon asks first.
+- Lists exist per instance (“All instances” plus the current one) in the Loot options tab. “Always roll” items are always rolled, never given to loot helper or treasurer.
 - Loot from a container in your bags, from fishing and from herbs or ore veins does not go through the master looter. The addon does not announce it, gives nothing away and shows no panel. Boss chests are handled like corpses.
 
 ## Hand-overs
 
-If a player gave an item to someone else in the game, right-click the award in the Awards tab and choose the new owner. A hand-over counts like a new award: the recipient's prio is fulfilled, otherwise their tier drops like after a free roll; the giver's prio opens again or their tier comes back. This works for earlier raids too.
+If a player gave an item to someone else in the game, right-click the award in the Loot tab and choose the new owner. A hand-over counts like a new award: the recipient's prio is fulfilled, otherwise their tier drops like after a free roll; the giver's prio opens again or their tier comes back. This works for earlier raids too.
 
 ## Priocheck
 
@@ -55,7 +55,9 @@ To see who in the raid has not entered prios yet without closing the sign-up on 
 
 ## Export
 
-The Awards tab exports all awards and rolls as CSV for priomeister.de or a spreadsheet. On priomeister.de, paste it in the “Awards” tab of the prio run: the raid lead on the lead page, the master looter on the player page. The column names and values of the export stay German in both languages, because priomeister.de reads them (e.g. type “Wurf” for rolls, “Weitergabe” for hand-overs, “Warteliste” for waitlist awards).
+The Loot tab exports all awards and rolls as CSV for priomeister.de or a spreadsheet. On priomeister.de, paste it in the “Awards” tab of the prio run: the raid lead on the lead page, the master looter on the player page. The column names and values of the export stay German in both languages, because priomeister.de reads them (e.g. type “Wurf” for rolls, “Weitergabe” for hand-overs, “Warteliste” for waitlist awards).
+
+“Reset” next to the raid selection deletes all saved raids after a confirmation, the current one and all earlier ones, with awards, roll tiers, roll logs and prio list. They cannot be exported from the addon afterwards. Settings, lists and roles stay. If you still need the data, save it first with “Export all raids”.
 
 ## Commands
 
