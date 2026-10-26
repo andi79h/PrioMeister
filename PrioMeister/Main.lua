@@ -1,5 +1,5 @@
 -- PrioMeister – Main.lua
--- Hauptfenster mit den Reitern Raid, Vergaben, Plündern (Rollen, Listen je
+-- Hauptfenster mit den Reitern Raid, Beute, Plünderoptionen (Rollen, Listen je
 -- Instanz) und Optionen sowie der Minimap-Knopf.
 
 local ADDON, ns = ...

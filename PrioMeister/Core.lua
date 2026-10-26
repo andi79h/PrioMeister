@@ -2166,7 +2166,7 @@ end
 -------------------------------------------------------------------------------
 
 local HELP = {
-	"|cffffd100/pm|r – Hauptfenster (Raid, Vergaben, Plündern, Optionen), |cffffd100/pm changelog|r – Versionen und Änderungen",
+	"|cffffd100/pm|r – Hauptfenster (Raid, Beute, Plünderoptionen, Optionen), |cffffd100/pm changelog|r – Versionen und Änderungen",
 	"|cffffd100/pm import|r – Prioliste von priomeister.de einfügen, |cffffd100/pm neu|r – neuer Raid",
 	"|cffffd100/pm fortsetzen|r – frühere Raids, |cffffd100/pm fortsetzen 1|r setzt den letzten fort (Vergaben und Würfelstufen gelten weiter)",
 	"|cffffd100/pm stand|r – Stand der Prioliste: Spieler, Prios, letzte Änderung und Link zum Prio-Run",

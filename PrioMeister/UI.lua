@@ -424,7 +424,7 @@ function UI:GetPanel()
 	p.menu:SetScript("OnClick", function()
 		if UI.ToggleMain then UI:ToggleMain() else PM:Slash("") end
 	end)
-	self.Tooltip(p.menu, "PrioMeister", "Öffnet das Hauptfenster mit Raid, Vergaben, Plündern und Optionen.")
+	self.Tooltip(p.menu, "PrioMeister", "Öffnet das Hauptfenster mit Raid, Beute, Plünderoptionen und Optionen.")
 
 	local third = (ROW_WIDTH - 8) / 3
 	p.helper = self:CreateRoleButton(p, "lootHelper", third)
