@@ -3867,6 +3867,77 @@ do
 	LibStub = nil
 end
 
+-- 1.25: „Reset“ löscht nach Rückfrage alle gespeicherten Raids; „Teilen“ direkt neben dem Kanal
+do
+	mock.CloseLoot()
+	mock.ResetUI()
+	local function raidWith(started, n)
+		local r = { started = started, ended = started + 3600, awards = {},
+			players = { gustl = { name = "Gustl", p = { 18813, 0, 0 }, pn = { "", "", "" } } } }
+		for i = 1, n do
+			r.awards[i] = { key = "gustl", name = "Gustl", kind = "free", itemID = 18813, link = mock.Link(18813), t = started + i,
+				roll = 50, low = 1, high = 100, expected = 100 }
+		end
+		return r
+	end
+	local current = raidWith(5000, 2)
+	current.adjust, current.sessions, current.sessionSeq = {}, {}, 0
+	PrioMeisterDB = { dbVersion = 8, settings = { treasurer = "Hesti", lootLists = { [0] = { [2589] = true } } }, pins = { "Gustl" },
+		history = { raidWith(3000, 3), raidWith(1000, 1) }, raid = current }
+	loadAddon()
+	mock.Fire("ADDON_LOADED", "PrioMeister")
+	mock.Fire("PLAYER_LOGIN")
+	UI:ShowMain("awards")
+	local page = _G.PrioMeisterMainFrame.pages.awards
+	local reset = page.reset
+	check(reset and reset:IsShown() and reset:GetText() == "Reset", "Knopf „Reset“")
+	local p = reset and reset._points[1]
+	check(p and p[1] == "TOPRIGHT" and p[3] == "TOPRIGHT", "Reset ganz rechts oben")
+	local d = page.raidSelect._points[1]
+	check(d and d[1] == "TOPRIGHT" and d[2] == reset and d[3] == "TOPLEFT", "Auswahl der Raids direkt links daneben")
+	reset._scripts.OnEnter(reset)
+	check(table.concat(GameTooltip._lines or {}, "\n"):find("Mit dem Reset werden die Daten aller gespeicherten Raids gelöscht und können danach nicht mehr aus dem Addon exportiert werden.", 1, true),
+		"Tooltip erklärt den Reset", table.concat(GameTooltip._lines or {}, "\n"))
+	reset._scripts.OnLeave(reset)
+	mock.popup = nil
+	reset._scripts.OnClick(reset)
+	check(mock.popup and mock.popup.name == "PRIOMEISTER_RESET" and mock.popup.text:find("Wirklich alle gespeicherten Raids löschen?", 1, true)
+		and mock.popup.text:find("der laufende Raid und 2 frühere Raids mit zusammen 6 Vergaben", 1, true),
+		"Rückfrage nennt, was gelöscht wird", mock.popup and mock.popup.text)
+	eq(#PM.db.history, 2, "ohne Bestätigung nichts gelöscht")
+	mock.chat = {}
+	mock.AcceptPopup()
+	eq(#PM.db.history, 0, "Archiv leer")
+	check(#PM:Raid().awards == 0 and next(PM:Raid().players) == nil, "laufender Raid leer, ohne Prioliste")
+	check(mock.ChatContains("Alle gespeicherten Raids gelöscht."), "Meldung im Chat", table.concat(mock.chat, "\n"))
+	check(PM.db.settings.treasurer == "Hesti" and PM.db.settings.lootLists[0][2589] and PM.db.pins[1] == "Gustl",
+		"Einstellungen, Listen und Rollen bleiben")
+	eq(page.view, 0, "Auswahl auf dem laufenden Raid")
+	eq(#page.raidSelect._entries, 1, "Auswahl nur noch mit dem laufenden Raid")
+	mock.popup, mock.chat = nil, {}
+	reset._scripts.OnClick(reset)
+	check(mock.popup == nil and mock.ChatContains("Es sind keine Raids gespeichert."), "nichts gespeichert: keine Rückfrage")
+
+	-- nur frühere Raids, laufender leer: Rückfrage nennt nur sie
+	PM.db.history = { raidWith(3000, 1) }
+	mock.popup = nil
+	reset._scripts.OnClick(reset)
+	check(mock.popup and mock.popup.text:find("Gelöscht werden ein früherer Raid mit einer Vergabe,", 1, true),
+		"nur ein früherer Raid", mock.popup and mock.popup.text)
+	mock.popup = nil
+
+	-- „Teilen“ direkt neben dem Kanal, beim Flüstern hinter dem Namensfeld
+	PM.db.settings.shareChannel = "GUILD"
+	page.refresh()
+	local sp = page.share._points[1]
+	check(sp and sp[1] == "BOTTOMLEFT" and sp[4] == 212, "Gilde: Teilen direkt neben dem Kanal", sp and sp[4])
+	PM.db.settings.shareChannel = "WHISPER"
+	page.refresh()
+	sp = page.share._points[1]
+	check(page.target:IsShown() and sp and sp[4] == 356, "Flüstern: Teilen hinter dem Namensfeld", sp and sp[4])
+	PM.db.settings.shareChannel = "GUILD"
+end
+
 -- 1.21: Englisch. Jeder Text, der übersetzt wird, hat eine englische Fassung (Quelltext durchsucht)
 do
 	local LNS = {}

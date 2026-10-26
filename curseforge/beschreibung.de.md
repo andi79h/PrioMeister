@@ -57,6 +57,8 @@ So siehst du, wer im Raid noch keine Prios eingetragen hat, ohne die Eintragung 
 
 Der Reiter Vergaben exportiert alle Vergaben und Würfe als CSV für priomeister.de oder eine Tabelle. Auf priomeister.de fügst du den Export im Prio-Run im Reiter „Vergaben“ ein: die Raidleitung auf der Leitungsseite, der Plündermeister auf der Spielerseite. Spaltennamen und Werte des Exports sind in beiden Sprachen deutsch, weil priomeister.de sie so liest.
 
+„Reset“ rechts neben der Auswahl der Raids löscht nach einer Rückfrage alle gespeicherten Raids, den laufenden und alle früheren, mit Vergaben, Würfelstufen, Wurf-Protokollen und Prioliste. Sie lassen sich danach nicht mehr aus dem Addon exportieren. Einstellungen, Listen und Rollen bleiben. Wer die Daten noch braucht, sichert sie vorher mit „Export alle Raids“.
+
 ## Befehle
 
 | Befehl | Wirkung |

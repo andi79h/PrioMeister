@@ -50,6 +50,19 @@ Popup("PRIOMEISTER_REOPEN", {
 	timeout = 0, whileDead = true, hideOnEscape = true,
 })
 
+Popup("PRIOMEISTER_RESET", {
+	text = "%s",
+	button1 = "Löschen", button2 = CANCEL,
+	OnAccept = function()
+		PM:ResetAllRaids()
+		if UI.main then
+			UI.main.pages.awards.view = 0
+			UI:RefreshAll()
+		end
+	end,
+	timeout = 0, whileDead = true, hideOnEscape = true,
+})
+
 Popup("PRIOMEISTER_HANDOVER", {
 	text = "%s",
 	button1 = "Eintragen", button2 = CANCEL,
@@ -394,6 +407,25 @@ function UI:RequestReopen(index)
 		date("%d.%m. %H:%M", h.started or h.ended or 0), self:RaidInstanceText(h), L.AwardCount(h), list, tail), nil, { entry = h })
 end
 
+-- Rückfrage vor dem Reset: nennt, was gelöscht wird.
+function UI:RequestReset()
+	local stored = PM:StoredRaids()
+	if not stored then
+		PM:Print("Es sind keine Raids gespeichert.")
+		return
+	end
+	local parts = {}
+	if stored.current then parts[#parts + 1] = T("der laufende Raid") end
+	if stored.earlier == 1 then
+		parts[#parts + 1] = T("ein früherer Raid")
+	elseif stored.earlier > 1 then
+		parts[#parts + 1] = format(T("%d frühere Raids"), stored.earlier)
+	end
+	local awards = (stored.awards == 0 and T("keinen Vergaben")) or (stored.awards == 1 and T("einer Vergabe"))
+		or format(T("zusammen %d Vergaben"), stored.awards)
+	StaticPopup_Show("PRIOMEISTER_RESET", format(T("Wirklich alle gespeicherten Raids löschen?\n\nGelöscht werden %s mit %s, dazu Würfelstufen, Wurf-Protokolle und Prioliste. Sie lassen sich danach nicht mehr aus dem Addon exportieren.\n\nEinstellungen, Listen und Rollen bleiben."), table.concat(parts, T(" und ")), awards))
+end
+
 -- Beschriftung eines Raids in der Auswahl: 0 = aktueller Raid, sonst ein früherer.
 function UI:RaidLabel(index)
 	if index == 0 then
@@ -454,13 +486,18 @@ function UI:BuildAwardsPage(page)
 	page.view = 0
 	page.header = Heading(page, "")
 	page.header:SetPoint("TOPLEFT", 0, 0)
-	page.header:SetWidth(CONTENT_W - 300)
+	page.header:SetWidth(CONTENT_W - 312)
 	page.header:SetWordWrap(false)
 
-	-- aktueller oder früherer Raid
+	-- Reset ganz rechts, daneben die Auswahl: aktueller oder früherer Raid
+	local reset = self.Button(page, "Reset", 60, 22)
+	reset:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, 2)
+	reset:SetScript("OnClick", function() UI:RequestReset() end)
+	self.Tooltip(reset, "Reset", "Mit dem Reset werden die Daten aller gespeicherten Raids gelöscht und können danach nicht mehr aus dem Addon exportiert werden. Das betrifft den laufenden Raid und alle früheren, mit Vergaben, Würfelstufen, Wurf-Protokollen und Prioliste. Einstellungen, Listen und Rollen bleiben. Vorher fragt das Addon nach. Wer die Daten noch braucht, sichert sie vorher mit „Export alle Raids“.")
+	page.reset = reset
 	local raidSelect = CreateFrame("DropdownButton", "PrioMeisterAwardsRaid", page, "WowStyle1DropdownTemplate")
-	raidSelect:SetWidth(280)
-	raidSelect:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, 4)
+	raidSelect:SetWidth(240)
+	raidSelect:SetPoint("TOPRIGHT", reset, "TOPLEFT", -6, 2)
 	raidSelect:SetupMenu(function(_, root)
 		local function isSelected(index) return index == page.view end
 		local function select(index)
@@ -599,6 +636,9 @@ function UI:BuildAwardsPage(page)
 		local s = PM.db.settings
 		if channel.GenerateMenu then channel:GenerateMenu() end
 		target:SetShown(s.shareChannel == "WHISPER")
+		-- „Teilen“ direkt neben dem Kanal, beim Flüstern hinter dem Namensfeld
+		share:ClearAllPoints()
+		share:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", target:IsShown() and 356 or 212, 34)
 		if not target:HasFocus() then target:SetText(s.shareTarget or "") end
 		share:SetEnabled(PM.sharing == nil and n > 0)
 		share:SetText(PM.sharing and T("Teilt …") or T("Teilen"))
@@ -1203,6 +1243,10 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.25.0", "26.10.2026", {
+		"Im Reiter Vergaben steht neben der Auswahl der Raids der Knopf „Reset“. Er löscht nach einer Rückfrage alle gespeicherten Raids, den laufenden und alle früheren. Danach lassen sie sich nicht mehr aus dem Addon exportieren. Einstellungen, Listen und Rollen bleiben.",
+		"„Teilen“ steht jetzt direkt neben der Auswahl des Kanals. Nur beim Flüstern kommt das Namensfeld dazwischen.",
+	} },
 	{ "1.24.1", "25.10.2026", {
 		"Der Minimap-Knopf sitzt jetzt auch auf eckigen Minimaps am Rand, etwa mit SexyMap. Bringt ein anderes Addon die Bibliothek LibDBIcon mit, nutzt PrioMeister sie. SexyMap und andere Minimap-Addons behandeln den Knopf dann wie alle anderen, mit Ausblenden und Verschieben. Ohne LibDBIcon richtet sich der eigene Knopf nach der Form der Minimap. Seine Position bleibt erhalten.",
 	} },

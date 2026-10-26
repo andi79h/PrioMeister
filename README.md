@@ -27,6 +27,8 @@ Spieler brauchen das Addon nicht, sie tragen ihre Prios auf priomeister.de ein. 
 
 Im Reiter **Vergaben** wählst du oben den Raid: den aktuellen oder einen früheren. So kannst du die Vergaben auch später noch teilen, wenn schon ein neuer Raid läuft. Die Auswahl nennt die Instanz, das Addon merkt sie sich seit Version 1.11 bei jeder Vergabe. Items in der Liste sind klickbar wie im Chat: Maus darüber zeigt das Item, Shift-Klick verlinkt es. Das gilt überall, wo Items farbig stehen, auch in den Listen unter **Plündern** und bei Rezepten und Reittieren im Reiter **Raid**.
 
+„Reset“ rechts neben der Auswahl der Raids löscht nach einer Rückfrage alle gespeicherten Raids, den laufenden und alle früheren, mit Vergaben, Würfelstufen, Wurf-Protokollen und Prioliste. Sie lassen sich danach nicht mehr aus dem Addon exportieren. Einstellungen, Listen und Rollen bleiben. Wer die Daten noch braucht, sichert sie vorher mit „Export alle Raids“.
+
 Unten wählst du bei „Teilen in“ den Kanal: Gilde, Offiziere, Schlachtzug, Gruppe oder Flüstern an einen Namen. „Teilen“ postet die Vergaben Zeile für Zeile, eine pro halbe Sekunde. Eigene Gewinne stehen einzeln da, Vergaben an Plünderhelfer, Schatzmeister und Entzauberer gebündelt je Spieler. „Sagen“ und öffentliche Kanäle gehen nicht, dafür verlangt WoW bei jeder Zeile einen Tastendruck.
 
 ## Export und Wurf-Protokoll
