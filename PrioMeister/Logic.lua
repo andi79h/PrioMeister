@@ -304,6 +304,9 @@ L.COFFER_KEY, L.GREATER_COFFER_KEY = 21761, 21762 -- Schlüssel für einen (gro�
 L.BLOODVINE = 19726 -- Blutrebe (Zul'Gurub, grün)
 -- Schmuckstücke der Hakkari (Zul'Gurub, blau): Rot, Blau, Gelb, Orange, Grün, Lila, Bronze, Silber, Gold
 L.HAKKARI_BIJOUS = { 19707, 19708, 19709, 19710, 19711, 19712, 19713, 19714, 19715 }
+-- Materialien aus dem Geschmolzenen Kern und dem Pechschwingenhort
+L.MC_MATS = { 17010, 17011, 7078, 17203 } -- Feuerkern, Lavakern, Essenz des Feuers, Sulfuronblock
+L.BWL_MATS = { 18562, 19183, 17203 } -- Elementiumerz, Stundenglassand, Sulfuronblock
 
 -- Klassenbücher aus AQ20 (blau), je drei pro Klasse
 L.AQ20_BOOKS = {
@@ -331,7 +334,8 @@ L.RAIDS = {
 }
 
 -- Vorbelegung: Skarabäen und Kastenschlüssel in AQ20 und AQ40, die Klassenbücher
--- in AQ20, Blutrebe und Schmuckstücke der Hakkari in Zul'Gurub.
+-- in AQ20, Blutrebe und Schmuckstücke der Hakkari in Zul'Gurub, die Materialien
+-- in MC und BWL.
 function L.DefaultLootLists()
 	local aq20 = { [L.COFFER_KEY] = true }
 	local aq40 = { [L.COFFER_KEY] = true, [L.GREATER_COFFER_KEY] = true }
@@ -341,7 +345,10 @@ function L.DefaultLootLists()
 	for _, id in ipairs(L.AQ20_BOOKS) do aq20[id] = true end
 	local zg = { [L.BLOODVINE] = true }
 	for _, id in ipairs(L.HAKKARI_BIJOUS) do zg[id] = true end
-	return { [L.ALL_INSTANCES] = {}, [509] = aq20, [531] = aq40, [309] = zg }
+	local mc, bwl = {}, {}
+	for _, id in ipairs(L.MC_MATS) do mc[id] = true end
+	for _, id in ipairs(L.BWL_MATS) do bwl[id] = true end
+	return { [L.ALL_INSTANCES] = {}, [409] = mc, [469] = bwl, [509] = aq20, [531] = aq40, [309] = zg }
 end
 
 -- Items, die immer verwürfelt werden: alle würfeln mit /roll 100, ein Gewinn

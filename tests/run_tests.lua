@@ -853,6 +853,10 @@ do
 		if lists[309][id] then bijous = bijous + 1 end
 	end
 	eq(bijous, 9, "Vorbelegung ZG: neun Schmuckstücke der Hakkari beim Schatzmeister")
+	check(lists[409][17010] and lists[409][17011] and lists[409][7078] and lists[409][17203],
+		"Vorbelegung MC: Feuerkern, Lavakern, Essenz des Feuers und Sulfuronblock beim Schatzmeister")
+	check(lists[469][18562] and lists[469][19183] and lists[469][17203],
+		"Vorbelegung BWL: Elementiumerz, Stundenglassand und Sulfuronblock beim Schatzmeister")
 	local count = 0
 	for _ in pairs(L.AQ20_BOOKS) do count = count + 1 end
 	eq(count, 27, "27 Klassenbücher")
@@ -1226,7 +1230,7 @@ mock.Fire("ADDON_LOADED", "PrioMeister")
 mock.Fire("PLAYER_LOGIN")
 check(PM.hookedGive and PM.hookedML, "Hooks installiert")
 eq(PM.db.settings.awardsToRaid, true, "Punkt 7: Altdaten auf Raidansage umgestellt")
-eq(PM.db.dbVersion, 8, "Datenbank-Version 8")
+eq(PM.db.dbVersion, 9, "Datenbank-Version 9")
 eq(PM.db.settings.always100, false, "1.26: „Immer mit /roll 100 würfeln“ ist voreingestellt aus")
 eq(PM.db.settings.autoLootItems, nil, "alte Auto-Liste aufgelöst")
 check(PM.db.settings.lootLists[0][2589], "alte Auto-Liste gilt in allen Instanzen")
@@ -2533,6 +2537,22 @@ do
 	PrioMeisterDB = saved
 	PM:InitDB()
 end
+-- 1.26: Listen aus 1.25 bekommen die Materialien aus MC und BWL (DB-Version 8)
+do
+	local old = { dbVersion = 8, pins = {}, history = {}, raid = L.NewRaid(0), settings = {
+		lootLists = { [0] = { [2589] = true }, [409] = { [17012] = true } },
+	} }
+	local saved = PrioMeisterDB
+	PrioMeisterDB = old
+	PM:InitDB()
+	local loot = old.settings.lootLists
+	eq(old.dbVersion, 9, "Datenbank auf Version 9")
+	check(loot[409][17010] and loot[409][17011] and loot[409][7078] and loot[409][17203], "MC-Materialien in die MC-Liste übernommen")
+	check(loot[469] and loot[469][18562] and loot[469][19183] and loot[469][17203], "BWL-Liste mit ihren Materialien angelegt")
+	check(loot[409][17012] and loot[0][2589], "eigene Einträge bleiben")
+	PrioMeisterDB = saved
+	PM:InitDB()
+end
 
 -- Stichwurf über das Panel
 mock.OpenLoot({ { id = 4000 } }, "Creature-Tie")
@@ -3621,7 +3641,7 @@ do
 	loadAddon()
 	mock.Fire("ADDON_LOADED", "PrioMeister")
 	mock.Fire("PLAYER_LOGIN")
-	eq(PM.db.dbVersion, 8, "Datenbank auf Version 8")
+	eq(PM.db.dbVersion, 9, "Datenbank auf Version 9")
 	local log = PM:Raid().rollLog
 	eq(log and #log, 2, "Würfe der gespeicherten Runde stehen im Protokoll")
 	eq(log and log[1].ins, 409, "Instanz aus der Leichen-GUID")
@@ -3646,7 +3666,7 @@ do
 	loadAddon()
 	mock.Fire("ADDON_LOADED", "PrioMeister")
 	mock.Fire("PLAYER_LOGIN")
-	eq(PM.db.dbVersion, 8, "Datenbank auf Version 8")
+	eq(PM.db.dbVersion, 9, "Datenbank auf Version 9")
 	eq(L.RollStatusText(PM:Raid().rollLog[1]), "zurückgezogen", "laufender Raid: Wurf vor dem Verzicht zurückgezogen")
 	eq(L.RollStatusText(PM:Raid().rollLog[2]), "zählt", "der Wurf des anderen zählt weiter")
 	eq(L.RollStatusText(PM.db.history[1].rollLog[1]), "zurückgezogen", "Archiv: ebenso")

@@ -1253,6 +1253,7 @@ local CHANGELOG = {
 	{ "1.26.0", "28.10.2026", {
 		"Neue Option „Immer mit /roll 100 würfeln“, voreingestellt aus. Eingeschaltet würfeln alle mit /roll 100, auch wer schon frei gewonnen hat. Die Würfelstufe zählt weiter, erst kommen die Würfe mit Stufe 100, dann die mit Stufe 99 und so weiter. Wer /roll 99 würfelt, wird mit seiner eigenen Stufe gewertet. 50er-Würfe bleiben /roll 50.",
 		"Ansagen, Panel und Vergaben nennen dann die Würfelstufe statt „/roll 99“, etwa „Stufe 99: Gustl“ im Würfelaufruf. Ausgeschaltet gilt die bisherige Regel.",
+		"Die Liste des Schatzmeisters ist jetzt auch für MC und BWL vorbelegt. Im Geschmolzenen Kern stehen Feuerkern, Lavakern, Essenz des Feuers und Sulfuronblock darauf, im Pechschwingenhort Elementiumerz, Stundenglassand und Sulfuronblock. Bestehende Listen bekommen diese Items dazu.",
 	} },
 	{ "1.25.0", "26.10.2026", {
 		"Die Reiter heißen jetzt „Beute“ statt „Vergaben“ und „Plünderoptionen“ statt „Plündern“.",

@@ -172,7 +172,7 @@ function PM:InitDB()
 		db.settings.awardsToRaid = true
 	end
 	local oldVersion = db.dbVersion or 1
-	db.dbVersion = 8
+	db.dbVersion = 9
 	db.pins = db.pins or {}
 	db.history = db.history or {}
 	db.instanceNames = db.instanceNames or {}
@@ -212,6 +212,13 @@ function PM:InitDB()
 		local loot = db.settings.lootLists
 		loot[309] = loot[309] or {}
 		for _, id in ipairs(L.HAKKARI_BIJOUS) do loot[309][id] = true end
+	end
+	if oldVersion < 9 then
+		-- seit 1.26: Materialien aus MC und BWL gehen an den Schatzmeister.
+		local loot = db.settings.lootLists
+		loot[409], loot[469] = loot[409] or {}, loot[469] or {}
+		for _, id in ipairs(L.MC_MATS) do loot[409][id] = true end
+		for _, id in ipairs(L.BWL_MATS) do loot[469][id] = true end
 	end
 	if type(db.raid) ~= "table" then db.raid = L.NewRaid(time()) end
 	local r = db.raid
