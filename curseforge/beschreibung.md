@@ -16,7 +16,7 @@ Open the main window with `/pm` or a left-click on the minimap button. A right-c
 
 ## Rules
 
-- **Roll tiers:** everyone rolls /roll 100. Each free roll win lowers your tier by one (99, 98 …). Rolls are ranked by tier first, then by value: every tier-100 roll beats every tier-99 roll. A /roll 99 counts with your own tier. Prio awards do not change the tier. The Raid tab lists everyone who rolled; plus and minus correct a tier by hand. Turning off “Always roll /roll 100” in the options brings back the old rule: after a free win you roll /roll 99, 98 …
+- **Roll tiers:** everyone starts with /roll 100. Each free roll win lowers your tier by one (99, 98 …), and you roll with your tier. Prio awards do not change the tier. The Raid tab lists everyone who rolled; plus and minus correct a tier by hand. With “Always roll /roll 100” in the options, off by default, everyone rolls /roll 100 and rolls are ranked by tier first, then by value: every tier-100 roll beats every tier-99 roll. A /roll 99 then counts with your own tier.
 - **50 rolls:** /roll 50 for alts or off-specs runs in parallel, ranks behind all normal rolls and never changes a tier.
 - **Recipes:** rolled with /roll 100 without tiers, only players with the matching profession should roll. Whether recipes and mounts may be on prio comes with the list from priomeister.de; single items can be allowed as exceptions.
 - **Pass:** a prio holder who does not want the item rolls /roll 1. The next prio is up, the prio stays for a later copy.
@@ -114,7 +114,7 @@ Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Re
 
 ## Regeln
 
-- **Würfelstufen:** Alle würfeln mit /roll 100. Jeder Gewinn per freiem Wurf senkt die eigene Stufe um eins (99, 98 …). Gewertet wird erst nach Stufe, dann nach Wert: Jeder Wurf mit Stufe 100 schlägt jeden mit Stufe 99. Ein /roll 99 zählt mit der eigenen Stufe. Vergaben über Prio ändern die Stufe nicht. Der Reiter Raid listet alle, die gewürfelt haben; Plus und Minus korrigieren eine Stufe von Hand. Wer unter Optionen „Immer mit /roll 100 würfeln“ ausschaltet, bekommt die alte Regel zurück: Nach einem freien Gewinn würfelt man mit /roll 99, 98 …
+- **Würfelstufen:** Alle beginnen mit /roll 100. Jeder Gewinn per freiem Wurf senkt die eigene Stufe um eins (99, 98 …), gewürfelt wird mit der eigenen Stufe. Vergaben über Prio ändern die Stufe nicht. Der Reiter Raid listet alle, die gewürfelt haben; Plus und Minus korrigieren eine Stufe von Hand. Mit „Immer mit /roll 100 würfeln“ unter Optionen, voreingestellt aus, würfeln alle mit /roll 100. Gewertet wird dann erst nach Stufe, dann nach Wert: Jeder Wurf mit Stufe 100 schlägt jeden mit Stufe 99. Ein /roll 99 zählt dann mit der eigenen Stufe.
 - **50er-Würfe:** /roll 50 für Zweitcharaktere oder Zweitskillungen läuft parallel, zählt hinter allen normalen Würfen und ändert nie eine Stufe.
 - **Rezepte:** werden mit /roll 100 ohne Stufen verwürfelt, würfeln sollen nur Spieler mit dem passenden Beruf. Ob Rezepte und Reittiere auf Prio stehen dürfen, kommt mit der Liste von priomeister.de; einzelne Items lassen sich als Ausnahme freigeben.
 - **Verzicht:** Wer Prio hat und das Item nicht will, würfelt /roll 1. Dann ist die nächste Prio dran, die eigene Prio bleibt für ein späteres Exemplar.

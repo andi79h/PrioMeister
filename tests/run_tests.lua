@@ -1227,9 +1227,7 @@ mock.Fire("PLAYER_LOGIN")
 check(PM.hookedGive and PM.hookedML, "Hooks installiert")
 eq(PM.db.settings.awardsToRaid, true, "Punkt 7: Altdaten auf Raidansage umgestellt")
 eq(PM.db.dbVersion, 8, "Datenbank-Version 8")
-eq(PM.db.settings.always100, true, "1.26: „Immer mit /roll 100 würfeln“ ist voreingestellt an")
--- Die Abläufe hier prüfen die Würfelstufen mit /roll 99, 98 …; „immer 100“ hat eigene Tests.
-PM.db.settings.always100 = false
+eq(PM.db.settings.always100, false, "1.26: „Immer mit /roll 100 würfeln“ ist voreingestellt aus")
 eq(PM.db.settings.autoLootItems, nil, "alte Auto-Liste aufgelöst")
 check(PM.db.settings.lootLists[0][2589], "alte Auto-Liste gilt in allen Instanzen")
 check(not PM.db.settings.lootLists[0][20861], "Skarabäus steht schon in der AQ-Liste")
@@ -4031,7 +4029,8 @@ do
 	loadAddon()
 	mock.Fire("ADDON_LOADED", "PrioMeister")
 	mock.Fire("PLAYER_LOGIN")
-	eq(PM.db.settings.always100, true, "voreingestellt an")
+	eq(PM.db.settings.always100, false, "voreingestellt aus")
+	PM:SetOption("always100", true)
 	mock.sent = {}
 	local s = PM:StartRoll(18813, mock.Link(18813))
 	check(mock.SentContains(mock.Link(18813) .. " – kein Prio, freier Wurf: /roll 100") and mock.SentContains("Stufe 99: Gustl"),
