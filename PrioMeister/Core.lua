@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.25.0"
+PM.version = "1.26.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -23,6 +23,7 @@ local DEFAULTS = {
 	language = "auto",        -- Sprache: auto (nach der Spielsprache), de oder en
 	awardsToRaid = true,      -- Vergaben im Raidchat (für das Protokoll eines anderen Spielers)
 	tierHints = true,         -- Würfelstufen (99, 98 ...) im Chat nennen
+	always100 = false,        -- alle würfeln mit /roll 100, gewertet nach Würfelstufe (seit 1.26)
 	reportWrongRolls = true,  -- falsche Würfelbereiche im Raidchat melden
 	tierChangesToRaid = true, -- Änderungen der Würfelstufe von Hand im Raidchat melden
 	secondaryRolls = true,    -- 50er-Würfe für Zweitchar oder Zweitskillung
@@ -171,7 +172,7 @@ function PM:InitDB()
 		db.settings.awardsToRaid = true
 	end
 	local oldVersion = db.dbVersion or 1
-	db.dbVersion = 8
+	db.dbVersion = 9
 	db.pins = db.pins or {}
 	db.history = db.history or {}
 	db.instanceNames = db.instanceNames or {}
@@ -211,6 +212,13 @@ function PM:InitDB()
 		local loot = db.settings.lootLists
 		loot[309] = loot[309] or {}
 		for _, id in ipairs(L.HAKKARI_BIJOUS) do loot[309][id] = true end
+	end
+	if oldVersion < 9 then
+		-- seit 1.26: Materialien aus MC und BWL gehen an den Schatzmeister.
+		local loot = db.settings.lootLists
+		loot[409], loot[469] = loot[409] or {}, loot[469] or {}
+		for _, id in ipairs(L.MC_MATS) do loot[409][id] = true end
+		for _, id in ipairs(L.BWL_MATS) do loot[469][id] = true end
 	end
 	if type(db.raid) ~= "table" then db.raid = L.NewRaid(time()) end
 	local r = db.raid
@@ -1412,6 +1420,7 @@ function PM:StartRoll(itemID, link, res, forceFree, ctx)
 	if not same then
 		s = L.NewSession(raid, itemID, link, res, time(), {
 			secondary = self.db.settings.secondaryRolls,
+			always100 = self.db.settings.always100,
 			source = ctx and ctx.source,
 			copies = self:CopiesInLoot(itemID, ctx and ctx.source),
 		})
@@ -1421,7 +1430,7 @@ function PM:StartRoll(itemID, link, res, forceFree, ctx)
 		return s
 	end
 	local msgs = L.BuildRollCall(raid, res, link, self:PresentMembers(), {
-		tierHints = self.db.settings.tierHints, copies = s.copies,
+		tierHints = self.db.settings.tierHints, copies = s.copies, always100 = self.db.settings.always100,
 	})
 	for i, m in ipairs(msgs) do
 		self:Send(m, (i == 1) and self:RollCallChannel() or self:GroupChannel())
@@ -1448,6 +1457,12 @@ function PM:Announce(itemID, link, res, ctx)
 	for i, m in ipairs(msgs) do
 		self:Send(m, (i == 1) and self:RollCallChannel() or self:GroupChannel())
 	end
+end
+
+-- Hinweis nach einem freien Gewinn: bei „immer 100“ (seit 1.26) die neue Würfelstufe, sonst der Wurf
+function PM:TierNote(max)
+	if self.db.settings.always100 then return format(T(" – ab jetzt Würfelstufe %d"), max) end
+	return format(T(" – würfelt ab jetzt mit /roll %d"), max)
 end
 
 function PM:PresentMembers()
@@ -1517,7 +1532,7 @@ function PM:ConfirmAward(p)
 		local line = L.AwardLine(aw)
 		local tierNote = ""
 		if aw.kind == "free" then
-			tierNote = format(T(" – würfelt ab jetzt mit /roll %d"), L.AllowedMax(raid, p.key))
+			tierNote = self:TierNote(L.AllowedMax(raid, p.key))
 		end
 		self:Print(line .. tierNote)
 		if self.db.settings.awardsToRaid then
@@ -1666,7 +1681,7 @@ function PM:RequestHandover(view, index, text)
 	local raid = self:ViewRaid(view)
 	local src = raid.awards[index]
 	local key, name = self:HandoverName(text or "")
-	local effects, err = L.HandoverEffects(raid, index, key, name, self.db.settings.prio0Mode)
+	local effects, err = L.HandoverEffects(raid, index, key, name, self.db.settings.prio0Mode, self.db.settings.always100)
 	if not effects then
 		self:Print(err)
 		return false
@@ -1692,9 +1707,13 @@ function PM:HandOver(data)
 		return nil
 	end
 	local line = L.AwardLine(aw)
-	local tierNote = L.CountsAsFreeWin(aw) and format(T(" – würfelt ab jetzt mit /roll %d"), L.AllowedMax(raid, aw.key)) or ""
+	local tierNote = L.CountsAsFreeWin(aw) and self:TierNote(L.AllowedMax(raid, aw.key)) or ""
 	self:Print(line .. tierNote)
-	if srcFree then self:Print("%s würfelt wieder mit /roll %d.", src.name, L.AllowedMax(raid, src.key)) end
+	if srcFree and self.db.settings.always100 then
+		self:Print("%s hat wieder Würfelstufe %d.", src.name, L.AllowedMax(raid, src.key))
+	elseif srcFree then
+		self:Print("%s würfelt wieder mit /roll %d.", src.name, L.AllowedMax(raid, src.key))
+	end
 	if (data.view or 0) == 0 and self.db.settings.awardsToRaid then
 		self:Send(line .. (self.db.settings.tierHints and tierNote or ""))
 	end
@@ -1884,7 +1903,8 @@ function PM:PlayerLines(key, itemID)
 	end
 	local wins = L.FreeWins(raid, key)
 	if wins > 0 then
-		lines[#lines + 1] = format(T("Freie Würfe gewonnen: %d – würfelt mit /roll %d"), wins, L.AllowedMax(raid, key))
+		lines[#lines + 1] = s.always100 and format(T("Freie Würfe gewonnen: %d – Würfelstufe %d"), wins, L.AllowedMax(raid, key))
+			or format(T("Freie Würfe gewonnen: %d – würfelt mit /roll %d"), wins, L.AllowedMax(raid, key))
 	end
 	for _, aw in ipairs(L.AwardsOf(raid, key)) do
 		if aw.kind == "tier" then
@@ -1992,7 +2012,8 @@ function PM:PrintWins()
 	end
 	self:Print("Würfelstufen:")
 	for _, e in ipairs(list) do
-		DEFAULT_CHAT_FRAME:AddMessage(format(T("  %s: %d gewonnen – /roll %d"), e.name, e.wins, e.max))
+		local fmt = self.db.settings.always100 and T("  %s: %d gewonnen – Würfelstufe %d") or T("  %s: %d gewonnen – /roll %d")
+		DEFAULT_CHAT_FRAME:AddMessage(format(fmt, e.name, e.wins, e.max))
 	end
 end
 
@@ -2010,7 +2031,11 @@ function PM:SetWins(name, wins)
 		local index = L.RecordTierChange(raid, key, self:DisplayName(key, name), before, after, prevAdjust, time())
 		if self:PostTierChanges() then self:Send(L.AwardLine(raid.awards[index])) end
 	end
-	self:Print("%s: %d freie Würfe gewonnen – würfelt mit /roll %d.", self:DisplayName(key, name), L.FreeWins(raid, key), L.AllowedMax(raid, key))
+	if self.db.settings.always100 then
+		self:Print("%s: %d freie Würfe gewonnen – Würfelstufe %d.", self:DisplayName(key, name), L.FreeWins(raid, key), L.AllowedMax(raid, key))
+	else
+		self:Print("%s: %d freie Würfe gewonnen – würfelt mit /roll %d.", self:DisplayName(key, name), L.FreeWins(raid, key), L.AllowedMax(raid, key))
+	end
 	refreshUI()
 end
 

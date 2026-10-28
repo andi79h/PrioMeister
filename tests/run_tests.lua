@@ -100,6 +100,64 @@ do
 	eq(table.concat(res.none, ","), "Leryssiá,Leryssìa", "Priocheck: zwei passen, keiner bekommt den Eintrag")
 end
 
+-- 1.26: immer mit /roll 100 würfeln, gewertet wird nach Würfelstufe
+do
+	local raid = L.NewRaid(0)
+	raid.adjust = { gustl = 1, hesti = 2 } -- Gustl Stufe 99, Hesti Stufe 98
+	local s = L.NewSession(raid, 18813, "[Ring]", { mode = "free", levels = {} }, 0, { always100 = true, secondary = true })
+	check(s.always100, "Runde merkt sich die Regel")
+	local function roll(name, v, hi) return L.AddRoll(raid, s, name, v, 1, hi or 100, 1) end
+	local g = roll("Gustl", 95)
+	eq(g.status, "ok", "Stufe 99 darf /roll 100 würfeln")
+	eq(g.tier, 99, "gewertet mit Stufe 99")
+	check(not g.lower, "/roll 100 ist nicht „freiwillig niedriger“")
+	roll("Arcanaa", 60)
+	local h = roll("Hesti", 98, 98)
+	eq(h.status, "ok", "/roll 98 mit Stufe 98 geht weiter")
+	eq(h.tier, 98, "gewertet mit Stufe 98")
+	local z = roll("Zenec", 99, 99)
+	eq(z.status, "ok", "Stufe 100 mit /roll 99 gilt")
+	eq(z.tier, 100, "zählt mit Stufe 100")
+	check(z.lower, "freiwillig niedriger")
+	local bad = roll("Kronolus", 120, 1000)
+	eq(bad.status, "range", "/roll 1000 zählt nicht")
+	eq(L.WrongRollMessage(bad), "Kronolus: Wurf 120 (1-1000) zählt nicht – bitte /roll 100", "Hinweis nennt /roll 100")
+	eq(roll("Urmeline", 49, 50).kind, "sec", "50er-Wurf bleibt")
+	local ok = L.RankRolls(s)
+	local order = {}
+	for _, r in ipairs(ok) do order[#order + 1] = r.name end
+	eq(table.concat(order, ","), "Zenec,Arcanaa,Gustl,Hesti,Urmeline", "erst Stufe 100, dann 99, dann 98, dann 50er")
+	eq(L.RoundWinner(s).name, "Zenec", "Gewinner aus Stufe 100")
+	check(L.ResultMessage(s):find("3. Gustl 95 (1-100, Stufe 99)", 1, true), "Ergebnis nennt die Stufe", L.ResultMessage(s))
+	check(L.RollSummary(ok):find("Gustl 95 (Stufe 99)", 1, true), "Kurzfassung nennt die Stufe", L.RollSummary(ok))
+	local aw = L.BuildAward(raid, "gustl", "Gustl", 18813, "[Ring]", 3, 2)
+	eq(aw.kind, "free", "freier Wurf")
+	eq(L.AwardDetail(aw), "freier Wurf 95 (1-100), Stufe 99", "Vergabe nennt die Stufe")
+	local msgs = L.BuildRollCall(raid, { mode = "free", levels = {}, topHolders = {} }, "[Ring]",
+		{ { key = "gustl", name = "Gustl" }, { key = "hesti", name = "Hesti" } }, { always100 = true })
+	eq(msgs[1], "[Ring] – kein Prio, freier Wurf: /roll 100", "Aufruf: /roll 100")
+	eq(msgs[2], "Stufe 99: Gustl", "Aufruf nennt Stufe 99")
+	eq(msgs[3], "Stufe 98: Hesti", "Aufruf nennt Stufe 98")
+	-- ohne die Regel wie bisher
+	local old = L.NewSession(raid, 18205, "[Kette]", { mode = "free", levels = {} }, 0, {})
+	check(not old.always100, "ohne Option: alte Regel")
+	eq(L.AddRoll(raid, old, "Gustl", 95, 1, 100, 1).status, "range", "alte Regel: Stufe 99 muss /roll 99")
+	-- Stichwurf: /roll 100, auch /roll 99 zählt
+	local raid2 = L.NewRaid(0)
+	local t = L.NewSession(raid2, 18813, "[Ring]", { mode = "free", levels = {} }, 0, { always100 = true })
+	L.AddRoll(raid2, t, "Gustl", 70, 1, 100, 1)
+	L.AddRoll(raid2, t, "Hesti", 70, 1, 100, 1)
+	check(L.StartTiebreak(t), "Gleichstand: Stichwurf")
+	eq(L.TiebreakMessages(t, "[Ring]")[1], "[Ring] – Gleichstand bei 70: Gustl, Hesti – Stichwurf, bitte /roll 100", "Stichwurf mit /roll 100")
+	eq(L.AddRoll(raid2, t, "Gustl", 40, 1, 99, 2).status, "ok", "Stichwurf mit /roll 99 zählt")
+	eq(L.AddRoll(raid2, t, "Hesti", 50, 1, 1000, 2).status, "range", "Stichwurf mit /roll 1000 nicht")
+	-- Weitergabe: Folgen nennen die Würfelstufe
+	local raid3 = L.NewRaid(0)
+	raid3.awards = { { key = "gustl", name = "Gustl", kind = "free", itemID = 18813, link = "[Ring]", t = 1, roll = 80, low = 1, high = 100 } }
+	eq(table.concat(L.HandoverEffects(raid3, 1, "zenec", "Zenec", 3, true), " | "),
+		"Zenec hat dann Würfelstufe 99 statt 100. | Gustl hat wieder Würfelstufe 100 statt 99.", "Weitergabe: Würfelstufen")
+end
+
 -- 1.24: Wartelisten aus der Kommentarzeile von priomeister.de (Schema 27)
 do
 	local meta = L.ParseMeta("# PrioMeister: rezepte=wuerfeln; wartelisten=18563:John,Mike|18564:*Anna,Mike, John-Lakeshire ,mike; sets=18563+18564")
@@ -795,6 +853,10 @@ do
 		if lists[309][id] then bijous = bijous + 1 end
 	end
 	eq(bijous, 9, "Vorbelegung ZG: neun Schmuckstücke der Hakkari beim Schatzmeister")
+	check(lists[409][17010] and lists[409][17011] and lists[409][7078] and lists[409][17203],
+		"Vorbelegung MC: Feuerkern, Lavakern, Essenz des Feuers und Sulfuronblock beim Schatzmeister")
+	check(lists[469][18562] and lists[469][19183] and lists[469][17203],
+		"Vorbelegung BWL: Elementiumerz, Stundenglassand und Sulfuronblock beim Schatzmeister")
 	local count = 0
 	for _ in pairs(L.AQ20_BOOKS) do count = count + 1 end
 	eq(count, 27, "27 Klassenbücher")
@@ -1168,7 +1230,8 @@ mock.Fire("ADDON_LOADED", "PrioMeister")
 mock.Fire("PLAYER_LOGIN")
 check(PM.hookedGive and PM.hookedML, "Hooks installiert")
 eq(PM.db.settings.awardsToRaid, true, "Punkt 7: Altdaten auf Raidansage umgestellt")
-eq(PM.db.dbVersion, 8, "Datenbank-Version 8")
+eq(PM.db.dbVersion, 9, "Datenbank-Version 9")
+eq(PM.db.settings.always100, false, "1.26: „Immer mit /roll 100 würfeln“ ist voreingestellt aus")
 eq(PM.db.settings.autoLootItems, nil, "alte Auto-Liste aufgelöst")
 check(PM.db.settings.lootLists[0][2589], "alte Auto-Liste gilt in allen Instanzen")
 check(not PM.db.settings.lootLists[0][20861], "Skarabäus steht schon in der AQ-Liste")
@@ -2064,7 +2127,7 @@ local function option(i)
 	return _G["PrioMeisterOption" .. i]
 end
 local wanted = { "enabled", "announceLoot", "awardsToRaid", "treasurerChat", "helperLowChat", "tierHints", "reportWrongRolls", "tierChangesToRaid",
-	"raidWarning", "secondaryRolls", "usableRolls", "recipeRolls", "recipePrio", "mountPrio", "prio0two", "confirmEpicWinner", "sortMasterLoot", "alwaysShow",
+	"raidWarning", "always100", "secondaryRolls", "usableRolls", "recipeRolls", "recipePrio", "mountPrio", "prio0two", "confirmEpicWinner", "sortMasterLoot", "alwaysShow",
 	"showTableAfterImport", "showMinimap" }
 for i, key in ipairs(wanted) do
 	eq(option(i).optKey, key, "Checkbox " .. i .. " ist " .. key)
@@ -2079,7 +2142,7 @@ do
 	for _, key in ipairs({ "announceLoot", "awardsToRaid", "treasurerChat", "helperLowChat", "tierHints", "reportWrongRolls", "tierChangesToRaid", "raidWarning" }) do
 		eq(option(key).group, "Im Chat posten", key .. " steht unter „Im Chat posten“")
 	end
-	for _, key in ipairs({ "secondaryRolls", "usableRolls", "recipeRolls", "recipePrio", "mountPrio", "prio0two", "confirmEpicWinner" }) do
+	for _, key in ipairs({ "always100", "secondaryRolls", "usableRolls", "recipeRolls", "recipePrio", "mountPrio", "prio0two", "confirmEpicWinner" }) do
 		eq(option(key).group, "Würfeln und Prio", key .. " steht unter „Würfeln und Prio“")
 	end
 	local tips = 0
@@ -2096,6 +2159,19 @@ do
 	check(option("secondaryRolls")._points[1][2] > option("announceLoot")._points[1][2], "zweite Spalte rechts daneben")
 end
 check(not option("helperLowChat"):GetChecked(), "Grau/Weiß an den Plünderhelfer: Häkchen aus")
+check(not option("always100"):GetChecked(), "immer 100: in diesem Ablauf aus")
+GameTooltip._lines = nil
+option("always100")._scripts.OnEnter(option("always100"))
+do
+	local tip = table.concat(GameTooltip._lines or {}, "\n")
+	check(tip:find("An:|r Alle würfeln mit /roll 100", 1, true) and tip:find("Aus:|r Wer frei gewonnen hat", 1, true)
+		and tip:find("Beispiel:|r Anna", 1, true) and tip:find("Anna gewinnt, weil Stufe 100 vor Stufe 99 kommt", 1, true),
+		"Tooltip erklärt beide Regeln mit Beispiel", tip)
+end
+option("always100"):SetChecked(true); option("always100")._scripts.OnClick(option("always100"))
+eq(PM.db.settings.always100, true, "immer 100 per Häkchen an")
+option("always100"):SetChecked(false); option("always100")._scripts.OnClick(option("always100"))
+eq(PM.db.settings.always100, false, "immer 100 per Häkchen wieder aus")
 check(not option("treasurerChat"):GetChecked(), "Schatzmeister im Raidchat: Häkchen aus")
 check(option("confirmEpicWinner"):GetChecked(), "Rückfrage bei epischen Items: Häkchen an")
 option("confirmEpicWinner"):SetChecked(false); option("confirmEpicWinner")._scripts.OnClick(option("confirmEpicWinner"))
@@ -2458,6 +2534,22 @@ do
 	check(s.lootLists[509][21214] and s.lootLists[509][21307], "Klassenbücher in der AQ20-Liste")
 	check(s.lootLists[509][21761], "eigene Einträge bleiben")
 	check(s.lootLists[309][19707] and s.lootLists[309][19715], "Schmuckstücke der Hakkari in die ZG-Liste übernommen")
+	PrioMeisterDB = saved
+	PM:InitDB()
+end
+-- 1.26: Listen aus 1.25 bekommen die Materialien aus MC und BWL (DB-Version 8)
+do
+	local old = { dbVersion = 8, pins = {}, history = {}, raid = L.NewRaid(0), settings = {
+		lootLists = { [0] = { [2589] = true }, [409] = { [17012] = true } },
+	} }
+	local saved = PrioMeisterDB
+	PrioMeisterDB = old
+	PM:InitDB()
+	local loot = old.settings.lootLists
+	eq(old.dbVersion, 9, "Datenbank auf Version 9")
+	check(loot[409][17010] and loot[409][17011] and loot[409][7078] and loot[409][17203], "MC-Materialien in die MC-Liste übernommen")
+	check(loot[469] and loot[469][18562] and loot[469][19183] and loot[469][17203], "BWL-Liste mit ihren Materialien angelegt")
+	check(loot[409][17012] and loot[0][2589], "eigene Einträge bleiben")
 	PrioMeisterDB = saved
 	PM:InitDB()
 end
@@ -3549,7 +3641,7 @@ do
 	loadAddon()
 	mock.Fire("ADDON_LOADED", "PrioMeister")
 	mock.Fire("PLAYER_LOGIN")
-	eq(PM.db.dbVersion, 8, "Datenbank auf Version 8")
+	eq(PM.db.dbVersion, 9, "Datenbank auf Version 9")
 	local log = PM:Raid().rollLog
 	eq(log and #log, 2, "Würfe der gespeicherten Runde stehen im Protokoll")
 	eq(log and log[1].ins, 409, "Instanz aus der Leichen-GUID")
@@ -3574,7 +3666,7 @@ do
 	loadAddon()
 	mock.Fire("ADDON_LOADED", "PrioMeister")
 	mock.Fire("PLAYER_LOGIN")
-	eq(PM.db.dbVersion, 8, "Datenbank auf Version 8")
+	eq(PM.db.dbVersion, 9, "Datenbank auf Version 9")
 	eq(L.RollStatusText(PM:Raid().rollLog[1]), "zurückgezogen", "laufender Raid: Wurf vor dem Verzicht zurückgezogen")
 	eq(L.RollStatusText(PM:Raid().rollLog[2]), "zählt", "der Wurf des anderen zählt weiter")
 	eq(L.RollStatusText(PM.db.history[1].rollLog[1]), "zurückgezogen", "Archiv: ebenso")
@@ -3943,6 +4035,50 @@ do
 	sp = page.share._points[1]
 	check(page.target:IsShown() and sp and sp[4] == 356, "Flüstern: Teilen hinter dem Namensfeld", sp and sp[4])
 	PM.db.settings.shareChannel = "GUILD"
+end
+
+-- 1.26: immer mit /roll 100 im Spiel: Aufruf, Würfe, Panel, Vergabe; ausgeschaltet die alte Regel
+do
+	mock.CloseLoot()
+	mock.ResetUI()
+	local rosterBefore, candidatesBefore = mock.raid, mock.candidates
+	mock.raid = { { "Arcanaa", "MAGE" }, { "Gustl", "WARRIOR" }, { "Hesti", "PRIEST" } }
+	mock.candidates = { "Arcanaa", "Gustl", "Hesti" }
+	PrioMeisterDB = { dbVersion = 8, settings = {}, pins = {}, history = {},
+		raid = { started = 100, players = {}, awards = {}, adjust = { gustl = 1 }, sessions = {}, sessionSeq = 0 } }
+	loadAddon()
+	mock.Fire("ADDON_LOADED", "PrioMeister")
+	mock.Fire("PLAYER_LOGIN")
+	eq(PM.db.settings.always100, false, "voreingestellt aus")
+	PM:SetOption("always100", true)
+	mock.sent = {}
+	local s = PM:StartRoll(18813, mock.Link(18813))
+	check(mock.SentContains(mock.Link(18813) .. " – kein Prio, freier Wurf: /roll 100") and mock.SentContains("Stufe 99: Gustl"),
+		"Aufruf: /roll 100, dazu Stufe 99", sentText())
+	check(not mock.SentContains("Mit /roll 99"), "kein „Mit /roll 99“", sentText())
+	mock.sent = {}
+	mock.Roll("Gustl", 95)
+	mock.Roll("Hesti", 60)
+	eq(#mock.sent, 0, "kein Hinweis auf einen falschen Wurf")
+	eq(s.rolls[1].status, "ok", "Gustl mit Stufe 99 darf /roll 100")
+	local lines = table.concat(UI:RollLines(s), "\n")
+	check(lines:find("Stufe 99", 1, true), "Panel nennt die Stufe", lines)
+	eq(L.RoundWinner(s).name, "Hesti", "Hestis 60 mit Stufe 100 schlägt Gustls 95 mit Stufe 99")
+	mock.sent = {}
+	SlashCmdList.PRIOMEISTER("vergabe Hesti " .. mock.Link(18813))
+	check(mock.SentContains("Hesti erhält " .. mock.Link(18813) .. " – freier Wurf 60 (1-100) – ab jetzt Würfelstufe 99"),
+		"Vergabe nennt die neue Würfelstufe", sentText())
+	-- ausgeschaltet: alte Regel mit /roll 99
+	PM:SetOption("always100", false)
+	mock.sent = {}
+	PM:StartRoll(18205, mock.Link(18205))
+	check(mock.SentContains("Mit /roll 99: Gustl, Hesti"), "alte Regel: Aufruf mit /roll 99", sentText())
+	mock.sent = {}
+	mock.Roll("Gustl", 50)
+	check(mock.SentContains("Gustl: Wurf 50 (1-100) zählt nicht – bitte /roll 99"), "alte Regel: /roll 100 zählt nicht", sentText())
+	mock.raid, mock.candidates = rosterBefore, candidatesBefore
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
 end
 
 -- 1.21: Englisch. Jeder Text, der übersetzt wird, hat eine englische Fassung (Quelltext durchsucht)

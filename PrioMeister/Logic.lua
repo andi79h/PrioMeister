@@ -304,6 +304,9 @@ L.COFFER_KEY, L.GREATER_COFFER_KEY = 21761, 21762 -- Schlüssel für einen (gro�
 L.BLOODVINE = 19726 -- Blutrebe (Zul'Gurub, grün)
 -- Schmuckstücke der Hakkari (Zul'Gurub, blau): Rot, Blau, Gelb, Orange, Grün, Lila, Bronze, Silber, Gold
 L.HAKKARI_BIJOUS = { 19707, 19708, 19709, 19710, 19711, 19712, 19713, 19714, 19715 }
+-- Materialien aus dem Geschmolzenen Kern und dem Pechschwingenhort
+L.MC_MATS = { 17010, 17011, 7078, 17203 } -- Feuerkern, Lavakern, Essenz des Feuers, Sulfuronblock
+L.BWL_MATS = { 18562, 19183, 17203 } -- Elementiumerz, Stundenglassand, Sulfuronblock
 
 -- Klassenbücher aus AQ20 (blau), je drei pro Klasse
 L.AQ20_BOOKS = {
@@ -331,7 +334,8 @@ L.RAIDS = {
 }
 
 -- Vorbelegung: Skarabäen und Kastenschlüssel in AQ20 und AQ40, die Klassenbücher
--- in AQ20, Blutrebe und Schmuckstücke der Hakkari in Zul'Gurub.
+-- in AQ20, Blutrebe und Schmuckstücke der Hakkari in Zul'Gurub, die Materialien
+-- in MC und BWL.
 function L.DefaultLootLists()
 	local aq20 = { [L.COFFER_KEY] = true }
 	local aq40 = { [L.COFFER_KEY] = true, [L.GREATER_COFFER_KEY] = true }
@@ -341,7 +345,10 @@ function L.DefaultLootLists()
 	for _, id in ipairs(L.AQ20_BOOKS) do aq20[id] = true end
 	local zg = { [L.BLOODVINE] = true }
 	for _, id in ipairs(L.HAKKARI_BIJOUS) do zg[id] = true end
-	return { [L.ALL_INSTANCES] = {}, [509] = aq20, [531] = aq40, [309] = zg }
+	local mc, bwl = {}, {}
+	for _, id in ipairs(L.MC_MATS) do mc[id] = true end
+	for _, id in ipairs(L.BWL_MATS) do bwl[id] = true end
+	return { [L.ALL_INSTANCES] = {}, [409] = mc, [469] = bwl, [509] = aq20, [531] = aq40, [309] = zg }
 end
 
 -- Items, die immer verwürfelt werden: alle würfeln mit /roll 100, ein Gewinn
@@ -1225,6 +1232,8 @@ function L.NewSession(raid, itemID, link, res, now, opts)
 		s.mode = "free"
 	end
 	if opts.secondary and s.mode ~= "prio" then s.secondary = true end
+	-- seit 1.26: alle würfeln mit /roll 100, gewertet wird nach Würfelstufe (r.tier)
+	if opts.always100 and s.mode == "free" then s.always100 = true end
 	raid.sessions[#raid.sessions + 1] = s
 	while #raid.sessions > 25 do table.remove(raid.sessions, 1) end
 	raid.activeId = s.id
@@ -1381,7 +1390,7 @@ function L.AddRoll(raid, s, name, value, low, high, now, isMember, unusable)
 			r.status, r.reason = "fremd", T("nicht im Stichwurf")
 		elseif already then
 			r.status, r.reason = "doppelt", T("zweiter Stichwurf zählt nicht")
-		elseif low ~= 1 or high ~= tb.high then
+		elseif low ~= 1 or (high ~= tb.high and not (s.always100 and tb.high == 100 and high > 1 and high < 100)) then
 			r.status, r.reason = "range", format(T("Stichwurf mit /roll %d"), tb.high)
 		else
 			r.status, r.tb = "ok", tb.round
@@ -1398,10 +1407,13 @@ function L.AddRoll(raid, s, name, value, low, high, now, isMember, unusable)
 		end
 	end
 
-	local expected = 100
-	if s.mode == "free" then expected = L.AllowedMax(raid, key) end
+	-- Würfelstufe des Spielers (100, 99, 98 …) und der erlaubte Bereich: Bei „immer 100“
+	-- würfeln alle mit /roll 100, die Stufe zählt trotzdem (r.tier), auch bei /roll 99.
+	local tier = (s.mode == "free") and L.AllowedMax(raid, key) or 100
+	local expected = s.always100 and 100 or tier
 	r.expected = expected
-	local isSecondary = s.secondary and low == 1 and high == 50 and expected > 50
+	local isSecondary = s.secondary and low == 1 and high == 50 and tier > 50
+	if s.always100 and not isSecondary then r.tier = tier end
 	local why = not isSecondary and unusable and unusable(key) or nil
 
 	if why then
@@ -1420,7 +1432,7 @@ function L.AddRoll(raid, s, name, value, low, high, now, isMember, unusable)
 	else
 		r.status = "ok"
 		if hadWrong then r.reroll = true end
-		if high < expected then r.lower = true end
+		if high < expected and high ~= r.tier then r.lower = true end
 	end
 	s.rolls[#s.rolls + 1] = r
 	return r
@@ -1428,6 +1440,11 @@ end
 
 local function rollCategory(r)
 	return (r.kind == "sec") and 2 or 1
+end
+
+-- Würfelstufe eines Wurfs für die Rangfolge: bei „immer 100“ die Stufe des Spielers, sonst der Bereich
+local function rollTier(r)
+	return r.tier or r.high
 end
 
 -- Stichwurf-Werte je Spieler: map[key][Runde] = Wert
@@ -1452,7 +1469,7 @@ local function tbValue(map, r, round)
 end
 
 local function sameScore(s, map, a, b)
-	if rollCategory(a) ~= rollCategory(b) or a.high ~= b.high or a.value ~= b.value then return false end
+	if rollCategory(a) ~= rollCategory(b) or rollTier(a) ~= rollTier(b) or a.value ~= b.value then return false end
 	for i = 1, (s.tbRound or 0) do
 		if tbValue(map, a, i) ~= tbValue(map, b, i) then return false end
 	end
@@ -1476,7 +1493,7 @@ function L.RankRolls(s)
 	tsort(ok, function(a, b)
 		local ca, cb = rollCategory(a), rollCategory(b)
 		if ca ~= cb then return ca < cb end
-		if a.high ~= b.high then return a.high > b.high end
+		if rollTier(a) ~= rollTier(b) then return rollTier(a) > rollTier(b) end
 		if a.value ~= b.value then return a.value > b.value end
 		for i = 1, rounds do
 			local va, vb = tbValue(map, a, i), tbValue(map, b, i)
@@ -1548,7 +1565,8 @@ function L.StartTiebreak(s)
 	s.tbRound = (s.tbRound or 0) + 1
 	local players = {}
 	for _, r in ipairs(tied) do players[r.key] = r.name end
-	s.tiebreak = { round = s.tbRound, players = players, high = first.high, value = value, again = again }
+	local high = (s.always100 and rollCategory(first) == 1) and 100 or first.high
+	s.tiebreak = { round = s.tbRound, players = players, high = high, value = value, again = again }
 	return tied
 end
 
@@ -1627,6 +1645,7 @@ function L.RollSummary(rolls, maxCount)
 		elseif r.high ~= 100 then
 			extra = format(" (%d-%d)", r.low, r.high)
 		end
+		if r.status == "ok" and r.tier and r.tier < 100 then extra = extra .. format(T(" (Stufe %d)"), r.tier) end
 		parts[#parts + 1] = format("%s %d%s", r.name, r.value, extra)
 	end
 	local text = concat(parts, ", ")
@@ -1716,6 +1735,7 @@ function L.BuildAward(raid, key, name, itemID, link, opts, now)
 		else
 			aw.kind = "free"
 			aw.expected = roll.expected
+			if roll.tier and roll.tier < 100 then aw.tier = roll.tier end
 			if roll.status ~= "ok" then aw.flag = "range" end
 		end
 	elseif opts.treasurer and key == opts.treasurer and opts.listed then
@@ -1843,7 +1863,8 @@ end
 
 -- Was eine Weitergabe für Prio und Würfelstufe bedeutet, für die Rückfrage: Sie wird
 -- probeweise eingetragen und wieder entfernt. Ergebnis: Zeilen oder nil, Fehlertext.
-function L.HandoverEffects(raid, index, key, name, prio0Mode)
+-- always100: Würfelstufe nennen statt „/roll 99“ (alle würfeln mit /roll 100)
+function L.HandoverEffects(raid, index, key, name, prio0Mode, always100)
 	local src = raid.awards[index]
 	local err = HandoverError(src, key)
 	if err then return nil, err end
@@ -1856,14 +1877,17 @@ function L.HandoverEffects(raid, index, key, name, prio0Mode)
 	if aw.level then
 		lines[#lines + 1] = format(T("%s: Prio %d auf das Item ist damit erfüllt."), name, aw.level)
 	elseif afterTo ~= beforeTo then
-		lines[#lines + 1] = format(T("%s würfelt dann mit /roll %d statt %d."), name, afterTo, beforeTo)
+		lines[#lines + 1] = always100 and format(T("%s hat dann Würfelstufe %d statt %d."), name, afterTo, beforeTo)
+			or format(T("%s würfelt dann mit /roll %d statt %d."), name, afterTo, beforeTo)
 	else
-		lines[#lines + 1] = format(T("%s: Würfelstufe bleibt bei /roll %d."), name, beforeTo)
+		lines[#lines + 1] = always100 and format(T("%s: Würfelstufe bleibt %d."), name, beforeTo)
+			or format(T("%s: Würfelstufe bleibt bei /roll %d."), name, beforeTo)
 	end
 	if srcPrio then
 		lines[#lines + 1] = format(T("%s: Prio %d auf das Item ist wieder offen."), src.name, srcPrio)
 	elseif afterFrom ~= beforeFrom then
-		lines[#lines + 1] = format(T("%s würfelt wieder mit /roll %d statt %d."), src.name, afterFrom, beforeFrom)
+		lines[#lines + 1] = always100 and format(T("%s hat wieder Würfelstufe %d statt %d."), src.name, afterFrom, beforeFrom)
+			or format(T("%s würfelt wieder mit /roll %d statt %d."), src.name, afterFrom, beforeFrom)
 	end
 	return lines
 end
@@ -1914,6 +1938,7 @@ local function BaseDetail(aw)
 		return s
 	elseif aw.kind == "free" then
 		local s = format(T("freier Wurf %d (%d-%d)"), aw.roll, aw.low, aw.high)
+		if aw.tier then s = s .. format(T(", Stufe %d"), aw.tier) end
 		if aw.flag == "range" then s = s .. format(T(", erlaubt war 1-%d"), aw.expected or 100) end
 		return s .. TiebreakText(aw.tb)
 	elseif aw.kind == "sec" then
@@ -2029,7 +2054,8 @@ function L.BuildRollCall(raid, res, link, members, opts)
 	end
 	tsort(maxima, function(a, b) return a > b end)
 	for _, mx in ipairs(maxima) do
-		L.AppendChunks(msgs, format(T("Mit /roll %d: "), mx), L.SortNames(tiers[mx]), "")
+		local prefix = opts.always100 and format(T("Stufe %d: "), mx) or format(T("Mit /roll %d: "), mx)
+		L.AppendChunks(msgs, prefix, L.SortNames(tiers[mx]), "")
 	end
 	return msgs
 end
@@ -2080,7 +2106,8 @@ function L.ResultMessage(s, maxCount)
 		if not prev or not sameScore(s, map, prev, r) then place = i end
 		local values = L.TiebreakValues(s, map, r.key)
 		local extra = (#values > 0) and (" " .. TiebreakText(values):sub(3)) or ""
-		parts[#parts + 1] = format("%d. %s %d (%d-%d)%s", place, r.name, r.value, r.low, r.high, extra)
+		local tier = (r.tier and r.tier < 100) and format(T(", Stufe %d"), r.tier) or ""
+		parts[#parts + 1] = format("%d. %s %d (%d-%d%s)%s", place, r.name, r.value, r.low, r.high, tier, extra)
 		prev = r
 	end
 	if #parts == 0 then return format(T("%s: keine gültigen Würfe"), s.link or "?") end

@@ -252,6 +252,7 @@ function UI:RollLines(s)
 		elseif tiedSet[r] then
 			txt = txt .. T(" |cffff4040Gleichstand|r")
 		end
+		if r.tier and r.tier < 100 then txt = txt .. format(T(" |cffffd100Stufe %d|r"), r.tier) end
 		if r.reroll then txt = txt .. T(" |cffffd100Neuwurf|r") end
 		if r.lower then txt = txt .. T(" |cff909090freiwillig niedriger|r") end
 		lines[#lines + 1] = txt

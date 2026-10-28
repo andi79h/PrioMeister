@@ -364,7 +364,12 @@ function UI:BuildRaidPage(page)
 			row:SetPoint("TOPLEFT", page.tierContent, "TOPLEFT", ((i - 1) % 2) * TIER_CELL_W, -math.floor((i - 1) / 2) * TIER_ROW_H)
 			row.key = e.key
 			local won = (e.wins > 0) and format(T("%d gewonnen, "), e.wins) or ""
-			local roll = (e.max < 100) and format(T("|cffffd100/roll %d|r"), e.max) or T("/roll 100")
+			local roll
+			if PM.db.settings.always100 then
+				roll = (e.max < 100) and format(T("|cffffd100Stufe %d|r"), e.max) or T("Stufe 100")
+			else
+				roll = (e.max < 100) and format(T("|cffffd100/roll %d|r"), e.max) or T("/roll 100")
+			end
 			row.text:SetText(format("%s: %s%s", PM:ColoredName(e.key, e.name), won, roll))
 			row.minus:SetEnabled(e.wins > 0)
 			row:Show()
@@ -1057,7 +1062,7 @@ local OPTION_COLUMNS = {
 		{ key = "helperLowChat", label = "Grau und Weiß an den Plünderhelfer",
 			tip = "Graue und weiße Items, die der Plünderhelfer bekommt, stehen als Anzahl in seiner Sammelmeldung." },
 		{ key = "tierHints", label = "Hinweise zu Würfelstufen (99, 98 …)",
-			tip = "Der Würfelaufruf nennt, wer mit /roll 99 oder weniger würfelt. Nach einem freien Gewinn steht in der Vergabe die neue Stufe." },
+			tip = "Der Würfelaufruf nennt, wer eine Würfelstufe unter 100 hat. Nach einem freien Gewinn steht in der Vergabe die neue Stufe." },
 		{ key = "reportWrongRolls", label = "Hinweise bei falschem Wurf",
 			tip = "Wer mit falscher Stufe würfelt oder auf ein Item, das er nicht tragen kann, wird im Raidchat darauf hingewiesen." },
 		{ key = "tierChangesToRaid", label = "Würfelstufe von Hand geändert",
@@ -1067,6 +1072,8 @@ local OPTION_COLUMNS = {
 	},
 	{
 		{ title = "Würfeln und Prio" },
+		{ key = "always100", label = "Immer mit /roll 100 würfeln",
+			tip = "|cffffd100An:|r Alle würfeln mit /roll 100. Die Würfelstufe zählt trotzdem: Erst kommen die Würfe mit Stufe 100, dann die mit Stufe 99 und so weiter. /roll 99 geht auch und zählt mit der eigenen Stufe.\n|cffffd100Aus:|r Wer frei gewonnen hat, muss mit /roll 99, 98 … würfeln. Ein Wurf mit zu hoher Stufe zählt nicht.\n50er-Würfe bleiben in beiden Fällen /roll 50.\n\n|cffffd100Beispiel:|r Anna hat noch nichts frei gewonnen und hat Stufe 100. Bodo hat einmal frei gewonnen und hat Stufe 99. Anna würfelt 40, Bodo 95.\n|cffffd100An:|r Beide würfeln /roll 100. Anna gewinnt, weil Stufe 100 vor Stufe 99 kommt.\n|cffffd100Aus:|r Anna würfelt /roll 100, Bodo muss /roll 99 würfeln. Würfelt Bodo /roll 100, zählt der Wurf nicht und Bodo muss neu würfeln. Mit /roll 99 gewinnt auch hier Anna." },
 		{ key = "secondaryRolls", label = "50er-Würfe (Zweitchar, Zweitskillung)",
 			tip = "/roll 50 läuft parallel, liegt hinter allen normalen Würfen und ändert keine Stufe." },
 		{ key = "usableRolls", label = "Nur Spieler, die das Item tragen können",
@@ -1243,6 +1250,11 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.26.0", "28.10.2026", {
+		"Neue Option „Immer mit /roll 100 würfeln“, voreingestellt aus. Eingeschaltet würfeln alle mit /roll 100, auch wer schon frei gewonnen hat. Die Würfelstufe zählt weiter, erst kommen die Würfe mit Stufe 100, dann die mit Stufe 99 und so weiter. Wer /roll 99 würfelt, wird mit seiner eigenen Stufe gewertet. 50er-Würfe bleiben /roll 50.",
+		"Ansagen, Panel und Vergaben nennen dann die Würfelstufe statt „/roll 99“, etwa „Stufe 99: Gustl“ im Würfelaufruf. Ausgeschaltet gilt die bisherige Regel.",
+		"Die Liste des Schatzmeisters ist jetzt auch für MC und BWL vorbelegt. Im Geschmolzenen Kern stehen Feuerkern, Lavakern, Essenz des Feuers und Sulfuronblock darauf, im Pechschwingenhort Elementiumerz, Stundenglassand und Sulfuronblock. Bestehende Listen bekommen diese Items dazu.",
+	} },
 	{ "1.25.0", "26.10.2026", {
 		"Die Reiter heißen jetzt „Beute“ statt „Vergaben“ und „Plünderoptionen“ statt „Plündern“.",
 		"Im Reiter Beute steht neben der Auswahl der Raids der Knopf „Reset“. Er löscht nach einer Rückfrage alle gespeicherten Raids, den laufenden und alle früheren. Danach lassen sie sich nicht mehr aus dem Addon exportieren. Einstellungen, Listen und Rollen bleiben.",
