@@ -2158,6 +2158,14 @@ do
 end
 check(not option("helperLowChat"):GetChecked(), "Grau/Weiß an den Plünderhelfer: Häkchen aus")
 check(not option("always100"):GetChecked(), "immer 100: in diesem Ablauf aus")
+GameTooltip._lines = nil
+option("always100")._scripts.OnEnter(option("always100"))
+do
+	local tip = table.concat(GameTooltip._lines or {}, "\n")
+	check(tip:find("An:|r Alle würfeln mit /roll 100", 1, true) and tip:find("Aus:|r Wer frei gewonnen hat", 1, true)
+		and tip:find("Beispiel:|r Anna", 1, true) and tip:find("Anna gewinnt, weil Stufe 100 vor Stufe 99 kommt", 1, true),
+		"Tooltip erklärt beide Regeln mit Beispiel", tip)
+end
 option("always100"):SetChecked(true); option("always100")._scripts.OnClick(option("always100"))
 eq(PM.db.settings.always100, true, "immer 100 per Häkchen an")
 option("always100"):SetChecked(false); option("always100")._scripts.OnClick(option("always100"))

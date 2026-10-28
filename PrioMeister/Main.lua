@@ -1073,7 +1073,7 @@ local OPTION_COLUMNS = {
 	{
 		{ title = "Würfeln und Prio" },
 		{ key = "always100", label = "Immer mit /roll 100 würfeln",
-			tip = "Alle würfeln mit /roll 100, auch wer schon frei gewonnen hat. Die Würfelstufe zählt weiter: Erst kommen die Würfe mit Stufe 100, dann die mit Stufe 99 und so weiter. Wer /roll 99 würfelt, wird mit seiner eigenen Stufe gewertet. 50er-Würfe bleiben /roll 50. Aus: Wer frei gewonnen hat, muss mit /roll 99, 98 … würfeln." },
+			tip = "|cffffd100An:|r Alle würfeln mit /roll 100. Die Würfelstufe zählt trotzdem: Erst kommen die Würfe mit Stufe 100, dann die mit Stufe 99 und so weiter. /roll 99 geht auch und zählt mit der eigenen Stufe.\n|cffffd100Aus:|r Wer frei gewonnen hat, muss mit /roll 99, 98 … würfeln. Ein Wurf mit zu hoher Stufe zählt nicht.\n50er-Würfe bleiben in beiden Fällen /roll 50.\n\n|cffffd100Beispiel:|r Anna hat noch nichts frei gewonnen und hat Stufe 100. Bodo hat einmal frei gewonnen und hat Stufe 99. Anna würfelt 40, Bodo 95.\n|cffffd100An:|r Beide würfeln /roll 100. Anna gewinnt, weil Stufe 100 vor Stufe 99 kommt.\n|cffffd100Aus:|r Anna würfelt /roll 100, Bodo muss /roll 99 würfeln. Würfelt Bodo /roll 100, zählt der Wurf nicht und Bodo muss neu würfeln. Mit /roll 99 gewinnt auch hier Anna." },
 		{ key = "secondaryRolls", label = "50er-Würfe (Zweitchar, Zweitskillung)",
 			tip = "/roll 50 läuft parallel, liegt hinter allen normalen Würfen und ändert keine Stufe." },
 		{ key = "usableRolls", label = "Nur Spieler, die das Item tragen können",
