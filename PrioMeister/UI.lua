@@ -912,8 +912,9 @@ function UI:ShowImport()
 		f.check:SetScript("OnClick", function()
 			if PM:ApplyPrioCheck(f.edit:GetText()) then
 				local res = PM:CheckResult()
-				f.status:SetText(res and format(T("|cff40ff40Geprüft.|r Im Raid %d ohne Prios, %d unvollständig, %d vollständig. Details im Chat und im Reiter Raid, die Prioliste bleibt, wie sie ist."),
-					#res.none, #res.partial, res.complete) or T("|cff40ff40Geprüft.|r Details im Chat."))
+				local away = res and (#res.away > 0 and format(T("Nicht im Raid: %d mit Prios."), #res.away) or T("Alle mit Prios sind im Raid."))
+				f.status:SetText(res and format(T("|cff40ff40Geprüft.|r Im Raid %d ohne Prios, %d unvollständig, %d vollständig. %s Details im Chat und im Reiter Raid, die Prioliste bleibt, wie sie ist."),
+					#res.none, #res.partial, res.complete, away) or T("|cff40ff40Geprüft.|r Details im Chat."))
 			else
 				f.status:SetText(T("|cffff4040Kein Priocheck erkannt.|r"))
 			end

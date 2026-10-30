@@ -51,7 +51,7 @@ If a player gave an item to someone else in the game, right-click the award in t
 
 ## Priocheck
 
-To see who in the raid has not entered prios yet without closing the sign-up on priomeister.de: click “Copy priocheck” under “All prios” on the player page of the prio run, paste it into `/pm import` and choose “Check”. The result appears in the chat and in the Raid tab; “Remind raid” posts the missing names with the link and PIN.
+To see who in the raid has not entered prios yet without closing the sign-up on priomeister.de: click “Copy priocheck” under “All prios” on the player page of the prio run, paste it into `/pm import` and choose “Check”. The result appears in the chat and in the Raid tab, including who entered prios but is not in the raid; “Remind raid” posts the missing names with the link and PIN.
 
 ## Export
 

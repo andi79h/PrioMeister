@@ -66,7 +66,7 @@ Der Raid bekommt seine eigene Prioliste zurück, das Archiv speichert sie bei je
 
 Wer im Raid noch keine Prios hat, siehst du, ohne die Eintragung auf priomeister.de zu schließen. Die Seite bietet dafür eine Kurzform des Prio-Runs an: wer welche Prios gesetzt hat, ohne Items. Der Knopf „Priocheck kopieren“ steht auf der Spielerseite des Prio-Runs im Reiter „Alle Prios“, für alle sichtbar. Du fügst den Priocheck unter „Importieren …“ ein, das Fenster erkennt sie und zeigt statt der Import-Knöpfe „Prüfen“. Die Prioliste, Vergaben und Würfelstufen bleiben, wie sie sind.
 
-Das Ergebnis steht im Chat und im Reiter **Raid** unter „Im Raid ohne Prio“: wer ohne Prios ist, wer unvollständig ist und was fehlt, etwa „Onyxias Hort fehlt, Zul'Gurub ohne Prio 2 und 3“, und wie viele vollständig sind. Die Maus über dem Bereich zeigt alles. „Im Raid erinnern“ und `/pm erinnern` nennen die Spieler ohne Prios mit Link und PIN, `/pm check` zeigt das Ergebnis erneut, auch nachdem neue Spieler in den Raid gekommen sind. Der Priocheck gilt, bis du eine neuere Prioliste importierst.
+Das Ergebnis steht im Chat und im Reiter **Raid** unter „Im Raid ohne Prio“: wer ohne Prios ist, wer unvollständig ist und was fehlt, etwa „Onyxias Hort fehlt, Zul'Gurub ohne Prio 2 und 3“, wie viele vollständig sind und wer Prios eingetragen hat, aber nicht im Raid ist. Die Maus über dem Bereich zeigt alles. „Im Raid erinnern“ und `/pm erinnern` nennen die Spieler ohne Prios mit Link und PIN, `/pm check` zeigt das Ergebnis erneut, auch nachdem neue Spieler in den Raid gekommen sind. Der Priocheck gilt, bis du eine neuere Prioliste importierst.
 
 ## Weitergaben
 

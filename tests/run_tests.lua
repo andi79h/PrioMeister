@@ -95,7 +95,7 @@ do
 	eq(res.complete, 1, "Priocheck: Leryssiá vollständig über „Leryssia“")
 	eq(#res.none, 0, "Priocheck: niemand ohne Prios")
 	eq(#res.partial, 1, "Priocheck: Gustl unvollständig")
-	eq(res.away, 1, "Priocheck: nur Abwesend fehlt im Raid")
+	eq(table.concat(res.away, ","), "Abwesend", "Priocheck: nur Abwesend fehlt im Raid")
 	res = L.CheckRaid(chk, { { key = "leryssiá", name = "Leryssiá" }, { key = "leryssìa", name = "Leryssìa" } })
 	eq(table.concat(res.none, ","), "Leryssiá,Leryssìa", "Priocheck: zwei passen, keiner bekommt den Eintrag")
 end
@@ -1105,7 +1105,10 @@ do
 	local res = L.CheckRaid(c, roster)
 	eq(table.concat(res.none, ","), "Anna,Bodo,Gustl", "ohne Prios: nicht auf der Seite oder alles leer")
 	check(#res.partial == 1 and res.partial[1].name == "Zenec", "unvollständig: Zenec")
-	check(res.complete == 1 and res.away == 1, "eine vollständig, Lillianaa nicht im Raid")
+	check(res.complete == 1 and table.concat(res.away, ",") == "Lillianaa", "eine vollständig, Lillianaa nicht im Raid")
+	local gone = L.ParsePrioCheck("# priocheck;instanzen=Onyxias Hort:1|Zul'Gurub:3\nZora;Magier;0;010\nLeer;Magier;0;000\nBodo;Krieger;1;111\nArcanaa;Magier;1;111\n")
+	eq(table.concat(L.CheckRaid(gone, { { key = "arcanaa", name = "Arcanaa" } }).away, ","), "Bodo,Zora",
+		"nicht im Raid: wer Prios gesetzt hat, sortiert, ohne leere Einträge")
 	-- eine Instanz: ohne ihren Namen; ohne Angabe der Instanzen aus den Zeilen
 	local one = L.ParsePrioCheck("# priocheck;run=ZG;instanzen=Zul'Gurub:3\nHesti;Priester;101\n")
 	eq(L.CheckMissing(one, one.players.hesti), "ohne Prio 2", "eine Instanz: nur die Prio")
@@ -2870,9 +2873,10 @@ do
 	f.check._scripts.OnClick(f.check)
 	check(raid.players == playersBefore and #raid.awards == awardsBefore and PM:Raid().started == startedBefore, "Prioliste, Vergaben und Raid bleiben")
 	local complete = #PM:RosterList() - 3 -- alle im Raid außer Gustl und Hesti (ohne) und Zenec (unvollständig)
-	check(f.status:GetText():find(string.format("Im Raid 2 ohne Prios, 1 unvollständig, %d vollständig", complete), 1, true), "Ergebnis im Fenster", f.status:GetText())
+	check(f.status:GetText():find(string.format("Im Raid 2 ohne Prios, 1 unvollständig, %d vollständig. Nicht im Raid: 1 mit Prios. Details", complete), 1, true),
+		"Ergebnis im Fenster, mit der Zahl derer, die mit Prios fehlen", f.status:GetText())
 	check(mock.ChatContains("Priocheck Ony+ZG 21.10.") and mock.ChatContains("Ohne Prios:|r Gustl, Hesti")
-		and mock.ChatContains("Zenec: Onyxias Hort fehlt, Zul'Gurub ohne Prio 2 und 3") and mock.ChatContains("Mit Eintrag, aber nicht im Raid: 1"),
+		and mock.ChatContains("Zenec: Onyxias Hort fehlt, Zul'Gurub ohne Prio 2 und 3") and mock.ChatContains("Mit Prios, aber nicht im Raid:|r Lillianaa"),
 		"Ergebnis im Chat", table.concat(mock.chat, "\n"))
 	-- „Import als neuer Raid“ mit einem Priocheck startet keinen neuen Raid
 	check(PM:ImportText(sample, true) and PM:Raid() == raid and raid.players == playersBefore, "auch über den Import-Knopf nur geprüft")
@@ -2880,10 +2884,11 @@ do
 	eq(table.concat(PM:NoPrioMembers(), ","), "Gustl,Hesti", "ohne Prio laut Priocheck")
 	UI:ShowMain("raid")
 	local page = _G.PrioMeisterMainFrame.pages.raid
-	check(page.noPrio:GetText():find("Gustl", 1, true) and page.checkLine:GetText():find(string.format("1 unvollständig, %d vollständig", complete), 1, true),
+	check(page.noPrio:GetText():find("Gustl", 1, true) and page.checkLine:GetText():find(string.format("1 unvollständig, %d vollständig, 1 nicht im Raid.", complete), 1, true),
 		"Reiter Raid zeigt den Priocheck", page.checkLine:GetText())
 	page.checkHover._scripts.OnEnter(page.checkHover)
 	check(table.concat(GameTooltip._lines or {}, "\n"):find("Zenec: Onyxias Hort fehlt", 1, true), "Tooltip mit Details")
+	check(table.concat(GameTooltip._lines or {}, "\n"):find("Mit Prios, aber nicht im Raid:|r Lillianaa", 1, true), "Tooltip nennt, wer mit Prios fehlt")
 	page.checkHover._scripts.OnLeave(page.checkHover)
 	mock.sent = {}
 	PM:RemindNoPrio()
@@ -3727,10 +3732,12 @@ do
 	PM:SetRole("treasurer", "-")
 
 	-- Priocheck mit „Leryssia“
+	mock.chat = {}
 	PM:ApplyPrioCheck("# priocheck;v=1;run=ZG;instanzen=Zul'Gurub:3\nLeryssia;Priester;111\nGustl;Krieger;111\nArcanaa;Magier;111\n")
 	local res = PM:CheckResult()
-	check(res and #res.none == 0 and res.complete == 3 and res.away == 0, "Priocheck: alle drei vollständig, niemand abwesend",
-		res and (#res.none .. "/" .. res.complete .. "/" .. res.away))
+	check(res and #res.none == 0 and res.complete == 3 and #res.away == 0, "Priocheck: alle drei vollständig, niemand abwesend",
+		res and (#res.none .. "/" .. res.complete .. "/" .. #res.away))
+	check(mock.ChatContains("Alle mit Prios sind im Raid."), "Chat: alle mit Prios sind im Raid", table.concat(mock.chat, "\n"))
 	raid.check = nil
 
 	-- kommt erst später in den Raid: Zuordnung, sobald er da ist

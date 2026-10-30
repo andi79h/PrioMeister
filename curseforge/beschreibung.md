@@ -51,7 +51,7 @@ If a player gave an item to someone else in the game, right-click the award in t
 
 ## Priocheck
 
-To see who in the raid has not entered prios yet without closing the sign-up on priomeister.de: click “Copy priocheck” under “All prios” on the player page of the prio run, paste it into `/pm import` and choose “Check”. The result appears in the chat and in the Raid tab; “Remind raid” posts the missing names with the link and PIN.
+To see who in the raid has not entered prios yet without closing the sign-up on priomeister.de: click “Copy priocheck” under “All prios” on the player page of the prio run, paste it into `/pm import` and choose “Check”. The result appears in the chat and in the Raid tab, including who entered prios but is not in the raid; “Remind raid” posts the missing names with the link and PIN.
 
 ## Export
 
@@ -149,7 +149,7 @@ Hat ein Spieler ein Item im Spiel an jemand anderen weitergegeben, klickst du di
 
 ## Priocheck
 
-So siehst du, wer im Raid noch keine Prios eingetragen hat, ohne die Eintragung auf priomeister.de zu schließen: Auf der Spielerseite des Prio-Runs unter „Alle Prios“ auf „Priocheck kopieren“ klicken, unter `/pm import` einfügen und „Prüfen“ wählen. Das Ergebnis steht im Chat und im Reiter Raid. „Im Raid erinnern“ postet die fehlenden Namen mit Link und PIN.
+So siehst du, wer im Raid noch keine Prios eingetragen hat, ohne die Eintragung auf priomeister.de zu schließen: Auf der Spielerseite des Prio-Runs unter „Alle Prios“ auf „Priocheck kopieren“ klicken, unter `/pm import` einfügen und „Prüfen“ wählen. Das Ergebnis steht im Chat und im Reiter Raid, auch wer Prios eingetragen hat, aber nicht im Raid ist. „Im Raid erinnern“ postet die fehlenden Namen mit Link und PIN.
 
 ## Export
 

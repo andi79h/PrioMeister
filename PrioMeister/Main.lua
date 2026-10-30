@@ -327,8 +327,8 @@ function UI:BuildRaidPage(page)
 		local noPrio = PM:NoPrioMembers()
 		local check = PM:CheckResult()
 		if check then
-			page.checkLine:SetText(format(T("Priocheck von %s: %d unvollständig, %d vollständig. Maus darüber zeigt Details."),
-				date("%H:%M", PM:CurrentCheck().t), #check.partial, check.complete))
+			page.checkLine:SetText(format(T("Priocheck von %s: %d unvollständig, %d vollständig, %d nicht im Raid. Maus darüber zeigt Details."),
+				date("%H:%M", PM:CurrentCheck().t), #check.partial, check.complete, #check.away))
 		else
 			page.checkLine:SetText(T("Prüfen ohne Schließen: „Priocheck kopieren“ unter „Alle Prios“ auf der Spielerseite, hier einfügen."))
 		end
@@ -1250,6 +1250,9 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.27.0", "30.10.2026", {
+		"Priocheck: Das Addon nennt jetzt auch, wer auf priomeister.de Prios eingetragen hat, aber nicht im Raid ist. Die Namen stehen im Chat und in den Details im Reiter Raid. Die Anzahl steht nach dem Prüfen im Fenster und im Reiter Raid.",
+	} },
 	{ "1.26.0", "28.10.2026", {
 		"Neue Option „Immer mit /roll 100 würfeln“, voreingestellt aus. Eingeschaltet würfeln alle mit /roll 100, auch wer schon frei gewonnen hat. Die Würfelstufe zählt weiter, erst kommen die Würfe mit Stufe 100, dann die mit Stufe 99 und so weiter. Wer /roll 99 würfelt, wird mit seiner eigenen Stufe gewertet. 50er-Würfe bleiben /roll 50.",
 		"Ansagen, Panel und Vergaben nennen dann die Würfelstufe statt „/roll 99“, etwa „Stufe 99: Gustl“ im Würfelaufruf. Ausgeschaltet gilt die bisherige Regel.",
