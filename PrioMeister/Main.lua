@@ -1252,6 +1252,7 @@ end
 local CHANGELOG = {
 	{ "1.27.0", "30.10.2026", {
 		"Priocheck: Das Addon nennt jetzt auch, wer auf priomeister.de Prios eingetragen hat, aber nicht im Raid ist. Die Namen stehen im Chat und in den Details im Reiter Raid. Die Anzahl steht nach dem Prüfen im Fenster und im Reiter Raid.",
+		"Raidmitglieder, deren Namen WoW noch nicht geladen hat, stehen nicht mehr als „Unbekannt“ im Priocheck und unter „Im Raid ohne Prio“. Sie zählen, sobald ihr Name da ist.",
 	} },
 	{ "1.26.0", "28.10.2026", {
 		"Neue Option „Immer mit /roll 100 würfeln“, voreingestellt aus. Eingeschaltet würfeln alle mit /roll 100, auch wer schon frei gewonnen hat. Die Würfelstufe zählt weiter, erst kommen die Würfe mit Stufe 100, dann die mit Stufe 99 und so weiter. Wer /roll 99 würfelt, wird mit seiner eigenen Stufe gewertet. 50er-Würfe bleiben /roll 50.",

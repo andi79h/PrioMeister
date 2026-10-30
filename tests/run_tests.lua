@@ -3776,6 +3776,36 @@ do
 	mock.RunTimers()
 end
 
+-- 1.27: Kennt das Spiel einen Namen im Raid noch nicht, heißt er „Unbekannt“. So jemand zählt erst mit Namen.
+do
+	mock.CloseLoot()
+	mock.ResetUI()
+	local rosterBefore, candidatesBefore = mock.raid, mock.candidates
+	mock.raid = { { "Arcanaa", "MAGE" }, { "Gustl", "WARRIOR" }, { UNKNOWNOBJECT, "PRIEST" } }
+	mock.candidates = { "Arcanaa", "Gustl" }
+	PrioMeisterDB = { dbVersion = 9, settings = {}, pins = {}, history = {} }
+	loadAddon()
+	mock.Fire("ADDON_LOADED", "PrioMeister")
+	mock.Fire("PLAYER_LOGIN")
+	check(PM.roster.arcanaa and PM.roster.gustl and not PM.roster[L.NameKey(UNKNOWNOBJECT)], "„Unbekannt“ steht nicht im Raid")
+	mock.chat = {}
+	PM:ApplyPrioCheck("# priocheck;v=1;run=ZG;instanzen=Zul'Gurub:3\nArcanaa;Magier;111\nGustl;Krieger;111\n")
+	check(mock.ChatContains("Alle im Raid haben Prios eingetragen.") and not mock.ChatContains(UNKNOWNOBJECT),
+		"Priocheck ohne „Unbekannt“", table.concat(mock.chat, "\n"))
+	mock.raid[3] = { "Hesti", "PRIEST" }
+	mock.chat = {}
+	mock.Fire("UNIT_NAME_UPDATE", "raid3")
+	mock.RunTimers()
+	check(PM.roster.hesti, "Name angekommen: Hesti steht im Raid")
+	local res = PM:CheckResult()
+	eq(res and table.concat(res.none, ","), "Hesti", "Priocheck: Hesti ohne Prios")
+	check(mock.ChatContains("Im Raid ohne Prio:|r Hesti"), "Hinweis auf Hesti, sobald ihr Name da ist", table.concat(mock.chat, "\n"))
+
+	mock.raid, mock.candidates = rosterBefore, candidatesBefore
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+end
+
 -- 1.24: Wartelisten im Spiel. Tiger: John fehlt, Mike ist dran. Bindungen mit „Set vervollständigen“.
 do
 	mock.CloseLoot()

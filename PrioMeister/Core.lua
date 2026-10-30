@@ -413,11 +413,19 @@ end
 -- Gruppe
 -------------------------------------------------------------------------------
 
+-- Kennt das Spiel einen Namen in der Gruppe noch nicht, liefert es „Unbekannt“ (UNKNOWNOBJECT).
+-- So jemand zählt erst, wenn der Name da ist (UNIT_NAME_UPDATE).
+local function isUnknown(name)
+	return name ~= nil and name == UNKNOWNOBJECT
+end
+
 function PM:UpdateRoster()
 	local roster, order = {}, {}
+	local unknown = false
 	if IsInRaid() then
 		for i = 1, GetNumGroupMembers() do
 			local name, _, subgroup, _, _, classFile, _, online = GetRaidRosterInfo(i)
+			if isUnknown(name) then unknown, name = true, nil end
 			if name then
 				local short = Ambiguate and Ambiguate(name, "short") or name
 				local key = L.NameKey(short)
@@ -434,6 +442,7 @@ function PM:UpdateRoster()
 		end
 		for _, unit in ipairs(units) do
 			local name = UnitName(unit)
+			if isUnknown(name) then unknown, name = true, nil end
 			local key = L.NameKey(name)
 			if key then
 				local _, classFile = UnitClass(unit)
@@ -449,6 +458,7 @@ function PM:UpdateRoster()
 	end)
 	self.roster = roster
 	self.rosterOrder = order
+	self.rosterUnknown = unknown
 end
 
 -- Prioliste an die Namen im Raid binden (seit 1.23): Steht jemand auf priomeister.de ohne
@@ -1107,7 +1117,7 @@ function PM:PLAYER_LOGIN()
 	self:UpdateRoster()
 	self:BindListNames()
 	for _, ev in ipairs({
-		"GROUP_ROSTER_UPDATE", "LOOT_OPENED", "LOOT_CLOSED", "LOOT_SLOT_CLEARED", "LOOT_SLOT_CHANGED",
+		"GROUP_ROSTER_UPDATE", "UNIT_NAME_UPDATE", "LOOT_OPENED", "LOOT_CLOSED", "LOOT_SLOT_CLEARED", "LOOT_SLOT_CHANGED",
 		"CHAT_MSG_SYSTEM", "CHAT_MSG_LOOT", "UI_ERROR_MESSAGE", "GET_ITEM_INFO_RECEIVED", "PARTY_LOOT_METHOD_CHANGED",
 		"UI_INFO_MESSAGE", "TRADE_SHOW", "TRADE_PLAYER_ITEM_CHANGED", "TRADE_ACCEPT_UPDATE",
 	}) do
@@ -1121,6 +1131,13 @@ function PM:GROUP_ROSTER_UPDATE()
 	self:BindListNames()
 	refreshUI()
 	self:ScheduleNoPrioCheck()
+end
+
+-- Ein Name in der Gruppe ist angekommen, der vorher „Unbekannt“ hieß.
+function PM:UNIT_NAME_UPDATE(unit)
+	if self.rosterUnknown and type(unit) == "string" and (unit:find("^raid%d") or unit:find("^party%d")) then
+		self:GROUP_ROSTER_UPDATE()
+	end
 end
 
 function PM:PARTY_LOOT_METHOD_CHANGED()
