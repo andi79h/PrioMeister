@@ -3405,9 +3405,9 @@ do
 	check(not bartRow.plus:IsEnabled(), "bei 100 geht es nicht höher")
 	check(bartRow.minus:IsEnabled(), "Minus senkt auch die 100")
 	bartRow.plus._scripts.OnEnter(bartRow.plus)
-	eq(GameTooltip:GetText(), "Eine Stufe höher", "Plus hebt die Stufe")
+	eq(GameTooltip._text, "Eine Stufe höher", "Plus hebt die Stufe")
 	bartRow.minus._scripts.OnEnter(bartRow.minus)
-	eq(GameTooltip:GetText(), "Eine Stufe tiefer", "Minus senkt sie")
+	eq(GameTooltip._text, "Eine Stufe tiefer", "Minus senkt sie")
 	bartRow.minus._scripts.OnLeave(bartRow.minus)
 	mock.sent = {}
 	bartRow.minus._scripts.OnClick(bartRow.minus)
