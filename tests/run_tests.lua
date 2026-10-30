@@ -95,7 +95,7 @@ do
 	eq(res.complete, 1, "Priocheck: Leryssiá vollständig über „Leryssia“")
 	eq(#res.none, 0, "Priocheck: niemand ohne Prios")
 	eq(#res.partial, 1, "Priocheck: Gustl unvollständig")
-	eq(res.away, 1, "Priocheck: nur Abwesend fehlt im Raid")
+	eq(table.concat(res.away, ","), "Abwesend", "Priocheck: nur Abwesend fehlt im Raid")
 	res = L.CheckRaid(chk, { { key = "leryssiá", name = "Leryssiá" }, { key = "leryssìa", name = "Leryssìa" } })
 	eq(table.concat(res.none, ","), "Leryssiá,Leryssìa", "Priocheck: zwei passen, keiner bekommt den Eintrag")
 end
@@ -1105,7 +1105,10 @@ do
 	local res = L.CheckRaid(c, roster)
 	eq(table.concat(res.none, ","), "Anna,Bodo,Gustl", "ohne Prios: nicht auf der Seite oder alles leer")
 	check(#res.partial == 1 and res.partial[1].name == "Zenec", "unvollständig: Zenec")
-	check(res.complete == 1 and res.away == 1, "eine vollständig, Lillianaa nicht im Raid")
+	check(res.complete == 1 and table.concat(res.away, ",") == "Lillianaa", "eine vollständig, Lillianaa nicht im Raid")
+	local gone = L.ParsePrioCheck("# priocheck;instanzen=Onyxias Hort:1|Zul'Gurub:3\nZora;Magier;0;010\nLeer;Magier;0;000\nBodo;Krieger;1;111\nArcanaa;Magier;1;111\n")
+	eq(table.concat(L.CheckRaid(gone, { { key = "arcanaa", name = "Arcanaa" } }).away, ","), "Bodo,Zora",
+		"nicht im Raid: wer Prios gesetzt hat, sortiert, ohne leere Einträge")
 	-- eine Instanz: ohne ihren Namen; ohne Angabe der Instanzen aus den Zeilen
 	local one = L.ParsePrioCheck("# priocheck;run=ZG;instanzen=Zul'Gurub:3\nHesti;Priester;101\n")
 	eq(L.CheckMissing(one, one.players.hesti), "ohne Prio 2", "eine Instanz: nur die Prio")
@@ -1935,18 +1938,18 @@ local gustlRow
 for _, r in ipairs(main.pages.raid.tierRows) do if r._shown and r.key == "gustl" then gustlRow = r end end
 check(gustlRow, "Raid-Seite: Würfelstufe Gustl")
 mock.sent = {}
-gustlRow.plus._scripts.OnClick(gustlRow.plus)
-eq(L.AllowedMax(PM:Raid(), "gustl"), 98, "Plus senkt Gustls Stufe")
+gustlRow.minus._scripts.OnClick(gustlRow.minus)
+eq(L.AllowedMax(PM:Raid(), "gustl"), 98, "Minus senkt Gustls Stufe")
 check(mock.sent[1] and mock.sent[1].msg == "Gustl: Würfelstufe von Hand von 99 auf 98 geändert" and mock.sent[1].channel == "RAID",
 	"Änderung der Würfelstufe im Raidchat", mock.sent[1] and mock.sent[1].msg)
-gustlRow.minus._scripts.OnClick(gustlRow.minus)
-eq(L.AllowedMax(PM:Raid(), "gustl"), 99, "Minus hebt sie wieder")
+gustlRow.plus._scripts.OnClick(gustlRow.plus)
+eq(L.AllowedMax(PM:Raid(), "gustl"), 99, "Plus hebt sie wieder")
 local tierEntries = {}
 for _, aw in ipairs(PM:Raid().awards) do
 	if aw.kind == "tier" then tierEntries[#tierEntries + 1] = L.AwardLine(aw) end
 end
-eq(tierEntries[1], "Gustl: Würfelstufe von Hand von 99 auf 98 geändert", "Plus steht in der Vergabeliste")
-eq(tierEntries[2], "Gustl: Würfelstufe von Hand von 98 auf 99 geändert", "Minus steht in der Vergabeliste")
+eq(tierEntries[1], "Gustl: Würfelstufe von Hand von 99 auf 98 geändert", "Minus steht in der Vergabeliste")
+eq(tierEntries[2], "Gustl: Würfelstufe von Hand von 98 auf 99 geändert", "Plus steht in der Vergabeliste")
 check(PM:Raid().awards[1].kind ~= "tier", "Korrekturen hängen hinten an")
 local tierCount = #PM:Raid().awards
 PM.db.settings.tierChangesToRaid = false
@@ -2870,9 +2873,10 @@ do
 	f.check._scripts.OnClick(f.check)
 	check(raid.players == playersBefore and #raid.awards == awardsBefore and PM:Raid().started == startedBefore, "Prioliste, Vergaben und Raid bleiben")
 	local complete = #PM:RosterList() - 3 -- alle im Raid außer Gustl und Hesti (ohne) und Zenec (unvollständig)
-	check(f.status:GetText():find(string.format("Im Raid 2 ohne Prios, 1 unvollständig, %d vollständig", complete), 1, true), "Ergebnis im Fenster", f.status:GetText())
+	check(f.status:GetText():find(string.format("Im Raid 2 ohne Prios, 1 unvollständig, %d vollständig. Nicht im Raid: 1 mit Prios. Details", complete), 1, true),
+		"Ergebnis im Fenster, mit der Zahl derer, die mit Prios fehlen", f.status:GetText())
 	check(mock.ChatContains("Priocheck Ony+ZG 21.10.") and mock.ChatContains("Ohne Prios:|r Gustl, Hesti")
-		and mock.ChatContains("Zenec: Onyxias Hort fehlt, Zul'Gurub ohne Prio 2 und 3") and mock.ChatContains("Mit Eintrag, aber nicht im Raid: 1"),
+		and mock.ChatContains("Zenec: Onyxias Hort fehlt, Zul'Gurub ohne Prio 2 und 3") and mock.ChatContains("Mit Prios, aber nicht im Raid:|r Lillianaa"),
 		"Ergebnis im Chat", table.concat(mock.chat, "\n"))
 	-- „Import als neuer Raid“ mit einem Priocheck startet keinen neuen Raid
 	check(PM:ImportText(sample, true) and PM:Raid() == raid and raid.players == playersBefore, "auch über den Import-Knopf nur geprüft")
@@ -2880,10 +2884,11 @@ do
 	eq(table.concat(PM:NoPrioMembers(), ","), "Gustl,Hesti", "ohne Prio laut Priocheck")
 	UI:ShowMain("raid")
 	local page = _G.PrioMeisterMainFrame.pages.raid
-	check(page.noPrio:GetText():find("Gustl", 1, true) and page.checkLine:GetText():find(string.format("1 unvollständig, %d vollständig", complete), 1, true),
+	check(page.noPrio:GetText():find("Gustl", 1, true) and page.checkLine:GetText():find(string.format("1 unvollständig, %d vollständig, 1 nicht im Raid.", complete), 1, true),
 		"Reiter Raid zeigt den Priocheck", page.checkLine:GetText())
 	page.checkHover._scripts.OnEnter(page.checkHover)
 	check(table.concat(GameTooltip._lines or {}, "\n"):find("Zenec: Onyxias Hort fehlt", 1, true), "Tooltip mit Details")
+	check(table.concat(GameTooltip._lines or {}, "\n"):find("Mit Prios, aber nicht im Raid:|r Lillianaa", 1, true), "Tooltip nennt, wer mit Prios fehlt")
 	page.checkHover._scripts.OnLeave(page.checkHover)
 	mock.sent = {}
 	PM:RemindNoPrio()
@@ -3397,12 +3402,19 @@ do
 	check(bartRow and bartRow.text:GetText():find("Bartbär", 1, true) and bartRow.text:GetText():find("/roll 100", 1, true),
 		"Bartbär mit /roll 100, obwohl sein Wurf zu spät kam", bartRow and bartRow.text:GetText())
 	check(gustlRow, "Gustl steht da, er hat gewürfelt")
-	check(not bartRow.minus:IsEnabled(), "bei 100 geht es nicht höher")
+	check(not bartRow.plus:IsEnabled(), "bei 100 geht es nicht höher")
+	check(bartRow.minus:IsEnabled(), "Minus senkt auch die 100")
+	bartRow.plus._scripts.OnEnter(bartRow.plus)
+	eq(GameTooltip._text, "Eine Stufe höher", "Plus hebt die Stufe")
+	bartRow.minus._scripts.OnEnter(bartRow.minus)
+	eq(GameTooltip._text, "Eine Stufe tiefer", "Minus senkt sie")
+	bartRow.minus._scripts.OnLeave(bartRow.minus)
 	mock.sent = {}
-	bartRow.plus._scripts.OnClick(bartRow.plus)
-	eq(L.AllowedMax(PM:Raid(), "bartbär"), 99, "Plus: Bartbär würfelt mit 99")
+	bartRow.minus._scripts.OnClick(bartRow.minus)
+	eq(L.AllowedMax(PM:Raid(), "bartbär"), 99, "Minus: Bartbär würfelt mit 99")
 	check(mock.SentContains("Bartbär: Würfelstufe von Hand von 100 auf 99 geändert"), "Korrektur im Raidchat", sentText())
 	check(bartRow.text:GetText():find("1 gewonnen", 1, true), "Zeile zeigt den Gewinn", bartRow.text:GetText())
+	check(bartRow.plus:IsEnabled(), "unter 100 geht es wieder höher")
 	check(raidPage.tierContent._h >= 21, "Liste ist hoch genug für ihre Zeilen")
 	_G.PrioMeisterMainFrame:Hide()
 	-- Archiv und Fortsetzen behalten, wer gewürfelt hat
@@ -3727,10 +3739,12 @@ do
 	PM:SetRole("treasurer", "-")
 
 	-- Priocheck mit „Leryssia“
+	mock.chat = {}
 	PM:ApplyPrioCheck("# priocheck;v=1;run=ZG;instanzen=Zul'Gurub:3\nLeryssia;Priester;111\nGustl;Krieger;111\nArcanaa;Magier;111\n")
 	local res = PM:CheckResult()
-	check(res and #res.none == 0 and res.complete == 3 and res.away == 0, "Priocheck: alle drei vollständig, niemand abwesend",
-		res and (#res.none .. "/" .. res.complete .. "/" .. res.away))
+	check(res and #res.none == 0 and res.complete == 3 and #res.away == 0, "Priocheck: alle drei vollständig, niemand abwesend",
+		res and (#res.none .. "/" .. res.complete .. "/" .. #res.away))
+	check(mock.ChatContains("Alle mit Prios sind im Raid."), "Chat: alle mit Prios sind im Raid", table.concat(mock.chat, "\n"))
 	raid.check = nil
 
 	-- kommt erst später in den Raid: Zuordnung, sobald er da ist
@@ -3763,6 +3777,36 @@ do
 	check(raid.players.leryssia and raid.players.leryssia.name == "Leryssia" and raid.players["leryssiá"] == nil, "Leryssia behält ihren Eintrag")
 	check(not mock.ChatContains("Prioliste:") and mock.ChatContains("Im Raid ohne Prios:|r Arcanaa, Leryssiá"),
 		"Leryssiá bekommt nichts", table.concat(mock.chat, "\n"))
+
+	mock.raid, mock.candidates = rosterBefore, candidatesBefore
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+end
+
+-- 1.27: Kennt das Spiel einen Namen im Raid noch nicht, heißt er „Unbekannt“. So jemand zählt erst mit Namen.
+do
+	mock.CloseLoot()
+	mock.ResetUI()
+	local rosterBefore, candidatesBefore = mock.raid, mock.candidates
+	mock.raid = { { "Arcanaa", "MAGE" }, { "Gustl", "WARRIOR" }, { UNKNOWNOBJECT, "PRIEST" } }
+	mock.candidates = { "Arcanaa", "Gustl" }
+	PrioMeisterDB = { dbVersion = 9, settings = {}, pins = {}, history = {} }
+	loadAddon()
+	mock.Fire("ADDON_LOADED", "PrioMeister")
+	mock.Fire("PLAYER_LOGIN")
+	check(PM.roster.arcanaa and PM.roster.gustl and not PM.roster[L.NameKey(UNKNOWNOBJECT)], "„Unbekannt“ steht nicht im Raid")
+	mock.chat = {}
+	PM:ApplyPrioCheck("# priocheck;v=1;run=ZG;instanzen=Zul'Gurub:3\nArcanaa;Magier;111\nGustl;Krieger;111\n")
+	check(mock.ChatContains("Alle im Raid haben Prios eingetragen.") and not mock.ChatContains(UNKNOWNOBJECT),
+		"Priocheck ohne „Unbekannt“", table.concat(mock.chat, "\n"))
+	mock.raid[3] = { "Hesti", "PRIEST" }
+	mock.chat = {}
+	mock.Fire("UNIT_NAME_UPDATE", "raid3")
+	mock.RunTimers()
+	check(PM.roster.hesti, "Name angekommen: Hesti steht im Raid")
+	local res = PM:CheckResult()
+	eq(res and table.concat(res.none, ","), "Hesti", "Priocheck: Hesti ohne Prios")
+	check(mock.ChatContains("Im Raid ohne Prio:|r Hesti"), "Hinweis auf Hesti, sobald ihr Name da ist", table.concat(mock.chat, "\n"))
 
 	mock.raid, mock.candidates = rosterBefore, candidatesBefore
 	mock.Fire("GROUP_ROSTER_UPDATE")
@@ -4150,8 +4194,9 @@ do
 		for _, marker in ipairs(BLOCKS[file] or {}) do
 			local a = assert(src:find(marker, 1, true), marker)
 			local lineEnd = src:find("\n", a, true) or #src
-			-- Tabelle in einer Zeile, etwa Translated({ … }): nur diese Zeile
-			local b = src:sub(a, lineEnd):find("})", 1, true) and lineEnd or (src:find("\n}", a, true) or #src)
+			-- Tabelle in einer Zeile, etwa Translated({ … }) oder local X = { … }: nur diese Zeile
+			local first = src:sub(a, lineEnd)
+			local b = (first:find("})", 1, true) or first:find("}%s*$")) and lineEnd or (src:find("\n}", a, true) or #src)
 			ranges[#ranges + 1] = { a, b }
 		end
 		for _, l in ipairs(list) do

@@ -351,6 +351,7 @@ LOOT_ITEM_SELF_MULTIPLE = "Ihr bekommt Beute: %sx%d."
 ERR_LOOT_MASTER_INV_FULL = "Das Inventar dieses Spielers ist voll."
 ERR_LOOT_MASTER_UNIQUE_ITEM = "Dieser Spieler hat bereits genug davon."
 ERR_LOOT_MASTER_OTHER = "Dieser Spieler kann diese Beute nicht erhalten."
+UNKNOWNOBJECT = "Unbekannt" -- Name, den das Spiel noch nicht kennt
 ERR_LOOT_PLAYER_NOT_FOUND = "Spieler nicht gefunden."
 
 ceil, floor, max, min, mod = math.ceil, math.floor, math.max, math.min, math.fmod

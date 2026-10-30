@@ -614,10 +614,10 @@ function L.CheckMissing(check, p)
 end
 
 -- Priocheck gegen den Raid: roster ist eine Liste { key, name }. Ergebnis: none (Namen ohne Prios),
--- partial ({ name, detail }), complete (Anzahl vollständig), away (auf der Liste, aber nicht im Raid).
+-- partial ({ name, detail }), complete (Anzahl vollständig), away (Namen mit Prios, aber nicht im Raid).
 -- Namen, die nur ohne Akzente passen, zählen wie bei der Prioliste (L.MatchFolded).
 function L.CheckRaid(check, roster)
-	local res = { none = {}, partial = {}, complete = 0, away = 0 }
+	local res = { none = {}, partial = {}, complete = 0, away = {} }
 	local inRaid, folded, matched = {}, {}, {}
 	for _, m in ipairs(roster) do inRaid[m.key] = true end
 	for checkKey, rosterKey in pairs(L.MatchFolded(check.players, inRaid)) do
@@ -634,10 +634,14 @@ function L.CheckRaid(check, roster)
 			res.complete = res.complete + 1
 		end
 	end
-	for key in pairs(check.players) do
-		if not inRaid[key] and not matched[key] then res.away = res.away + 1 end
+	-- Nicht im Raid zählt nur, wer auf der Seite Prios gesetzt hat.
+	for key, p in pairs(check.players) do
+		if not inRaid[key] and not matched[key] and L.CheckMissing(check, p) ~= "all" then
+			res.away[#res.away + 1] = p.name
+		end
 	end
 	L.SortNames(res.none)
+	L.SortNames(res.away)
 	tsort(res.partial, function(a, b) return L.SortKey(a.name) < L.SortKey(b.name) end)
 	return res
 end

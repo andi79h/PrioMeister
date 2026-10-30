@@ -16,7 +16,7 @@ Open the main window with `/pm` or a left-click on the minimap button. A right-c
 
 ## Rules
 
-- **Roll tiers:** everyone starts with /roll 100. Each free roll win lowers your tier by one (99, 98 …), and you roll with your tier. Prio awards do not change the tier. The Raid tab lists everyone who rolled; plus and minus correct a tier by hand. With “Always roll /roll 100” in the options, off by default, everyone rolls /roll 100 and rolls are ranked by tier first, then by value: every tier-100 roll beats every tier-99 roll. A /roll 99 then counts with your own tier.
+- **Roll tiers:** everyone starts with /roll 100. Each free roll win lowers your tier by one (99, 98 …), and you roll with your tier. Prio awards do not change the tier. The Raid tab lists everyone who rolled; plus raises a tier by hand, minus lowers it. With “Always roll /roll 100” in the options, off by default, everyone rolls /roll 100 and rolls are ranked by tier first, then by value: every tier-100 roll beats every tier-99 roll. A /roll 99 then counts with your own tier.
 - **50 rolls:** /roll 50 for alts or off-specs runs in parallel, ranks behind all normal rolls and never changes a tier.
 - **Recipes:** rolled with /roll 100 without tiers, only players with the matching profession should roll. Whether recipes and mounts may be on prio comes with the list from priomeister.de; single items can be allowed as exceptions.
 - **Pass:** a prio holder who does not want the item rolls /roll 1. The next prio is up, the prio stays for a later copy.
@@ -51,7 +51,7 @@ If a player gave an item to someone else in the game, right-click the award in t
 
 ## Priocheck
 
-To see who in the raid has not entered prios yet without closing the sign-up on priomeister.de: click “Copy priocheck” under “All prios” on the player page of the prio run, paste it into `/pm import` and choose “Check”. The result appears in the chat and in the Raid tab; “Remind raid” posts the missing names with the link and PIN.
+To see who in the raid has not entered prios yet without closing the sign-up on priomeister.de: click “Copy priocheck” under “All prios” on the player page of the prio run, paste it into `/pm import` and choose “Check”. The result appears in the chat and in the Raid tab, including who entered prios but is not in the raid; “Remind raid” posts the missing names with the link and PIN.
 
 ## Export
 

@@ -212,11 +212,12 @@ local function CreateTierRow(parent)
 	row.minus:SetPoint("LEFT", row, "LEFT", TIER_CELL_W - 52, 0)
 	row.plus = UI.Button(row, "+", 22, 18, true)
 	row.plus:SetPoint("LEFT", row.minus, "RIGHT", 2, 0)
-	row.minus:SetScript("OnClick", function() if row.key then PM:AdjustWins(row.key, -1) end end)
-	row.plus:SetScript("OnClick", function() if row.key then PM:AdjustWins(row.key, 1) end end)
-	UI.Tooltip(row.minus, "Ein freier Gewinn weniger", "Würfelt eine Stufe höher, höchstens mit 100. Steht mit Uhrzeit in der Vergabeliste.")
-	UI.Tooltip(row.plus, "Ein freier Gewinn mehr",
-		"Würfelt eine Stufe tiefer, etwa nach einer Vergabe aus Kulanz ohne Wurf im Addon. Steht mit Uhrzeit in der Vergabeliste.")
+	-- Plus hebt die Stufe, etwa von 99 auf 100, Minus senkt sie.
+	row.minus:SetScript("OnClick", function() if row.key then PM:AdjustWins(row.key, 1) end end)
+	row.plus:SetScript("OnClick", function() if row.key then PM:AdjustWins(row.key, -1) end end)
+	UI.Tooltip(row.minus, "Eine Stufe tiefer",
+		"Ein freier Gewinn mehr, etwa nach einer Vergabe aus Kulanz ohne Wurf im Addon. Steht mit Uhrzeit in der Vergabeliste.")
+	UI.Tooltip(row.plus, "Eine Stufe höher", "Ein freier Gewinn weniger, bis höchstens 100. Steht mit Uhrzeit in der Vergabeliste.")
 	return row
 end
 
@@ -327,8 +328,8 @@ function UI:BuildRaidPage(page)
 		local noPrio = PM:NoPrioMembers()
 		local check = PM:CheckResult()
 		if check then
-			page.checkLine:SetText(format(T("Priocheck von %s: %d unvollständig, %d vollständig. Maus darüber zeigt Details."),
-				date("%H:%M", PM:CurrentCheck().t), #check.partial, check.complete))
+			page.checkLine:SetText(format(T("Priocheck von %s: %d unvollständig, %d vollständig, %d nicht im Raid. Maus darüber zeigt Details."),
+				date("%H:%M", PM:CurrentCheck().t), #check.partial, check.complete, #check.away))
 		else
 			page.checkLine:SetText(T("Prüfen ohne Schließen: „Priocheck kopieren“ unter „Alle Prios“ auf der Spielerseite, hier einfügen."))
 		end
@@ -371,7 +372,7 @@ function UI:BuildRaidPage(page)
 				roll = (e.max < 100) and format(T("|cffffd100/roll %d|r"), e.max) or T("/roll 100")
 			end
 			row.text:SetText(format("%s: %s%s", PM:ColoredName(e.key, e.name), won, roll))
-			row.minus:SetEnabled(e.wins > 0)
+			row.plus:SetEnabled(e.wins > 0)
 			row:Show()
 		end
 		for i = #tiers + 1, #page.tierRows do
@@ -1250,6 +1251,11 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.27.0", "30.10.2026", {
+		"Priocheck: Das Addon nennt jetzt auch, wer auf priomeister.de Prios eingetragen hat, aber nicht im Raid ist. Die Namen stehen im Chat und in den Details im Reiter Raid. Die Anzahl steht nach dem Prüfen im Fenster und im Reiter Raid.",
+		"Raidmitglieder, deren Namen WoW noch nicht geladen hat, stehen nicht mehr als „Unbekannt“ im Priocheck und unter „Im Raid ohne Prio“. Sie zählen, sobald ihr Name da ist.",
+		"Plus und Minus bei den Würfelstufen im Reiter Raid sind getauscht. Plus hebt die Stufe jetzt um eins, etwa von 99 auf 100, Minus senkt sie.",
+	} },
 	{ "1.26.0", "28.10.2026", {
 		"Neue Option „Immer mit /roll 100 würfeln“, voreingestellt aus. Eingeschaltet würfeln alle mit /roll 100, auch wer schon frei gewonnen hat. Die Würfelstufe zählt weiter, erst kommen die Würfe mit Stufe 100, dann die mit Stufe 99 und so weiter. Wer /roll 99 würfelt, wird mit seiner eigenen Stufe gewertet. 50er-Würfe bleiben /roll 50.",
 		"Ansagen, Panel und Vergaben nennen dann die Würfelstufe statt „/roll 99“, etwa „Stufe 99: Gustl“ im Würfelaufruf. Ausgeschaltet gilt die bisherige Regel.",
