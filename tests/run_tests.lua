@@ -1938,18 +1938,18 @@ local gustlRow
 for _, r in ipairs(main.pages.raid.tierRows) do if r._shown and r.key == "gustl" then gustlRow = r end end
 check(gustlRow, "Raid-Seite: Würfelstufe Gustl")
 mock.sent = {}
-gustlRow.plus._scripts.OnClick(gustlRow.plus)
-eq(L.AllowedMax(PM:Raid(), "gustl"), 98, "Plus senkt Gustls Stufe")
+gustlRow.minus._scripts.OnClick(gustlRow.minus)
+eq(L.AllowedMax(PM:Raid(), "gustl"), 98, "Minus senkt Gustls Stufe")
 check(mock.sent[1] and mock.sent[1].msg == "Gustl: Würfelstufe von Hand von 99 auf 98 geändert" and mock.sent[1].channel == "RAID",
 	"Änderung der Würfelstufe im Raidchat", mock.sent[1] and mock.sent[1].msg)
-gustlRow.minus._scripts.OnClick(gustlRow.minus)
-eq(L.AllowedMax(PM:Raid(), "gustl"), 99, "Minus hebt sie wieder")
+gustlRow.plus._scripts.OnClick(gustlRow.plus)
+eq(L.AllowedMax(PM:Raid(), "gustl"), 99, "Plus hebt sie wieder")
 local tierEntries = {}
 for _, aw in ipairs(PM:Raid().awards) do
 	if aw.kind == "tier" then tierEntries[#tierEntries + 1] = L.AwardLine(aw) end
 end
-eq(tierEntries[1], "Gustl: Würfelstufe von Hand von 99 auf 98 geändert", "Plus steht in der Vergabeliste")
-eq(tierEntries[2], "Gustl: Würfelstufe von Hand von 98 auf 99 geändert", "Minus steht in der Vergabeliste")
+eq(tierEntries[1], "Gustl: Würfelstufe von Hand von 99 auf 98 geändert", "Minus steht in der Vergabeliste")
+eq(tierEntries[2], "Gustl: Würfelstufe von Hand von 98 auf 99 geändert", "Plus steht in der Vergabeliste")
 check(PM:Raid().awards[1].kind ~= "tier", "Korrekturen hängen hinten an")
 local tierCount = #PM:Raid().awards
 PM.db.settings.tierChangesToRaid = false
@@ -3402,12 +3402,19 @@ do
 	check(bartRow and bartRow.text:GetText():find("Bartbär", 1, true) and bartRow.text:GetText():find("/roll 100", 1, true),
 		"Bartbär mit /roll 100, obwohl sein Wurf zu spät kam", bartRow and bartRow.text:GetText())
 	check(gustlRow, "Gustl steht da, er hat gewürfelt")
-	check(not bartRow.minus:IsEnabled(), "bei 100 geht es nicht höher")
+	check(not bartRow.plus:IsEnabled(), "bei 100 geht es nicht höher")
+	check(bartRow.minus:IsEnabled(), "Minus senkt auch die 100")
+	bartRow.plus._scripts.OnEnter(bartRow.plus)
+	eq(GameTooltip:GetText(), "Eine Stufe höher", "Plus hebt die Stufe")
+	bartRow.minus._scripts.OnEnter(bartRow.minus)
+	eq(GameTooltip:GetText(), "Eine Stufe tiefer", "Minus senkt sie")
+	bartRow.minus._scripts.OnLeave(bartRow.minus)
 	mock.sent = {}
-	bartRow.plus._scripts.OnClick(bartRow.plus)
-	eq(L.AllowedMax(PM:Raid(), "bartbär"), 99, "Plus: Bartbär würfelt mit 99")
+	bartRow.minus._scripts.OnClick(bartRow.minus)
+	eq(L.AllowedMax(PM:Raid(), "bartbär"), 99, "Minus: Bartbär würfelt mit 99")
 	check(mock.SentContains("Bartbär: Würfelstufe von Hand von 100 auf 99 geändert"), "Korrektur im Raidchat", sentText())
 	check(bartRow.text:GetText():find("1 gewonnen", 1, true), "Zeile zeigt den Gewinn", bartRow.text:GetText())
+	check(bartRow.plus:IsEnabled(), "unter 100 geht es wieder höher")
 	check(raidPage.tierContent._h >= 21, "Liste ist hoch genug für ihre Zeilen")
 	_G.PrioMeisterMainFrame:Hide()
 	-- Archiv und Fortsetzen behalten, wer gewürfelt hat
@@ -4187,8 +4194,9 @@ do
 		for _, marker in ipairs(BLOCKS[file] or {}) do
 			local a = assert(src:find(marker, 1, true), marker)
 			local lineEnd = src:find("\n", a, true) or #src
-			-- Tabelle in einer Zeile, etwa Translated({ … }): nur diese Zeile
-			local b = src:sub(a, lineEnd):find("})", 1, true) and lineEnd or (src:find("\n}", a, true) or #src)
+			-- Tabelle in einer Zeile, etwa Translated({ … }) oder local X = { … }: nur diese Zeile
+			local first = src:sub(a, lineEnd)
+			local b = (first:find("})", 1, true) or first:find("}%s*$")) and lineEnd or (src:find("\n}", a, true) or #src)
 			ranges[#ranges + 1] = { a, b }
 		end
 		for _, l in ipairs(list) do
