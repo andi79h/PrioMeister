@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.30.1"
+PM.version = "1.30.2"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -1763,6 +1763,17 @@ end
 -- neuerer Raid ist. Von Hand geht es mit /pm übernehmen, mit Namen für eine bestimmte Kopie.
 local TAKEOVER_AGE = 12 * 3600
 
+-- Wer Plündermeister wird, während PrioMeister aus ist, wird einmal je Sitzung gefragt (seit 1.30.2).
+Popup("PRIOMEISTER_ENABLE", {
+	text = "Du bist Plündermeister, aber PrioMeister ist ausgeschaltet. Es verteilt nichts, zeigt kein Panel und zeichnet keine Vergaben auf.\n\nJetzt einschalten?",
+	button1 = "Einschalten", button2 = NO,
+	OnAccept = function()
+		PM:SetOption("enabled", true)
+		PM:Print("PrioMeister ist jetzt an.")
+	end,
+	timeout = 0, whileDead = true, hideOnEscape = true,
+})
+
 Popup("PRIOMEISTER_TAKEOVER", {
 	text = "%s",
 	button1 = "Übernehmen", button2 = NO,
@@ -1807,12 +1818,13 @@ function PM:OfferTakeover(name, auto)
 		return
 	end
 	local mark = key .. ":" .. tostring(c.rev)
-	if auto and self.takeoverOffered[mark] then return end
+	if auto and self.takeoverOffered[mark] then return false end
 	self.takeoverOffered[mark] = true
 	local e = c.entry
 	StaticPopup_Show("PRIOMEISTER_TAKEOVER", format(T("Raid von %s übernehmen? %s, %d Vergaben, Stand %s.\n\nDu führst die Vergaben weiter. Würfelstufen, Rollen, Listen und Würfelregeln gelten weiter. Dein bisheriger Raid kommt ins Archiv."),
 		c.owner or key, type(e.meta) == "table" and e.meta.run or date("%d.%m. %H:%M", tonumber(e.started) or 0),
 		L.AwardCount(e), date("%H:%M", c.updated or 0)), nil, { key = key })
+	return true
 end
 
 function PM:ScheduleTakeoverCheck()
@@ -1825,10 +1837,13 @@ function PM:ScheduleTakeoverCheck()
 end
 
 -- Nach dem Einloggen und nach jedem Wechsel der Plündermethode: Ist man jetzt Plündermeister
--- im Raid, vielleicht übernehmen.
+-- im Raid, vielleicht übernehmen. Sonst fragen, ob PrioMeister an soll, falls es aus ist.
 function PM:CheckTakeover()
-	if self.db and self.db.settings.backup ~= false and not self.testMode and IsInRaid() and self:IsLootMasterNow() then
-		self:OfferTakeover(nil, true)
+	if not self.db or self.testMode or not IsInRaid() or not self:IsLootMasterNow() then return end
+	local offered = self.db.settings.backup ~= false and self:OfferTakeover(nil, true)
+	if not offered and not self.db.settings.enabled and not self.enableAsked then
+		self.enableAsked = true
+		StaticPopup_Show("PRIOMEISTER_ENABLE")
 	end
 end
 
@@ -1843,6 +1858,10 @@ function PM:TakeOver(key)
 	self.db.raid, self.noPrioSeen, self.backup = r, {}, nil
 	self:Print("Raid von %s übernommen: %d Vergaben, die Würfelstufen gelten weiter.%s", c.owner or key, L.AwardCount(r),
 		archived and T(" Der bisherige Raid liegt im Archiv.") or "")
+	if not self.db.settings.enabled then
+		self:SetOption("enabled", true)
+		self:Print("PrioMeister war ausgeschaltet und ist jetzt wieder an, sonst würde nichts aufgezeichnet.")
+	end
 	if self:ApplyRules(c.rules) then
 		local s = self.db.settings
 		self:Print("Es gelten jetzt die Rollen, Listen und Würfelregeln von %s: Plünderhelfer %s, Schatzmeister %s, Entzauberer %s.",

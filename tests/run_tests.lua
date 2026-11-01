@@ -3914,6 +3914,19 @@ do
 	check(mock.ChatContains("Sonst hat niemand in der Gruppe PrioMeister 1.28.0 oder neuer."), "/pm wer ohne Antworten",
 		table.concat(mock.chat, "\n"))
 
+	-- 1.30.2: Plündermeister mit ausgeschaltetem Addon wird einmal gefragt, ob es an soll
+	PM.db.settings.enabled, mock.popup = false, nil
+	PM:PARTY_LOOT_METHOD_CHANGED()
+	mock.RunTimers()
+	eq(mock.popup and mock.popup.name, "PRIOMEISTER_ENABLE", "Rückfrage zum Einschalten")
+	mock.AcceptPopup()
+	check(PM.db.settings.enabled, "nach dem Ja ist das Addon an")
+	PM.db.settings.enabled, mock.popup = false, nil
+	PM:PARTY_LOOT_METHOD_CHANGED()
+	mock.RunTimers()
+	eq(mock.popup, nil, "je Sitzung nur einmal")
+	PM.db.settings.enabled = true
+
 	-- Drossel: zehn Nachrichten am Stück, danach eine pro Sekunde
 	mock.now = mock.now + 60
 	mock.addonSent = {}
@@ -4128,6 +4141,7 @@ do
 		c.PM:GROUP_ROSTER_UPDATE()
 	end
 	mock.mlRaid, mock.popup, mock.chat = 2, nil, {}
+	deputy.PM.db.settings.enabled = false -- wie im Test mit Hestina
 	mock.player = "Zenec"
 	deputy.PM:PARTY_LOOT_METHOD_CHANGED()
 	pump(5)
@@ -4139,6 +4153,9 @@ do
 	eq(#deputy.PM.db.raid.awards, 2, "Zenec führt den Raid mit beiden Vergaben weiter")
 	check(mock.ChatContains("Raid von Arcanaa übernommen: 2 Vergaben"), "Meldung beim Übernehmen", table.concat(mock.chat, "\n"))
 	eq(deputy.PM.db.settings.treasurer, "Hesti", "Zenec übernimmt den Schatzmeister")
+	check(deputy.PM.db.settings.enabled, "Übernehmen schaltet das Addon ein")
+	check(mock.ChatContains("PrioMeister war ausgeschaltet und ist jetzt wieder an"), "Meldung beim Einschalten",
+		table.concat(mock.chat, "\n"))
 	check(deputy.PM.db.settings.lootLists[0][2589], "und die Listen")
 	check(mock.ChatContains("Schatzmeister Hesti"), "Meldung nennt die Rollen", table.concat(mock.chat, "\n"))
 	deputy.PM:Slash("vergabe Hesti " .. mock.Link(16914))

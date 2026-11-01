@@ -1266,6 +1266,10 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.30.2", "01.11.2026", {
+		"Übernimmt ein Stellvertreter den Raid, schaltet sich PrioMeister bei ihm jetzt selbst ein. Im Test war es beim neuen Plündermeister ausgeschaltet und hat deshalb nichts verteilt und nichts aufgezeichnet.",
+		"Wer Plündermeister wird, während PrioMeister ausgeschaltet ist, bekommt einmal je Sitzung eine Rückfrage zum Einschalten.",
+	} },
 	{ "1.30.1", "01.11.2026", {
 		"Rollen, Listen und Würfelregeln reisen mit der Sicherung: Plünderhelfer, Schatzmeister, Entzauberer, die Listen je Instanz und Regeln wie „Immer mit /roll 100 würfeln“. Nach dem Übernehmen gelten die des bisherigen Plündermeisters, nach einem Absturz kommen die eigenen zurück. Die Plündergrenze bleibt Sache der Raidleitung: Liegen Items darunter, plündert man sie selbst, und sie zählen nicht als Vergabe.",
 		"Die Sicherung flüstert Spieler von verbundenen Realms jetzt mit Realmnamen an, so kommt sie auch dort sicher an.",
