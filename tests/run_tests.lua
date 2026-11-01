@@ -4075,6 +4075,7 @@ do
 	-- Absturz: Auf Arcanaas Festplatte liegt der Stand mit zwei Vergaben, bei Zenec kommen zwei dazu
 	local disk = NS.deepcopy(ownerDB)
 	mock.player = "Arcanaa"
+	owner.PM:SetRole("disenchanter", "Gustl")
 	owner.PM:Slash("vergabe Hesti " .. mock.Link(16914))
 	owner.PM:Slash("vergabe Gustl " .. mock.Link(18813))
 	pump(15)
@@ -4095,6 +4096,9 @@ do
 	eq(#owner.PM.db.history, 1, "der Stand von der Festplatte liegt im Archiv")
 	check(mock.ChatContains("Raid aus dem Stand von Zenec zurückgeholt: 4 Vergaben."), "Meldung nach dem Zurückholen",
 		table.concat(mock.chat, "\n"))
+	eq(owner.PM.db.settings.disenchanter, "Gustl", "auch der Entzauberer ist zurück")
+	check(mock.ChatContains("Auch deine Rollen, Listen und Würfelregeln sind zurück."), "Meldung zu den Regeln",
+		table.concat(mock.chat, "\n"))
 	pump(30)
 	check(sameState(), "danach wieder gleich")
 
@@ -4112,7 +4116,12 @@ do
 	eq(#deputyCopy().entry.awards, 2, "Zenec hat jetzt den Stand von Arcanaa")
 	check(sameState(), "und beide sind gleich")
 
-	-- 1.30: Zenec wird Plündermeister und übernimmt den Raid aus seiner Kopie
+	-- 1.30: Zenec wird Plündermeister und übernimmt den Raid aus seiner Kopie, mit Rollen und Listen
+	mock.player = "Arcanaa"
+	owner.PM.db.settings.lootLists[0][2589] = true
+	owner.PM:SetRole("treasurer", "Hesti")
+	pump(15)
+	eq(deputyCopy().rules and deputyCopy().rules.treasurer, "Hesti", "Rollen reisen mit der Sicherung")
 	mock.raid[1].rank = 2 -- Arcanaa leitet den Raid und wird so Stellvertreterin für Zenec
 	for _, c in ipairs(clients) do
 		mock.player = c.name
@@ -4129,6 +4138,9 @@ do
 	deputy.PM:TakeOver(mock.popup and mock.popup.data and mock.popup.data.key)
 	eq(#deputy.PM.db.raid.awards, 2, "Zenec führt den Raid mit beiden Vergaben weiter")
 	check(mock.ChatContains("Raid von Arcanaa übernommen: 2 Vergaben"), "Meldung beim Übernehmen", table.concat(mock.chat, "\n"))
+	eq(deputy.PM.db.settings.treasurer, "Hesti", "Zenec übernimmt den Schatzmeister")
+	check(deputy.PM.db.settings.lootLists[0][2589], "und die Listen")
+	check(mock.ChatContains("Schatzmeister Hesti"), "Meldung nennt die Rollen", table.concat(mock.chat, "\n"))
 	deputy.PM:Slash("vergabe Hesti " .. mock.Link(16914))
 	eq(#deputy.PM.db.raid.awards, 3, "Zenec vergibt weiter")
 	eq(#deputyCopy().entry.awards, 2, "die Kopie bleibt, wie sie war")
