@@ -63,6 +63,12 @@ Der Reiter Beute exportiert alle Vergaben und Würfe als CSV für priomeister.de
 
 Ab Version 1.28.0 meldet sich jedes PrioMeister beim Einloggen und beim Betreten einer Gruppe mit einer unsichtbaren Addon-Nachricht, die anderen antworten. Im Reiter Raid steht oben rechts, wer in der Gruppe auch PrioMeister hat, die Maus darüber zeigt die Versionen. `/pm wer` listet sie im Chat. Hat jemand eine neuere Version, weist das Addon einmal darauf hin. Versionen vor 1.28.0 melden sich nicht.
 
+## Sicherung bei Stellvertretern
+
+Ab Version 1.29.0 schickt das Addon als Plündermeister jede Vergabe sofort an Raidleitung und Assistenten, die PrioMeister ab 1.29.0 haben, höchstens drei. Zuerst geht der ganze Raid hinüber, danach nur die Änderungen, jeweils mit Prüfsumme. Wer Stellvertreter sein soll, bekommt im Raid Assistent. Im Reiter Raid steht oben rechts, bei wem die Vergaben liegen: grün auf Stand, gelb unterwegs. Die Maus darüber zeigt Einzelheiten, `/pm sicherung` dasselbe im Chat.
+
+Stürzt WoW beim Plündermeister ab, fehlen ihm danach alle Vergaben seit dem letzten `/reload` oder Ausloggen, denn erst dann speichert WoW die Daten der Addons. Nach dem Einloggen meldet sich der Stellvertreter mit dem neueren Stand, ein Klick auf „Zurückholen“ holt ihn zurück. Der bisherige Raid kommt dabei ins Archiv. Nach einem Disconnect sind die Daten ohnehin noch da. Unter Optionen lässt sich die Sicherung abschalten.
+
 ## Befehle
 
 | Befehl | Wirkung |
@@ -81,6 +87,7 @@ Ab Version 1.28.0 meldet sich jedes PrioMeister beim Einloggen und beim Betreten
 | `/pm teilen [gilde\|offiziere\|raid\|gruppe\|Name]` | Vergaben teilen |
 | `/pm erinnern`, `/pm check` | Spieler ohne Prio erinnern, Priocheck zeigen |
 | `/pm wer` | wer in der Gruppe PrioMeister hat, mit Version |
+| `/pm sicherung` | Stand der Sicherung bei den Stellvertretern |
 | `/pm helfer`, `/pm schatzmeister`, `/pm entzauberer Name` | Rollen setzen (`-` leert) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | Spieler anheften, Panel ein- und ausblenden, Testmodus |
 | `/pm hilfe` | alle Befehle |

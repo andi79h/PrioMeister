@@ -2382,4 +2382,211 @@ function L.ExportCSV(raids, dateFn, opts)
 	return concat(lines, "\n")
 end
 
+-------------------------------------------------------------------------------
+-- Sicherung bei Stellvertretern (seit 1.29)
+-------------------------------------------------------------------------------
+
+-- Werte als kurzer Text und zurück. Schlüssel sind sortiert, Texte byteweise, damit derselbe
+-- Stand auf jedem Rechner denselben Text ergibt. Zeichen: s<Länge>:<Text>, n<Zahl>;, T, F und
+-- { Schlüssel Wert … }. Mit refs werden wiederholte Texte ab drei Bytes zu r<Nummer>;.
+local function byteLess(a, b)
+	for i = 1, math.min(#a, #b) do
+		local x, y = a:byte(i), b:byte(i)
+		if x ~= y then return x < y end
+	end
+	return #a < #b
+end
+
+local function keyLess(a, b)
+	local ta, tb = type(a), type(b)
+	if ta ~= tb then return ta == "number" end
+	if ta == "number" then return a < b end
+	return byteLess(a, b)
+end
+
+local function storable(v)
+	local t = type(v)
+	if t == "number" then return v == v and v ~= math.huge and v ~= -math.huge end
+	return t == "string" or t == "boolean" or t == "table"
+end
+
+function L.Serialize(v, refs)
+	local out = {}
+	local function write(x, depth)
+		local t = type(x)
+		if t == "string" then
+			if refs and #x > 2 then
+				if refs[x] then
+					out[#out + 1] = "r" .. refs[x] .. ";"
+					return
+				end
+				refs[0] = (refs[0] or 0) + 1
+				refs[x] = refs[0]
+			end
+			out[#out + 1] = "s" .. #x .. ":" .. x
+		elseif t == "number" then
+			out[#out + 1] = "n" .. format("%.17g", x) .. ";"
+		elseif t == "boolean" then
+			out[#out + 1] = x and "T" or "F"
+		else
+			local keys = {}
+			for k, val in pairs(x) do
+				local kt = type(k)
+				if (kt == "string" or (kt == "number" and storable(k))) and storable(val)
+					and (type(val) ~= "table" or depth < 20) then
+					keys[#keys + 1] = k
+				end
+			end
+			tsort(keys, keyLess)
+			out[#out + 1] = "{"
+			for _, k in ipairs(keys) do
+				write(k, depth + 1)
+				write(x[k], depth + 1)
+			end
+			out[#out + 1] = "}"
+		end
+	end
+	if storable(v) then write(v, 0) end
+	return concat(out)
+end
+
+-- Gegenstück zu L.Serialize; nil bei kaputtem oder unvollständigem Text.
+function L.Deserialize(s)
+	if type(s) ~= "string" then return nil end
+	local pos, refs = 1, {}
+	local function read(depth)
+		local c = s:sub(pos, pos)
+		if c == "s" then
+			local len, p = s:match("^s(%d+):()", pos)
+			len = tonumber(len)
+			if not len or p + len - 1 > #s then error("Text") end
+			local str = s:sub(p, p + len - 1)
+			pos = p + len
+			if len > 2 then refs[#refs + 1] = str end
+			return str
+		elseif c == "r" then
+			local i, p = s:match("^r(%d+);()", pos)
+			local str = refs[tonumber(i or "")]
+			if not str then error("Verweis") end
+			pos = p
+			return str
+		elseif c == "n" then
+			local num, p = s:match("^n([%d%.eE%+%-]+);()", pos)
+			num = tonumber(num or "")
+			if not num then error("Zahl") end
+			pos = p
+			return num
+		elseif c == "T" or c == "F" then
+			pos = pos + 1
+			return c == "T"
+		elseif c == "{" and depth < 22 then
+			pos = pos + 1
+			local t = {}
+			while s:sub(pos, pos) ~= "}" do
+				if pos > #s then error("Ende") end
+				local k = read(depth + 1)
+				if type(k) ~= "string" and type(k) ~= "number" then error("Schlüssel") end
+				t[k] = read(depth + 1)
+			end
+			pos = pos + 1
+			return t
+		end
+		error("Zeichen")
+	end
+	local ok, v = pcall(read, 0)
+	if not ok or pos ~= #s + 1 then return nil end
+	return v
+end
+
+-- Prüfsumme über einen Text, gleich auf jedem Rechner.
+function L.Hash(s)
+	local h = 5381
+	for i = 1, #s do h = (h * 33 + s:byte(i)) % 4294967296 end
+	return h
+end
+
+-- Text in Stücke für Addon-Nachrichten.
+function L.SplitText(s, size)
+	local parts = {}
+	for i = 1, math.max(#s, 1), size do parts[#parts + 1] = s:sub(i, i + size - 1) end
+	return parts
+end
+
+-- Was ein Stellvertreter von einem Raid aufbewahrt: wie im Archiv, ohne Ende, dazu der
+-- Priocheck. Laufende Würfelrunden gehören nicht dazu.
+local BACKUP_FIELDS = { "started", "instances", "imported", "importCount", "meta", "players", "adjust", "rolled", "check" }
+local BACKUP_LISTS = { "awards", "rollLog" }
+local IS_FIELD, IS_LIST = {}, {}
+for _, f in ipairs(BACKUP_FIELDS) do IS_FIELD[f] = true end
+for _, f in ipairs(BACKUP_LISTS) do IS_LIST[f] = true end
+
+function L.BackupEntry(raid)
+	return {
+		started = raid.started, instances = L.RaidInstances(raid), imported = raid.imported, importCount = raid.importCount,
+		meta = raid.meta, players = raid.players, adjust = raid.adjust, rolled = raid.rolled, check = raid.check,
+		awards = raid.awards, rollLog = raid.rollLog,
+	}
+end
+
+-- Abbild eines Eintrags: jedes Feld und jede Zeile der Listen als Text, dazu eine Prüfsumme
+-- über alles. Zwei Rechner mit demselben Stand kommen auf dieselbe Prüfsumme.
+function L.BackupImage(entry)
+	local img, parts = { fields = {}, lists = {} }, {}
+	for _, f in ipairs(BACKUP_FIELDS) do
+		local text = entry[f] ~= nil and L.Serialize(entry[f]) or ""
+		img.fields[f] = text
+		parts[#parts + 1] = f .. "=" .. text
+	end
+	for _, f in ipairs(BACKUP_LISTS) do
+		local rows = {}
+		for i, row in ipairs(entry[f] or {}) do rows[i] = L.Serialize(row) end
+		img.lists[f] = rows
+		parts[#parts + 1] = f .. "=" .. concat(rows)
+	end
+	img.hash = L.Hash(concat(parts, "\n"))
+	return img
+end
+
+-- Änderungen zwischen zwei Abbildern als Schritte: Feld neu setzen, Liste kürzen, Zeilen anhängen.
+function L.BackupOps(old, new, entry)
+	local ops = {}
+	for _, f in ipairs(BACKUP_FIELDS) do
+		if old.fields[f] ~= new.fields[f] then ops[#ops + 1] = { "set", f, entry[f] } end
+	end
+	for _, f in ipairs(BACKUP_LISTS) do
+		local a, b = old.lists[f], new.lists[f]
+		local i = 1
+		while a[i] and a[i] == b[i] do i = i + 1 end
+		if a[i] then ops[#ops + 1] = { "cut", f, i - 1 } end
+		if b[i] then
+			local rows = {}
+			for j = i, #b do rows[#rows + 1] = entry[f][j] end
+			ops[#ops + 1] = { "add", f, rows }
+		end
+	end
+	return ops
+end
+
+-- Schritte auf einen Eintrag anwenden; false bei unbekannten Schritten.
+function L.ApplyBackupOps(entry, ops)
+	if type(ops) ~= "table" then return false end
+	for _, op in ipairs(ops) do
+		local kind, f, value = op[1], op[2], op[3]
+		if kind == "set" and IS_FIELD[f] then
+			entry[f] = value
+		elseif kind == "cut" and IS_LIST[f] and type(value) == "number" then
+			local rows = entry[f] or {}
+			for i = #rows, value + 1, -1 do rows[i] = nil end
+			entry[f] = rows
+		elseif kind == "add" and IS_LIST[f] and type(value) == "table" then
+			local rows = entry[f] or {}
+			for _, row in ipairs(value) do rows[#rows + 1] = row end
+			entry[f] = rows
+		else
+			return false
+		end
+	end
+	return true
+end
+
 return L

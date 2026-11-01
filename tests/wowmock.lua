@@ -382,7 +382,7 @@ function GetNumSubgroupMembers() return math.max(#mock.raid - 1, 0) end
 function GetRaidRosterInfo(i)
 	local r = mock.raid[i]
 	if not r then return nil end
-	return r[1], 0, r.group or 1, 60, r[2], r[2], "Onyxias Hort", r[3] ~= false, false, nil, false
+	return r[1], r.rank or 0, r.group or 1, 60, r[2], r[2], "Onyxias Hort", r[3] ~= false, false, nil, false
 end
 function UnitName(unit)
 	if unit == "player" then return mock.player end

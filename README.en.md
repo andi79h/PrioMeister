@@ -63,6 +63,12 @@ The Loot tab exports all awards and rolls as CSV for priomeister.de or a spreads
 
 Since version 1.28.0 every PrioMeister announces itself with an invisible addon message when logging in and when joining a group, and the others answer. The Raid tab shows at the top right who else in the group has PrioMeister, hovering shows the versions. `/pm who` lists them in the chat. If someone has a newer version, the addon points it out once. Versions before 1.28.0 do not answer. The addon messages never show in the chat.
 
+## Backup with deputies
+
+Since version 1.29.0 the addon, as loot master, sends every award right away to the raid leader and assistants who have PrioMeister 1.29.0 or newer, at most three. First the whole raid goes over, then only the changes, each with a checksum. Whoever should be a deputy gets assistant in the raid. The Raid tab shows at the top right who holds the awards: green up to date, yellow in transit. Hovering shows details, `/pm backup` shows the same in the chat.
+
+If WoW crashes for the loot master, all awards since the last `/reload` or logout are missing afterwards, because WoW saves addon data only then. After logging in, the deputy reports the newer state, one click on “Bring back” restores it. The previous raid goes to the archive. After a disconnect the data is still there anyway. The backup can be turned off in the options.
+
 ## Commands
 
 | Command | Effect |
@@ -81,6 +87,7 @@ Since version 1.28.0 every PrioMeister announces itself with an invisible addon 
 | `/pm share [guild\|officer\|raid\|party\|Name]` | share the awards |
 | `/pm remind`, `/pm check` | remind players without prio, show the priocheck |
 | `/pm who` | who in the group has PrioMeister, with version |
+| `/pm backup` | state of the backup with the deputies |
 | `/pm helper`, `/pm treasurer`, `/pm disenchanter Name` | set roles (`-` clears) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | pin a player, toggle the panel, test mode |
 | `/pm help` | all commands |

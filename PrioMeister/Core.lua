@@ -9,12 +9,13 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.28.0"
+PM.version = "1.29.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
 PM.noPrioSeen = {}
 PM.peers = {} -- andere PrioMeister in der Gruppe: Name und Version (seit 1.28)
+PM.copyNoticed = {} -- Besitzer, deren Kopie in dieser Sitzung schon gemeldet wurde (seit 1.29)
 PM.roleBatch = {}
 
 local format = string.format
@@ -27,6 +28,7 @@ local DEFAULTS = {
 	always100 = false,        -- alle würfeln mit /roll 100, gewertet nach Würfelstufe (seit 1.26)
 	reportWrongRolls = true,  -- falsche Würfelbereiche im Raidchat melden
 	tierChangesToRaid = true, -- Änderungen der Würfelstufe von Hand im Raidchat melden
+	backup = true,            -- Vergaben bei Stellvertretern sichern, Kopien für andere aufbewahren (seit 1.29)
 	secondaryRolls = true,    -- 50er-Würfe für Zweitchar oder Zweitskillung
 	recipeRolls = true,       -- Rezepte ohne Würfelstufen verwürfeln
 	recipePrio = false,       -- Rezepte dürfen auf Prio stehen
@@ -83,6 +85,7 @@ ns.deepcopy = deepcopy
 
 local function refreshUI()
 	if ns.UI and ns.UI.RefreshAll then ns.UI:RefreshAll() end
+	if PM.ScheduleBackup then PM:ScheduleBackup() end
 end
 
 -------------------------------------------------------------------------------
@@ -177,6 +180,7 @@ function PM:InitDB()
 	db.pins = db.pins or {}
 	db.history = db.history or {}
 	db.instanceNames = db.instanceNames or {}
+	db.backups = type(db.backups) == "table" and db.backups or {} -- Kopien für andere Plündermeister (seit 1.29)
 	if oldVersion < 4 then
 		-- seit 1.3: Die Item-Liste gehört dem Schatzmeister und gilt je Instanz.
 		-- Bisherige Einträge gelten in allen Instanzen, Skarabäen stehen schon bei AQ.
@@ -425,13 +429,13 @@ function PM:UpdateRoster()
 	local unknown = false
 	if IsInRaid() then
 		for i = 1, GetNumGroupMembers() do
-			local name, _, subgroup, _, _, classFile, _, online = GetRaidRosterInfo(i)
+			local name, rank, subgroup, _, _, classFile, _, online = GetRaidRosterInfo(i)
 			if isUnknown(name) then unknown, name = true, nil end
 			if name then
 				local short = Ambiguate and Ambiguate(name, "short") or name
 				local key = L.NameKey(short)
 				if key then
-					roster[key] = { name = short, class = classFile, online = online and true or false }
+					roster[key] = { name = short, class = classFile, online = online and true or false, rank = rank or 0 }
 					order[#order + 1] = { name = short, group = subgroup or 1, index = i }
 				end
 			end
@@ -1151,9 +1155,10 @@ end
 -- unsichtbaren Addon-Nachricht „HELLO<Tab>Protokoll<Tab>Version<Tab>?“. Das „?“ bittet die
 -- anderen um eine Antwort, sie melden sich dann einmal ohne „?“ an die Gruppe zurück.
 -- Versionen vor 1.28 schicken nichts.
-local COMM_PREFIX, COMM_PROTO = "PrioMeister", 1
+local COMM_PREFIX, COMM_PROTO = "PrioMeister", 2 -- Protokoll 2: mit Sicherung (seit 1.29)
 
 -- WoW erlaubt je Präfix zehn Nachrichten am Stück, danach eine pro Sekunde.
+local sendAddonMessage = C_ChatInfo and C_ChatInfo.SendAddonMessage -- beim Laden gemerkt
 local commQueue, commBudget, commStamp, commWaiting = {}, 10, nil, false
 
 local function commFlush()
@@ -1163,7 +1168,7 @@ local function commFlush()
 	commStamp = now
 	while commQueue[1] and commBudget >= 1 do
 		local m = table.remove(commQueue, 1)
-		C_ChatInfo.SendAddonMessage(COMM_PREFIX, m.msg, m.channel, m.target)
+		sendAddonMessage(COMM_PREFIX, m.msg, m.channel, m.target)
 		commBudget = commBudget - 1
 	end
 	if commQueue[1] then
@@ -1173,12 +1178,13 @@ local function commFlush()
 end
 
 function PM:CommSend(msg, channel, target)
-	if not channel or not (C_ChatInfo and C_ChatInfo.SendAddonMessage) then return end
+	if not channel or not sendAddonMessage then return end
 	commQueue[#commQueue + 1] = { msg = msg, channel = channel, target = target }
 	if not commWaiting then commFlush() end
 end
 
 function PM:InitComm()
+	self.playerKey = L.NameKey(UnitName("player"))
 	if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
 		C_ChatInfo.RegisterAddonMessagePrefix(COMM_PREFIX)
 	end
@@ -1193,7 +1199,7 @@ end
 -- Gruppe meldet sich das Addon einmal, nach kurzer Pause, wenn die Gruppe vollständig ist.
 function PM:UpdatePeers()
 	if not IsInGroup() then
-		self.peers, self.helloSent = {}, false
+		self.peers, self.helloSent, self.wasLootMaster, self.backup, self.restoreDeclined = {}, false, false, nil, nil
 		return
 	end
 	for key in pairs(self.peers) do
@@ -1220,7 +1226,8 @@ function PM:CHAT_MSG_ADDON(prefix, text, channel, sender)
 	if prefix ~= COMM_PREFIX or type(text) ~= "string" or type(sender) ~= "string" then return end
 	local name = Ambiguate and Ambiguate(sender, "short") or sender
 	local key = L.NameKey(name)
-	if not key or key == L.NameKey(UnitName("player")) then return end
+	if not key or key == (self.playerKey or L.NameKey(UnitName("player"))) then return end
+	if text:sub(1, 2) == "P\t" then return self:OnFrame(key, name, text) end
 	local f = splitTabs(text)
 	if f[1] == "HELLO" then self:OnHello(key, name, tonumber(f[2] or ""), f[3], f[4] == "?") end
 end
@@ -1230,7 +1237,7 @@ end
 function PM:OnHello(key, name, proto, version, ask)
 	if not proto or type(version) ~= "string" or not version:match("^%d+%.%d+[%.%d]*$") then return end
 	local before = self.peers[key]
-	self.peers[key] = { name = name, version = version }
+	self.peers[key] = { name = name, version = version, proto = proto }
 	if L.CompareVersions(version, self.version) > 0 and L.CompareVersions(version, self.newerNoticed or "0") > 0 then
 		self.newerNoticed = version
 		self:Print("%s hat PrioMeister %s, du hast %s. Bitte aktualisieren.", name, version, self.version)
@@ -1258,14 +1265,38 @@ end
 -- Zeile im Reiter Raid, ohne Gruppe leer.
 function PM:PeerSummary()
 	if not IsInGroup() then return "" end
+	if self:IsBackupSource() then return self:BackupSummary() end
 	local names = {}
 	for _, p in ipairs(self:PeerList()) do names[#names + 1] = p.name end
 	return format(T("Auch mit PrioMeister: %s"), #names > 0 and table.concat(names, ", ") or T("niemand"))
 end
 
--- Tooltip dazu: Versionen, neuere grün, ältere orange.
+-- Tooltip dazu: Sicherung, Kopien für andere und die Versionen der anderen PrioMeister,
+-- neuere grün, ältere orange.
 function PM:PeerLines()
 	local lines = {}
+	if self:IsBackupSource() then
+		local b, deputies = self.backup, self:BackupDeputies()
+		lines[#lines + 1] = T("|cffffd100Sicherung deiner Vergaben|r")
+		if #deputies == 0 then
+			lines[#lines + 1] = T("Niemand sichert sie. Das machen Raidleitung und Assistenten mit PrioMeister 1.29.0 oder neuer.")
+		end
+		for _, dep in ipairs(deputies) do
+			local d = b and b.deputies[dep.key]
+			local color, text = "|cffffd100", T("wird übertragen")
+			if d then color, text = self:DeputyState(d) end
+			lines[#lines + 1] = format("%s: %s%s|r", dep.name, color, text)
+		end
+		lines[#lines + 1] = " "
+	end
+	local copies = {}
+	for _, c in pairs(self.db.backups or {}) do
+		copies[#copies + 1] = format(T("Kopie von %s: %d Vergaben, Stand %s"), c.owner or "?", L.AwardCount(c.entry),
+			date("%d.%m. %H:%M", c.updated or 0))
+	end
+	table.sort(copies)
+	for _, line in ipairs(copies) do lines[#lines + 1] = line end
+	if #copies > 0 then lines[#lines + 1] = " " end
 	for _, p in ipairs(self:PeerList()) do
 		local cmp = L.CompareVersions(p.version, self.version)
 		local color = (cmp > 0 and "|cff40ff40") or (cmp < 0 and "|cffff8000") or "|cffffffff"
@@ -1287,6 +1318,391 @@ function PM:PrintPeers()
 		self:Print("Sonst hat niemand in der Gruppe PrioMeister 1.28.0 oder neuer.")
 	else
 		self:Print("Auch mit PrioMeister: %s. Versionen vor 1.28.0 melden sich nicht.", table.concat(parts, ", "))
+	end
+end
+
+-------------------------------------------------------------------------------
+-- Sicherung bei Stellvertretern (seit 1.29)
+-------------------------------------------------------------------------------
+
+-- Der Plündermeister schickt seinen Raid an Raidleitung und Assistenten mit PrioMeister ab
+-- 1.29, höchstens drei: erst komplett (FULL), danach nur Änderungen (UPD). Jeder Stand hat
+-- eine Nummer und eine Prüfsumme, die Stellvertreter bestätigen ihn (ACK). Enthält die Kopie
+-- eines Stellvertreters alle Vergaben des Plündermeisters und mehr, etwa nach einem Absturz,
+-- meldet er das (HAVE), und der Plündermeister holt den Stand auf Wunsch zurück (WANT, COPY).
+-- Längere Nachrichten gehen in Stücken: „P<Tab>Kennung<Tab>Nummer<Tab>Anzahl<Tab>Stück“.
+local CHUNK_SIZE = 230
+local commSession, commSeq, inbox = math.random(1000, 9999), 0, {}
+
+Popup("PRIOMEISTER_RESTORE", {
+	text = "%s",
+	button1 = "Zurückholen", button2 = "Nein, mein Stand gilt",
+	OnAccept = function() PM:AcceptRestore() end,
+	OnCancel = function() PM:DeclineRestore() end,
+	timeout = 0, whileDead = true, hideOnEscape = false,
+})
+
+function PM:SendPacket(kind, data, target)
+	if not target then return end
+	local chunks = L.SplitText(kind .. "\t" .. L.Serialize(data, {}), CHUNK_SIZE)
+	commSeq = commSeq + 1
+	local id = commSession .. "." .. commSeq
+	for i, chunk in ipairs(chunks) do
+		self:CommSend(table.concat({ "P", id, i, #chunks, chunk }, "\t"), "WHISPER", target)
+	end
+end
+
+-- Stücke sammeln und vollständige Nachrichten auswerten. Unvollständige verfallen nach fünf Minuten.
+function PM:OnFrame(key, name, text)
+	local id, i, n, chunk = text:match("^P\t([%w%.]+)\t(%d+)\t(%d+)\t(.*)$")
+	i, n = tonumber(i), tonumber(n)
+	if not id or not i or not n or i < 1 or i > n or n > 2000 then return end
+	local now = GetTime()
+	for slot, box in pairs(inbox) do
+		if now - box.t > 300 then inbox[slot] = nil end
+	end
+	local slot = key .. ":" .. id
+	local box = inbox[slot]
+	if not box or box.n ~= n then
+		box = { n = n, got = 0, parts = {} }
+		inbox[slot] = box
+	end
+	box.t = now
+	if not box.parts[i] then
+		box.parts[i], box.got = chunk, box.got + 1
+	end
+	if box.got < n then return end
+	inbox[slot] = nil
+	local kind, data = table.concat(box.parts):match("^(%u+)\t(.*)$")
+	local value = kind and L.Deserialize(data)
+	if type(value) == "table" then self:OnPacket(kind, value, key, name) end
+end
+
+function PM:OnPacket(kind, data, key, name)
+	if kind == "PING" or kind == "UPD" or kind == "FULL" or kind == "WANT" then
+		-- als Stellvertreter: nur mit eingeschalteter Sicherung und nur aus dem eigenen Raid
+		if self.db.settings.backup == false or not self.roster[key] then return end
+		if kind == "PING" then self:OnBackupPing(data, key, name)
+		elseif kind == "UPD" then self:OnBackupUpdate(data, key, name)
+		elseif kind == "FULL" then self:OnBackupFull(data, key, name)
+		else self:OnBackupWant(data, key, name) end
+		return
+	end
+	local b = self.backup
+	local d = b and b.deputies[key]
+	if not d then return end
+	if kind == "ACK" then self:OnBackupAck(data, key, d)
+	elseif kind == "HAVE" then self:OnBackupHave(data, key, d)
+	elseif kind == "COPY" then self:OnBackupCopy(data, key, d) end
+end
+
+-- Bin ich laut Plündermethode Plündermeister? Gilt auch ohne offenes Beutefenster.
+function PM:IsLootMasterNow()
+	local method, mlName = self:CurrentLootMethod()
+	if method ~= LOOT_METHOD_MASTER or not mlName then return false end
+	return L.NameKey(Ambiguate and Ambiguate(mlName, "short") or mlName) == self.playerKey
+end
+
+-- Sichert dieses Addon seinen Raid? Wer im Raid Plündermeister ist oder in dieser Gruppe war.
+function PM:IsBackupSource()
+	if not self.db or self.db.settings.backup == false or self.testMode or not IsInRaid() then return false end
+	if self:IsLootMasterNow() then self.wasLootMaster = true end
+	return self.wasLootMaster == true
+end
+
+-- Stellvertreter: erst die Raidleitung, dann Assistenten, alle mit PrioMeister ab 1.29 und online.
+function PM:BackupDeputies()
+	local list = {}
+	for key, p in pairs(self.peers) do
+		local m = self.roster[key]
+		if m and m.online and (m.rank or 0) >= 1 and (p.proto or 1) >= 2 then
+			list[#list + 1] = { key = key, name = m.name, rank = m.rank }
+		end
+	end
+	table.sort(list, function(a, b)
+		if a.rank ~= b.rank then return a.rank > b.rank end
+		return L.SortKey(a.name) < L.SortKey(b.name)
+	end)
+	for i = #list, 4, -1 do list[i] = nil end
+	return list
+end
+
+function PM:ScheduleBackup()
+	if self.backupQueued then return end
+	self.backupQueued = true
+	C_Timer.After(2, function()
+		PM.backupQueued = false
+		PM:RunBackup()
+	end)
+end
+
+-- Anfrage an einen Stellvertreter: Stand, Prüfsumme und je Liste Anzahl und Prüfsumme der
+-- Zeilen. Daran erkennt er, ob seine Kopie alles enthält und mehr hat.
+local function backupPing(b)
+	local aw, rl = b.image.lists.awards, b.image.lists.rollLog
+	return { id = b.id, rev = b.rev, hash = b.image.hash, an = #aw, ah = L.Hash(table.concat(aw)),
+		rn = #rl, rh = L.Hash(table.concat(rl)) }
+end
+
+-- Nach Änderungen: Stand vergleichen, Änderungen an die Stellvertreter, neue nach ihrem Stand fragen.
+function PM:RunBackup()
+	local raid = self.db and self.db.raid
+	local deputies = raid and self:IsBackupSource() and self:BackupDeputies() or {}
+	if #deputies == 0 or not (#(raid.awards or {}) > 0 or next(raid.players or {})) then
+		self.backup = nil
+		return
+	end
+	local entry = L.BackupEntry(raid)
+	local image = L.BackupImage(entry)
+	local b = self.backup
+	if not b or b.id ~= raid.started then
+		-- erster Lauf oder neuer Raid: Ob die Stellvertreter diesen Stand haben, sagt ihre Antwort.
+		b = { id = raid.started, rev = (raid.backupRev or 0) + 1, image = image, hashes = {}, deputies = {} }
+		b.hashes[b.rev] = image.hash
+		raid.backupRev = b.rev
+		self.backup = b
+	elseif image.hash ~= b.image.hash then
+		local ops, base = L.BackupOps(b.image, image, entry), b.rev
+		b.rev, b.image = base + 1, image
+		b.hashes[b.rev], b.hashes[b.rev - 50] = image.hash, nil
+		raid.backupRev = b.rev
+		for _, d in pairs(b.deputies) do
+			if d.sent == base and not d.have and not d.failed then
+				self:SendPacket("UPD", { id = b.id, base = base, rev = b.rev, hash = image.hash, ops = ops }, d.name)
+				d.sent, d.asked = b.rev, GetTime()
+			end
+		end
+	end
+	local now, keep = GetTime(), {}
+	for _, dep in ipairs(deputies) do
+		keep[dep.key] = true
+		local d = b.deputies[dep.key]
+		if not d then
+			d = { name = dep.name }
+			b.deputies[dep.key] = d
+		end
+		-- Ein kompletter Stand ohne Bestätigung nach drei Minuten gilt als verloren.
+		if d.full and now - (d.asked or 0) > 180 then d.full = nil end
+		-- Fragen: neue gleich, ohne Antwort nach einer Minute, wer hinterherhängt, nach anderthalb.
+		local unanswered = not d.sent and (d.pings or 0) < 3 and now - (d.asked or -999) > 60
+		local behind = d.sent and not d.full and (d.confirmed or 0) < d.sent and now - (d.asked or 0) > 90
+		if not d.have and not d.failed and (unanswered or behind) then
+			d.pings, d.asked = (d.pings or 0) + 1, now
+			self:SendPacket("PING", backupPing(b), d.name)
+		end
+	end
+	for key in pairs(b.deputies) do
+		if not keep[key] then b.deputies[key] = nil end
+	end
+end
+
+-- Kompletter Stand an einen Stellvertreter. Nimmt er ihn viermal nicht an, gibt das Addon auf.
+function PM:SendBackupFull(key)
+	self:RunBackup()
+	local b = self.backup
+	local d = b and b.deputies[key]
+	if not d or d.have or d.failed then return end
+	if (d.fulls or 0) >= 4 then
+		d.failed = true
+		self:Print("Die Sicherung bei %s klappt nicht. Habt ihr beide dieselbe PrioMeister-Version?", d.name)
+		refreshUI()
+		return
+	end
+	d.fulls, d.full, d.sent, d.asked = (d.fulls or 0) + 1, b.rev, b.rev, GetTime()
+	self:SendPacket("FULL", { id = b.id, rev = b.rev, hash = b.image.hash, entry = L.BackupEntry(self.db.raid) }, d.name)
+end
+
+function PM:OnBackupAck(data, key, d)
+	local b, rev = self.backup, tonumber(data.rev)
+	if data.ok and data.id == b.id and rev and b.hashes[rev] and b.hashes[rev] == data.hash then
+		if d.full and rev >= d.full then d.full = nil end
+		d.confirmed = math.max(d.confirmed or 0, rev)
+		-- Die Antwort auf eine Anfrage zeigt, wo er steht; sonst gilt, was zuletzt hinüberging.
+		if not d.full and (data.ping or not d.sent) then d.sent = rev end
+		if not d.full and d.sent < b.rev then self:SendBackupFull(key) end
+		if d.confirmed == b.rev and not d.announced then
+			d.announced = true
+			self:Print("Sicherung läuft: Die Vergaben liegen jetzt auch bei %s.", d.name)
+		end
+	elseif not (d.full and rev and rev < d.full) then
+		-- Antworten auf Älteres, während der komplette Stand unterwegs ist, zählen nicht.
+		self:SendBackupFull(key)
+	end
+	refreshUI()
+end
+
+function PM:OnBackupHave(data, key, d)
+	if self.restoreDeclined then return self:SendBackupFull(key) end
+	d.have = data
+	self:OfferRestore()
+end
+
+-- Rückfrage, ob der neuere Stand eines Stellvertreters zurückkommen soll; immer nur eine.
+function PM:OfferRestore()
+	local b = self.backup
+	if not b or self.restoreKey then return end
+	for key, d in pairs(b.deputies) do
+		if d.have then
+			local h = d.have
+			self.restoreKey = key
+			StaticPopup_Show("PRIOMEISTER_RESTORE", format(T("%s hat einen neueren Stand deines Raids: %s, %d Vergaben, gesichert um %s. Dein Addon kennt %d Vergaben.\n\nDiesen Stand zurückholen? Dein bisheriger Raid kommt ins Archiv."),
+				d.name, h.run or date("%d.%m. %H:%M", tonumber(h.started) or 0), tonumber(h.n) or 0,
+				date("%H:%M", tonumber(h.t) or 0), L.AwardCount(self.db.raid)))
+			return
+		end
+	end
+end
+
+function PM:AcceptRestore()
+	local b, key = self.backup, self.restoreKey
+	self.restoreKey = nil
+	local d = b and key and b.deputies[key]
+	if not d or not d.have then return end
+	self:Print("Hole den Stand von %s …", d.name)
+	self:SendPacket("WANT", { id = d.have.id }, d.name)
+end
+
+-- Nein: Der eigene Stand gilt und geht als neue Sicherung an alle Stellvertreter.
+function PM:DeclineRestore()
+	local b = self.backup
+	self.restoreKey, self.restoreDeclined = nil, true
+	if not b then return end
+	self:Print("Dein Stand gilt, die Stellvertreter bekommen ihn als neue Sicherung.")
+	local keys = {}
+	for key, d in pairs(b.deputies) do
+		if d.have then
+			d.have = nil
+			keys[#keys + 1] = key
+		end
+	end
+	for _, key in ipairs(keys) do self:SendBackupFull(key) end
+end
+
+function PM:OnBackupCopy(data, key, d)
+	if not d.have or data.id ~= d.have.id or type(data.entry) ~= "table" then return end
+	if L.BackupImage(data.entry).hash ~= data.hash then
+		self:Print("Der Stand von %s kam unvollständig an. Bitte noch einmal versuchen: /reload", d.name)
+		return
+	end
+	local archived = self:ArchiveCurrentRaid()
+	local r = L.ReopenRaid(data.entry)
+	r.check, r.backupRev = data.entry.check, tonumber(data.rev)
+	self.db.raid, self.noPrioSeen, self.backup = r, {}, nil
+	self:Print("Raid aus dem Stand von %s zurückgeholt: %d Vergaben.%s", d.name, L.AwardCount(r),
+		archived and T(" Der bisherige Raid liegt im Archiv.") or "")
+	self:BindListNames()
+	refreshUI()
+end
+
+-- Als Stellvertreter: Kopien in db.backups[Besitzer], höchstens drei Besitzer, die älteste fällt weg.
+function PM:StoreCopy(key, name, id, rev, hash, entry)
+	local copies = self.db.backups
+	if not copies[key] then
+		local count, oldest = 0, nil
+		for k, c in pairs(copies) do
+			count = count + 1
+			if not oldest or (c.updated or 0) < (copies[oldest].updated or 0) then oldest = k end
+		end
+		if count >= 3 then copies[oldest] = nil end
+	end
+	copies[key] = { owner = name, id = id, rev = rev, hash = hash, entry = entry, updated = time() }
+	if not self.copyNoticed[key] then
+		self.copyNoticed[key] = true
+		self:Print("Du sicherst jetzt die Vergaben von %s.", name)
+	end
+	refreshUI()
+end
+
+local function rowsPrefix(rows, n, hash)
+	return n ~= nil and #rows >= n and L.Hash(table.concat(rows, "", 1, n)) == hash
+end
+
+function PM:OnBackupPing(data, key, name)
+	local c, rev = self.db.backups[key], tonumber(data.rev)
+	if not c or type(c.entry) ~= "table" then
+		return self:SendPacket("ACK", { ok = false, ping = true }, name)
+	end
+	local img = L.BackupImage(c.entry)
+	if c.id == data.id and img.hash == data.hash then
+		c.rev = rev
+		return self:SendPacket("ACK", { ok = true, ping = true, id = c.id, rev = rev, hash = img.hash }, name)
+	end
+	local newer
+	if c.id == data.id then
+		local aw, rl, an, rn = img.lists.awards, img.lists.rollLog, tonumber(data.an), tonumber(data.rn)
+		newer = rowsPrefix(aw, an, data.ah) and rowsPrefix(rl, rn, data.rh) and (#aw > an or #rl > rn)
+	else
+		newer = type(c.id) == "number" and type(data.id) == "number" and c.id > data.id
+	end
+	if newer then
+		local e = c.entry
+		self:SendPacket("HAVE", { id = c.id, n = L.AwardCount(e), t = c.updated, started = e.started,
+			run = type(e.meta) == "table" and e.meta.run or nil }, name)
+	else
+		self:SendPacket("ACK", { ok = true, ping = true, id = c.id, rev = c.rev, hash = img.hash }, name)
+	end
+end
+
+function PM:OnBackupUpdate(data, key, name)
+	local c, rev = self.db.backups[key], tonumber(data.rev)
+	if not c or c.id ~= data.id or c.rev ~= tonumber(data.base) or not rev or type(c.entry) ~= "table" then
+		return self:SendPacket("ACK", { ok = false, rev = rev }, name)
+	end
+	if not L.ApplyBackupOps(c.entry, data.ops) or L.BackupImage(c.entry).hash ~= data.hash then
+		c.rev = -1 -- kaputt, der nächste Stand kommt komplett
+		return self:SendPacket("ACK", { ok = false, rev = rev }, name)
+	end
+	c.rev, c.hash, c.updated = rev, data.hash, time()
+	refreshUI()
+	self:SendPacket("ACK", { ok = true, id = c.id, rev = rev, hash = data.hash }, name)
+end
+
+function PM:OnBackupFull(data, key, name)
+	local rev = tonumber(data.rev)
+	if type(data.entry) ~= "table" or not rev or L.BackupImage(data.entry).hash ~= data.hash then
+		return self:SendPacket("ACK", { ok = false, rev = rev }, name)
+	end
+	self:StoreCopy(key, name, data.id, rev, data.hash, data.entry)
+	self:SendPacket("ACK", { ok = true, id = data.id, rev = rev, hash = data.hash }, name)
+end
+
+function PM:OnBackupWant(data, key, name)
+	local c = self.db.backups[key]
+	if c and c.id == data.id and type(c.entry) == "table" then
+		self:SendPacket("COPY", { id = c.id, rev = c.rev, hash = L.BackupImage(c.entry).hash, entry = c.entry }, name)
+	end
+end
+
+-- Zustand eines Stellvertreters: Farbe und Text.
+function PM:DeputyState(d)
+	local b = self.backup
+	if d.failed then return "|cffff4040", T("Sicherung klappt nicht") end
+	if d.have then return "|cffff8000", T("hat einen neueren Stand") end
+	if b and d.confirmed == b.rev then return "|cff40ff40", T("auf Stand") end
+	return "|cffffd100", T("wird übertragen")
+end
+
+-- Zeile im Reiter Raid für den Plündermeister.
+function PM:BackupSummary()
+	local b, parts = self.backup, {}
+	for _, dep in ipairs(self:BackupDeputies()) do
+		local d = b and b.deputies[dep.key]
+		parts[#parts + 1] = (d and self:DeputyState(d) or "|cffffd100") .. dep.name .. "|r"
+	end
+	if #parts > 0 then return format(T("Sicherung bei: %s"), table.concat(parts, ", ")) end
+	local names = {}
+	for _, p in ipairs(self:PeerList()) do names[#names + 1] = p.name end
+	return T("|cffff8000Keine Sicherung|r") .. (#names > 0 and format(T(" · Auch mit PrioMeister: %s"), table.concat(names, ", ")) or "")
+end
+
+function PM:PrintBackup()
+	if not IsInRaid() then
+		self:Print("Die Sicherung läuft nur im Raid.")
+		return
+	end
+	self:Print("Sicherung und PrioMeister in der Gruppe:")
+	for _, line in ipairs(self:PeerLines()) do
+		if line ~= " " then DEFAULT_CHAT_FRAME:AddMessage("  " .. line) end
 	end
 end
 
@@ -2376,6 +2792,7 @@ local HELP = {
 	"|cffffd100/pm check|r – Priocheck: wer im Raid noch Prios braucht und wer mit Prios fehlt (einfügen unter |cffffd100/pm import|r)",
 	"|cffffd100/pm helfer Name|r, |cffffd100/pm schatzmeister Name|r, |cffffd100/pm entzauberer Name|r – Rollen setzen (|cffffd100-|r leert)",
 	"|cffffd100/pm wer|r – wer in der Gruppe PrioMeister hat, mit Version",
+	"|cffffd100/pm sicherung|r – Stand der Sicherung bei den Stellvertretern",
 	"|cffffd100/pm pin Name|r – Spieler oben anheften, |cffffd100/pm panel|r – Panel ein-/ausblenden",
 	"|cffffd100/pm test|r – Testmodus ohne Raid (|cffffd100/pm testwurf Name 87 99|r, |cffffd100/pm vergabe Name|r)",
 }
@@ -2384,7 +2801,7 @@ local HELP = {
 local COMMAND_ALIASES = {
 	status = "stand", table = "tabelle", list = "liste", tiers = "stufen", award = "vergabe", free = "frei",
 	random = "zufall", tiebreak = "stich", remind = "erinnern", helper = "helfer", treasurer = "schatzmeister",
-	disenchanter = "entzauberer", testroll = "testwurf", who = "wer",
+	disenchanter = "entzauberer", testroll = "testwurf", who = "wer", backup = "sicherung",
 }
 
 function PM:Slash(msg)
@@ -2502,6 +2919,8 @@ function PM:Slash(msg)
 		ns.UI:ShowMain("loot")
 	elseif cmd == "wer" or cmd == "addons" then
 		self:PrintPeers()
+	elseif cmd == "sicherung" then
+		self:PrintBackup()
 	elseif cmd == "test" then
 		self:ToggleTest()
 	elseif cmd == "testwurf" then

@@ -1,5 +1,5 @@
-# PrioMeister 1.28.0 (2026-11-01)
+# PrioMeister 1.29.0 (2026-11-01)
 
-- The addon now detects who else in the group has PrioMeister. Every PrioMeister announces itself with an invisible addon message when logging in and when joining a group, and the others answer. Nothing of this shows in the chat.
-- The Raid tab shows at the top right who else in the group has PrioMeister, hovering shows the versions. /pm who lists them in the chat. Versions before 1.28.0 do not answer.
-- If someone in the group has a newer version, the addon points it out once. This is the groundwork for backing up the awards with other players, coming with one of the next versions.
+- Backup with deputies: as loot master, the addon sends every award right away to the raid leader and assistants who have PrioMeister 1.29.0 or newer, at most three. First the whole raid goes over, then only the changes. Nothing of this shows in the chat.
+- If WoW crashes for the loot master, the awards since the last save are missing afterwards. After logging in, the deputy reports the newer state, one click brings it back. The previous raid goes to the archive.
+- The Raid tab shows at the top right who holds the awards: green up to date, yellow in transit. Hovering shows details, /pm backup shows the same in the chat. The backup can be turned off in the options.
