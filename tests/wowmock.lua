@@ -410,6 +410,23 @@ function SendChatMessage(msg, channel, language, target)
 	assert(channel ~= "WHISPER" or (target and target ~= ""), "Flüstern ohne Ziel")
 	mock.sent[#mock.sent + 1] = { msg = msg, channel = channel, target = target }
 end
+
+-- Addon-Nachrichten: gesendete stehen in mock.addonSent, angemeldete Präfixe in mock.addonPrefixes
+mock.addonSent, mock.addonPrefixes = {}, {}
+C_ChatInfo = {
+	RegisterAddonMessagePrefix = function(prefix)
+		assert(type(prefix) == "string" and #prefix <= 16, "Präfix ungültig: " .. tostring(prefix))
+		mock.addonPrefixes[prefix] = true
+		return true
+	end,
+	SendAddonMessage = function(prefix, msg, channel, target)
+		assert(mock.addonPrefixes[prefix], "Präfix nicht angemeldet: " .. tostring(prefix))
+		assert(type(msg) == "string" and #msg <= 255 and not msg:find("%z"), "Addon-Nachricht ungültig: " .. tostring(msg))
+		assert(channel ~= "WHISPER" or (target and target ~= ""), "Flüstern ohne Ziel")
+		mock.addonSent[#mock.addonSent + 1] = { prefix = prefix, msg = msg, channel = channel, target = target }
+		return 0
+	end,
+}
 mock.inGuild = true
 function IsInGuild() return mock.inGuild end
 

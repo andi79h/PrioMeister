@@ -59,6 +59,10 @@ Der Reiter Beute exportiert alle Vergaben und Würfe als CSV für priomeister.de
 
 „Reset“ rechts neben der Auswahl der Raids löscht nach einer Rückfrage alle gespeicherten Raids, den laufenden und alle früheren, mit Vergaben, Würfelstufen, Wurf-Protokollen und Prioliste. Sie lassen sich danach nicht mehr aus dem Addon exportieren. Einstellungen, Listen und Rollen bleiben. Wer die Daten noch braucht, sichert sie vorher mit „Export alle Raids“.
 
+## Andere PrioMeister in der Gruppe
+
+Ab Version 1.28.0 meldet sich jedes PrioMeister beim Einloggen und beim Betreten einer Gruppe mit einer unsichtbaren Addon-Nachricht, die anderen antworten. Im Reiter Raid steht oben rechts, wer in der Gruppe auch PrioMeister hat, die Maus darüber zeigt die Versionen. `/pm wer` listet sie im Chat. Hat jemand eine neuere Version, weist das Addon einmal darauf hin. Versionen vor 1.28.0 melden sich nicht.
+
 ## Befehle
 
 | Befehl | Wirkung |
@@ -76,6 +80,7 @@ Der Reiter Beute exportiert alle Vergaben und Würfe als CSV für priomeister.de
 | `/pm liste`, `/pm export [alle]` | Vergaben im Chat oder als CSV |
 | `/pm teilen [gilde\|offiziere\|raid\|gruppe\|Name]` | Vergaben teilen |
 | `/pm erinnern`, `/pm check` | Spieler ohne Prio erinnern, Priocheck zeigen |
+| `/pm wer` | wer in der Gruppe PrioMeister hat, mit Version |
 | `/pm helfer`, `/pm schatzmeister`, `/pm entzauberer Name` | Rollen setzen (`-` leert) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | Spieler anheften, Panel ein- und ausblenden, Testmodus |
 | `/pm hilfe` | alle Befehle |

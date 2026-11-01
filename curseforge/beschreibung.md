@@ -59,6 +59,10 @@ The Loot tab exports all awards and rolls as CSV for priomeister.de or a spreads
 
 “Reset” next to the raid selection deletes all saved raids after a confirmation, the current one and all earlier ones, with awards, roll tiers, roll logs and prio list. They cannot be exported from the addon afterwards. Settings, lists and roles stay. If you still need the data, save it first with “Export all raids”.
 
+## Other PrioMeisters in the group
+
+Since version 1.28.0 every PrioMeister announces itself with an invisible addon message when logging in and when joining a group, and the others answer. The Raid tab shows at the top right who else in the group has PrioMeister, hovering shows the versions. `/pm who` lists them in the chat. If someone has a newer version, the addon points it out once. Versions before 1.28.0 do not answer. The addon messages never show in the chat.
+
 ## Commands
 
 | Command | Effect |
@@ -76,6 +80,7 @@ The Loot tab exports all awards and rolls as CSV for priomeister.de or a spreads
 | `/pm list`, `/pm export [all]` | awards in chat or as CSV |
 | `/pm share [guild\|officer\|raid\|party\|Name]` | share the awards |
 | `/pm remind`, `/pm check` | remind players without prio, show the priocheck |
+| `/pm who` | who in the group has PrioMeister, with version |
 | `/pm helper`, `/pm treasurer`, `/pm disenchanter Name` | set roles (`-` clears) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | pin a player, toggle the panel, test mode |
 | `/pm help` | all commands |
@@ -157,6 +162,10 @@ Der Reiter Beute exportiert alle Vergaben und Würfe als CSV für priomeister.de
 
 „Reset“ rechts neben der Auswahl der Raids löscht nach einer Rückfrage alle gespeicherten Raids, den laufenden und alle früheren, mit Vergaben, Würfelstufen, Wurf-Protokollen und Prioliste. Sie lassen sich danach nicht mehr aus dem Addon exportieren. Einstellungen, Listen und Rollen bleiben. Wer die Daten noch braucht, sichert sie vorher mit „Export alle Raids“.
 
+## Andere PrioMeister in der Gruppe
+
+Ab Version 1.28.0 meldet sich jedes PrioMeister beim Einloggen und beim Betreten einer Gruppe mit einer unsichtbaren Addon-Nachricht, die anderen antworten. Im Reiter Raid steht oben rechts, wer in der Gruppe auch PrioMeister hat, die Maus darüber zeigt die Versionen. `/pm wer` listet sie im Chat. Hat jemand eine neuere Version, weist das Addon einmal darauf hin. Versionen vor 1.28.0 melden sich nicht.
+
 ## Befehle
 
 | Befehl | Wirkung |
@@ -174,6 +183,7 @@ Der Reiter Beute exportiert alle Vergaben und Würfe als CSV für priomeister.de
 | `/pm liste`, `/pm export [alle]` | Vergaben im Chat oder als CSV |
 | `/pm teilen [gilde\|offiziere\|raid\|gruppe\|Name]` | Vergaben teilen |
 | `/pm erinnern`, `/pm check` | Spieler ohne Prio erinnern, Priocheck zeigen |
+| `/pm wer` | wer in der Gruppe PrioMeister hat, mit Version |
 | `/pm helfer`, `/pm schatzmeister`, `/pm entzauberer Name` | Rollen setzen (`-` leert) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | Spieler anheften, Panel ein- und ausblenden, Testmodus |
 | `/pm hilfe` | alle Befehle |

@@ -249,6 +249,17 @@ function UI:BuildRaidPage(page)
 	page.table:SetScript("OnClick", function() UI:ShowPrioTable() end)
 	self.Tooltip(page.table, "Prioliste anzeigen", "Alle Spieler mit ihren Prios 1 bis 3 als Tabelle, wie bei Prio3. Erhaltene Prios sind grün markiert.")
 
+	-- Wer in der Gruppe auch PrioMeister hat (seit 1.28), die Versionen beim Darüberfahren
+	page.peers = self.Label(page, "GameFontDisableSmall", 322)
+	page.peers:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, -26)
+	page.peers:SetJustifyH("RIGHT")
+	page.peers:SetWordWrap(false)
+	page.peersHover = CreateFrame("Frame", nil, page)
+	page.peersHover:SetPoint("TOPLEFT", page.peers, "TOPLEFT", 0, 0)
+	page.peersHover:SetPoint("BOTTOMRIGHT", page.peers, "BOTTOMRIGHT", 0, 0)
+	page.peersHover:EnableMouse(true)
+	self.Tooltip(page.peersHover, "PrioMeister in der Gruppe", function() return table.concat(PM:PeerLines(), "\n") end)
+
 	-- Rollen: drei gleich breite Knöpfe bis zum rechten Rand
 	local roles = Heading(page, "Rollen:")
 	roles:SetPoint("TOPLEFT", 0, -46)
@@ -324,6 +335,7 @@ function UI:BuildRaidPage(page)
 		page.helper:SetText(UI:RoleText("lootHelper"))
 		page.treasurer:SetText(UI:RoleText("treasurer"))
 		page.de:SetText(UI:RoleText("disenchanter"))
+		page.peers:SetText(PM:PeerSummary())
 
 		local noPrio = PM:NoPrioMembers()
 		local check = PM:CheckResult()
@@ -1251,6 +1263,11 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.28.0", "01.11.2026", {
+		"Das Addon erkennt jetzt, wer in der Gruppe ebenfalls PrioMeister hat. Jedes PrioMeister meldet sich beim Einloggen und beim Betreten einer Gruppe mit einer unsichtbaren Addon-Nachricht, die anderen antworten. Im Chat sieht man davon nichts.",
+		"Im Reiter Raid steht oben rechts, wer in der Gruppe auch PrioMeister hat, die Maus darüber zeigt die Versionen. /pm wer listet sie im Chat. Versionen vor 1.28.0 melden sich nicht.",
+		"Hat jemand in der Gruppe eine neuere Version, weist das Addon einmal darauf hin. Das ist die Grundlage für eine Sicherung der Vergaben bei anderen Spielern, die mit einer der nächsten Versionen kommt.",
+	} },
 	{ "1.27.0", "30.10.2026", {
 		"Priocheck: Das Addon nennt jetzt auch, wer auf priomeister.de Prios eingetragen hat, aber nicht im Raid ist. Die Namen stehen im Chat und in den Details im Reiter Raid. Die Anzahl steht nach dem Prüfen im Fenster und im Reiter Raid.",
 		"Raidmitglieder, deren Namen WoW noch nicht geladen hat, stehen nicht mehr als „Unbekannt“ im Priocheck und unter „Im Raid ohne Prio“. Sie zählen, sobald ihr Name da ist.",

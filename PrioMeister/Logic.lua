@@ -21,6 +21,18 @@ function L.Trim(s)
 	return (s:gsub("^%s+", ""):gsub("%s+$", ""))
 end
 
+-- Versionen wie „1.27.0“ vergleichen: -1, wenn a älter ist, 1, wenn a neuer ist, sonst 0.
+function L.CompareVersions(a, b)
+	local pa, pb = {}, {}
+	for n in tostring(a):gmatch("%d+") do pa[#pa + 1] = tonumber(n) end
+	for n in tostring(b):gmatch("%d+") do pb[#pb + 1] = tonumber(n) end
+	for i = 1, math.max(#pa, #pb) do
+		local x, y = pa[i] or 0, pb[i] or 0
+		if x ~= y then return x < y and -1 or 1 end
+	end
+	return 0
+end
+
 -- Trennt ohne Muster-Sonderzeichen und behält leere Felder.
 function L.Split(s, sep)
 	local out, start = {}, 1
