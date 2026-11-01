@@ -69,6 +69,10 @@ Since version 1.29.0 the addon, as loot master, sends every award right away to 
 
 If WoW crashes for the loot master, all awards since the last `/reload` or logout are missing afterwards, because WoW saves addon data only then. After logging in, the deputy reports the newer state, one click on “Bring back” restores it. The previous raid goes to the archive. After a disconnect the data is still there anyway. The backup can be turned off in the options.
 
+## Changing the loot master
+
+Since version 1.30.0 a deputy can continue the raid, for example after the loot master disconnects or when their character is needed in the raid. When the raid leader makes them loot master, their addon asks: “Take over the raid of Arcanaa?” With “Take over” they have all awards, roll tiers and the prio list, their previous raid goes to the archive. From then on they back up with the deputies themselves, including the previous loot master if that one is raid leader or assistant. If it changes back later, the takeover works the same way in the other direction. By hand this works with `/pm takeover`, with a name also for a specific copy. Important: the new loot master must be assistant beforehand and have PrioMeister 1.29.0 or newer, otherwise they have no copy. Items the previous loot master still carries go to the new one, who hands them out by trade as usual.
+
 ## Commands
 
 | Command | Effect |
@@ -88,6 +92,7 @@ If WoW crashes for the loot master, all awards since the last `/reload` or logou
 | `/pm remind`, `/pm check` | remind players without prio, show the priocheck |
 | `/pm who` | who in the group has PrioMeister, with version |
 | `/pm backup` | state of the backup with the deputies |
+| `/pm takeover [Name]` | continue the raid from another loot master's copy |
 | `/pm helper`, `/pm treasurer`, `/pm disenchanter Name` | set roles (`-` clears) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | pin a player, toggle the panel, test mode |
 | `/pm help` | all commands |

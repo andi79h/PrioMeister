@@ -9,13 +9,14 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.29.0"
+PM.version = "1.30.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
 PM.noPrioSeen = {}
 PM.peers = {} -- andere PrioMeister in der Gruppe: Name und Version (seit 1.28)
 PM.copyNoticed = {} -- Besitzer, deren Kopie in dieser Sitzung schon gemeldet wurde (seit 1.29)
+PM.takeoverOffered = {} -- angebotene Übernahmen je Kopie und Stand (seit 1.30)
 PM.roleBatch = {}
 
 local format = string.format
@@ -1189,6 +1190,7 @@ function PM:InitComm()
 		C_ChatInfo.RegisterAddonMessagePrefix(COMM_PREFIX)
 	end
 	self:UpdatePeers()
+	self:ScheduleTakeoverCheck()
 end
 
 function PM:SendHello(ask)
@@ -1296,7 +1298,10 @@ function PM:PeerLines()
 	end
 	table.sort(copies)
 	for _, line in ipairs(copies) do lines[#lines + 1] = line end
-	if #copies > 0 then lines[#lines + 1] = " " end
+	if #copies > 0 then
+		lines[#lines + 1] = T("Mit /pm übernehmen führst du einen dieser Raids als Plündermeister weiter.")
+		lines[#lines + 1] = " "
+	end
 	for _, p in ipairs(self:PeerList()) do
 		local cmp = L.CompareVersions(p.version, self.version)
 		local color = (cmp > 0 and "|cff40ff40") or (cmp < 0 and "|cffff8000") or "|cffffffff"
@@ -1558,7 +1563,7 @@ function PM:AcceptRestore()
 	self.restoreKey = nil
 	local d = b and key and b.deputies[key]
 	if not d or not d.have then return end
-	self:Print("Hole den Stand von %s …", d.name)
+	self:Print("Hole den Stand von %s … Bei einem großen Raid dauert das ein bis zwei Minuten.", d.name)
 	self:SendPacket("WANT", { id = d.have.id }, d.name)
 end
 
@@ -1706,8 +1711,103 @@ function PM:PrintBackup()
 	end
 end
 
+-------------------------------------------------------------------------------
+-- Raid übernehmen (seit 1.30)
+-------------------------------------------------------------------------------
+
+-- Wird ein Stellvertreter Plündermeister, bietet sein Addon an, den Raid aus der Kopie
+-- weiterzuführen, mit allen Vergaben, Würfelstufen und der Prioliste. Infrage kommt eine Kopie
+-- der letzten zwölf Stunden, die alles aus dem eigenen Raid enthält und mehr hat oder ein
+-- neuerer Raid ist. Von Hand geht es mit /pm übernehmen, mit Namen für eine bestimmte Kopie.
+local TAKEOVER_AGE = 12 * 3600
+
+Popup("PRIOMEISTER_TAKEOVER", {
+	text = "%s",
+	button1 = "Übernehmen", button2 = NO,
+	OnAccept = function(_, data) if data then PM:TakeOver(data.key) end end,
+	timeout = 0, whileDead = true, hideOnEscape = true,
+})
+
+-- Kopie zum Übernehmen: die neueste passende; mit Namen die dieses Spielers, egal wie alt.
+function PM:TakeoverCopy(name)
+	local own, wanted = self.db.raid, name and L.FoldKey(name)
+	local ownImage, best, bestKey
+	for key, c in pairs(self.db.backups or {}) do
+		if key ~= self.playerKey and type(c.entry) == "table" then
+			local fits
+			if wanted then
+				fits = L.FoldKey(c.owner or key) == wanted
+			elseif time() - (c.updated or 0) < TAKEOVER_AGE then
+				if #(own.awards or {}) == 0 and not next(own.players or {}) then
+					fits = true
+				elseif c.id == own.started then
+					ownImage = ownImage or L.BackupImage(L.BackupEntry(own))
+					local img = L.BackupImage(c.entry)
+					fits = img.hash ~= ownImage.hash and L.IsPrefix(ownImage.lists.awards, img.lists.awards)
+						and L.IsPrefix(ownImage.lists.rollLog, img.lists.rollLog)
+				else
+					fits = type(c.id) == "number" and c.id > (own.started or 0)
+				end
+			end
+			if fits and (not best or (c.updated or 0) > (best.updated or 0)) then best, bestKey = c, key end
+		end
+	end
+	return bestKey, best
+end
+
+-- Rückfrage zum Übernehmen. auto: beim Wechsel der Plündermethode, je Kopie und Stand nur einmal.
+function PM:OfferTakeover(name, auto)
+	local key, c = self:TakeoverCopy(name)
+	if not key then
+		if not auto then
+			self:Print("Keine Kopie zum Übernehmen. Kopien bekommen Raidleitung und Assistenten mit PrioMeister 1.29.0 oder neuer.")
+		end
+		return
+	end
+	local mark = key .. ":" .. tostring(c.rev)
+	if auto and self.takeoverOffered[mark] then return end
+	self.takeoverOffered[mark] = true
+	local e = c.entry
+	StaticPopup_Show("PRIOMEISTER_TAKEOVER", format(T("Raid von %s übernehmen? %s, %d Vergaben, Stand %s.\n\nDu führst die Vergaben weiter, die Würfelstufen gelten weiter. Dein bisheriger Raid kommt ins Archiv."),
+		c.owner or key, type(e.meta) == "table" and e.meta.run or date("%d.%m. %H:%M", tonumber(e.started) or 0),
+		L.AwardCount(e), date("%H:%M", c.updated or 0)), nil, { key = key })
+end
+
+function PM:ScheduleTakeoverCheck()
+	if self.takeoverQueued then return end
+	self.takeoverQueued = true
+	C_Timer.After(2, function()
+		PM.takeoverQueued = false
+		PM:CheckTakeover()
+	end)
+end
+
+-- Nach dem Einloggen und nach jedem Wechsel der Plündermethode: Ist man jetzt Plündermeister
+-- im Raid, vielleicht übernehmen.
+function PM:CheckTakeover()
+	if self.db and self.db.settings.backup ~= false and not self.testMode and IsInRaid() and self:IsLootMasterNow() then
+		self:OfferTakeover(nil, true)
+	end
+end
+
+-- Kopie als eigenen Raid weiterführen. Der bisherige Raid kommt ins Archiv, die Kopie bleibt.
+function PM:TakeOver(key)
+	local c = key and self.db.backups[key]
+	if not c or type(c.entry) ~= "table" then return end
+	local archived = self:ArchiveCurrentRaid()
+	local entry = deepcopy(c.entry)
+	local r = L.ReopenRaid(entry)
+	r.check = entry.check
+	self.db.raid, self.noPrioSeen, self.backup = r, {}, nil
+	self:Print("Raid von %s übernommen: %d Vergaben, die Würfelstufen gelten weiter.%s", c.owner or key, L.AwardCount(r),
+		archived and T(" Der bisherige Raid liegt im Archiv.") or "")
+	self:BindListNames()
+	refreshUI()
+end
+
 function PM:PARTY_LOOT_METHOD_CHANGED()
 	refreshUI()
+	self:ScheduleTakeoverCheck()
 end
 
 function PM:GET_ITEM_INFO_RECEIVED()
@@ -2793,6 +2893,7 @@ local HELP = {
 	"|cffffd100/pm helfer Name|r, |cffffd100/pm schatzmeister Name|r, |cffffd100/pm entzauberer Name|r – Rollen setzen (|cffffd100-|r leert)",
 	"|cffffd100/pm wer|r – wer in der Gruppe PrioMeister hat, mit Version",
 	"|cffffd100/pm sicherung|r – Stand der Sicherung bei den Stellvertretern",
+	"|cffffd100/pm übernehmen [Name]|r – Raid aus der Kopie eines anderen Plündermeisters weiterführen",
 	"|cffffd100/pm pin Name|r – Spieler oben anheften, |cffffd100/pm panel|r – Panel ein-/ausblenden",
 	"|cffffd100/pm test|r – Testmodus ohne Raid (|cffffd100/pm testwurf Name 87 99|r, |cffffd100/pm vergabe Name|r)",
 }
@@ -2801,7 +2902,7 @@ local HELP = {
 local COMMAND_ALIASES = {
 	status = "stand", table = "tabelle", list = "liste", tiers = "stufen", award = "vergabe", free = "frei",
 	random = "zufall", tiebreak = "stich", remind = "erinnern", helper = "helfer", treasurer = "schatzmeister",
-	disenchanter = "entzauberer", testroll = "testwurf", who = "wer", backup = "sicherung",
+	disenchanter = "entzauberer", testroll = "testwurf", who = "wer", backup = "sicherung", takeover = "übernehmen",
 }
 
 function PM:Slash(msg)
@@ -2921,6 +3022,8 @@ function PM:Slash(msg)
 		self:PrintPeers()
 	elseif cmd == "sicherung" then
 		self:PrintBackup()
+	elseif cmd == "übernehmen" or cmd == "uebernehmen" then
+		self:OfferTakeover(rest ~= "" and rest or nil, false)
 	elseif cmd == "test" then
 		self:ToggleTest()
 	elseif cmd == "testwurf" then

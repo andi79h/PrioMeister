@@ -3970,6 +3970,8 @@ do
 	check(L.ApplyBackupOps(copy, L.Deserialize(L.Serialize(ops))), "Schritte lassen sich anwenden")
 	eq(L.BackupImage(copy).hash, L.BackupImage(newEntry).hash, "nach den Schritten derselbe Stand")
 	eq(L.ApplyBackupOps(copy, { { "weg", "awards" } }), false, "unbekannter Schritt wird abgelehnt")
+	check(L.IsPrefix({ "a" }, { "a", "b" }) and not L.IsPrefix({ "b" }, { "a", "b" }) and not L.IsPrefix({ "a", "b" }, { "a" }),
+		"Anfang einer Liste")
 
 	-- zwei Addons, jedes mit eigener Leitung für seine Addon-Nachrichten
 	mock.raid = { { "Arcanaa", "MAGE" }, { "Zenec", "HUNTER", rank = 1 }, { "Gustl", "WARRIOR" }, { "Hesti", "PRIEST" } }
@@ -4109,6 +4111,42 @@ do
 		table.concat(mock.chat, "\n"))
 	eq(#deputyCopy().entry.awards, 2, "Zenec hat jetzt den Stand von Arcanaa")
 	check(sameState(), "und beide sind gleich")
+
+	-- 1.30: Zenec wird Plündermeister und übernimmt den Raid aus seiner Kopie
+	mock.raid[1].rank = 2 -- Arcanaa leitet den Raid und wird so Stellvertreterin für Zenec
+	for _, c in ipairs(clients) do
+		mock.player = c.name
+		c.PM:GROUP_ROSTER_UPDATE()
+	end
+	mock.mlRaid, mock.popup, mock.chat = 2, nil, {}
+	mock.player = "Zenec"
+	deputy.PM:PARTY_LOOT_METHOD_CHANGED()
+	pump(5)
+	eq(mock.popup and mock.popup.name, "PRIOMEISTER_TAKEOVER", "Rückfrage zum Übernehmen")
+	check(mock.popup and mock.popup.text:find("Raid von Arcanaa übernehmen?", 1, true), "Rückfrage nennt Arcanaa",
+		mock.popup and mock.popup.text)
+	mock.player = "Zenec"
+	deputy.PM:TakeOver(mock.popup and mock.popup.data and mock.popup.data.key)
+	eq(#deputy.PM.db.raid.awards, 2, "Zenec führt den Raid mit beiden Vergaben weiter")
+	check(mock.ChatContains("Raid von Arcanaa übernommen: 2 Vergaben"), "Meldung beim Übernehmen", table.concat(mock.chat, "\n"))
+	deputy.PM:Slash("vergabe Hesti " .. mock.Link(16914))
+	eq(#deputy.PM.db.raid.awards, 3, "Zenec vergibt weiter")
+	eq(#deputyCopy().entry.awards, 2, "die Kopie bleibt, wie sie war")
+	pump(60)
+	local zenecCopy = owner.PM.db.backups.zenec
+	check(zenecCopy and #zenecCopy.entry.awards == 3, "Arcanaa sichert jetzt Zenecs Raid", zenecCopy and #zenecCopy.entry.awards)
+	-- Arcanaa wird wieder Plündermeisterin und übernimmt zurück
+	mock.mlRaid, mock.popup = 1, nil
+	mock.player = "Arcanaa"
+	owner.PM:PARTY_LOOT_METHOD_CHANGED()
+	pump(5)
+	eq(mock.popup and mock.popup.name, "PRIOMEISTER_TAKEOVER", "Rückfrage beim Zurückwechseln")
+	mock.player = "Arcanaa"
+	owner.PM:TakeOver(mock.popup and mock.popup.data and mock.popup.data.key)
+	eq(#owner.PM.db.raid.awards, 3, "Arcanaa hat alle drei Vergaben")
+	mock.chat = {}
+	owner.PM:Slash("übernehmen Niemand")
+	check(mock.ChatContains("Keine Kopie zum Übernehmen."), "von Hand ohne passende Kopie", table.concat(mock.chat, "\n"))
 
 	-- Nachrichten von außerhalb des Raids, mit abgeschalteter Sicherung oder kaputt bleiben ohne Wirkung
 	deputy.sent = {}

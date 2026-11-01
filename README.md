@@ -153,6 +153,10 @@ Ab Version 1.29.0 schickt das Addon als Plündermeister jede Vergabe sofort an R
 
 Stürzt WoW beim Plündermeister ab, fehlen ihm danach alle Vergaben seit dem letzten `/reload` oder Ausloggen, denn erst dann speichert WoW die Daten der Addons. Nach dem Einloggen meldet sich der Stellvertreter mit dem neueren Stand, ein Klick auf „Zurückholen“ holt ihn zurück. Der bisherige Raid kommt dabei ins Archiv. Nach einem Disconnect sind die Daten ohnehin noch da. Unter **Optionen** lässt sich die Sicherung abschalten.
 
+## Plündermeister wechseln
+
+Ab Version 1.30.0 kann ein Stellvertreter den Raid weiterführen, etwa nach einem Disconnect des Plündermeisters oder wenn dessen Charakter im Raid gebraucht wird. Macht die Raidleitung ihn zum Plündermeister, fragt sein Addon: „Raid von Arcanaa übernehmen?“ Mit „Übernehmen“ hat er alle Vergaben, Würfelstufen und die Prioliste, sein bisheriger Raid kommt ins Archiv. Danach sichert er selbst bei den Stellvertretern, also auch beim bisherigen Plündermeister, wenn der Raidleitung oder Assistent ist. Wechselt es später zurück, geht die Übernahme genauso in die andere Richtung. Von Hand geht das mit `/pm übernehmen`, mit Namen auch für eine bestimmte Kopie. Wichtig: Der neue Plündermeister muss vorher Assistent sein und PrioMeister ab 1.29.0 haben, sonst hat er keine Kopie. Items, die der bisherige Plündermeister noch in der Tasche hat, gibt er dem neuen, der sie wie gewohnt per Handel verteilt.
+
 ## Befehle
 
 | Befehl | Wirkung |
@@ -173,6 +177,7 @@ Stürzt WoW beim Plündermeister ab, fehlen ihm danach alle Vergaben seit dem le
 | `/pm erinnern` | Spieler ohne Prio im Raid erinnern |
 | `/pm wer` | wer in der Gruppe PrioMeister hat, mit Version |
 | `/pm sicherung` | Stand der Sicherung bei den Stellvertretern |
+| `/pm übernehmen [Name]` | Raid aus der Kopie eines anderen Plündermeisters weiterführen |
 | `/pm helfer Name`, `/pm schatzmeister Name`, `/pm entzauberer Name` | Rollen setzen, `-` leert |
 | `/pm test` | Testmodus ohne Raid, dazu `/pm testwurf Name 87 99` und `/pm vergabe Name` |
 
