@@ -63,6 +63,12 @@ The Loot tab exports all awards and rolls as CSV for priomeister.de or a spreads
 
 Since version 1.28.0 every PrioMeister announces itself with an invisible addon message when logging in and when joining a group, and the others answer. The Raid tab shows at the top right who else in the group has PrioMeister, hovering shows the versions. `/pm who` lists them in the chat. If someone has a newer version, the addon points it out once. Versions before 1.28.0 do not answer. The addon messages never show in the chat.
 
+## Backup with deputies
+
+Since version 1.29.0 the addon, as loot master, sends every award right away to the raid leader and assistants who have PrioMeister 1.29.0 or newer, at most three. First the whole raid goes over, then only the changes, each with a checksum. Whoever should be a deputy gets assistant in the raid. The Raid tab shows at the top right who holds the awards: green up to date, yellow in transit. Hovering shows details, `/pm backup` shows the same in the chat.
+
+If WoW crashes for the loot master, all awards since the last `/reload` or logout are missing afterwards, because WoW saves addon data only then. After logging in, the deputy reports the newer state, one click on “Bring back” restores it. The previous raid goes to the archive. After a disconnect the data is still there anyway. The backup can be turned off in the options.
+
 ## Commands
 
 | Command | Effect |
@@ -81,6 +87,7 @@ Since version 1.28.0 every PrioMeister announces itself with an invisible addon 
 | `/pm share [guild\|officer\|raid\|party\|Name]` | share the awards |
 | `/pm remind`, `/pm check` | remind players without prio, show the priocheck |
 | `/pm who` | who in the group has PrioMeister, with version |
+| `/pm backup` | state of the backup with the deputies |
 | `/pm helper`, `/pm treasurer`, `/pm disenchanter Name` | set roles (`-` clears) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | pin a player, toggle the panel, test mode |
 | `/pm help` | all commands |
@@ -166,6 +173,12 @@ Der Reiter Beute exportiert alle Vergaben und Würfe als CSV für priomeister.de
 
 Ab Version 1.28.0 meldet sich jedes PrioMeister beim Einloggen und beim Betreten einer Gruppe mit einer unsichtbaren Addon-Nachricht, die anderen antworten. Im Reiter Raid steht oben rechts, wer in der Gruppe auch PrioMeister hat, die Maus darüber zeigt die Versionen. `/pm wer` listet sie im Chat. Hat jemand eine neuere Version, weist das Addon einmal darauf hin. Versionen vor 1.28.0 melden sich nicht.
 
+## Sicherung bei Stellvertretern
+
+Ab Version 1.29.0 schickt das Addon als Plündermeister jede Vergabe sofort an Raidleitung und Assistenten, die PrioMeister ab 1.29.0 haben, höchstens drei. Zuerst geht der ganze Raid hinüber, danach nur die Änderungen, jeweils mit Prüfsumme. Wer Stellvertreter sein soll, bekommt im Raid Assistent. Im Reiter Raid steht oben rechts, bei wem die Vergaben liegen: grün auf Stand, gelb unterwegs. Die Maus darüber zeigt Einzelheiten, `/pm sicherung` dasselbe im Chat.
+
+Stürzt WoW beim Plündermeister ab, fehlen ihm danach alle Vergaben seit dem letzten `/reload` oder Ausloggen, denn erst dann speichert WoW die Daten der Addons. Nach dem Einloggen meldet sich der Stellvertreter mit dem neueren Stand, ein Klick auf „Zurückholen“ holt ihn zurück. Der bisherige Raid kommt dabei ins Archiv. Nach einem Disconnect sind die Daten ohnehin noch da. Unter Optionen lässt sich die Sicherung abschalten.
+
 ## Befehle
 
 | Befehl | Wirkung |
@@ -184,6 +197,7 @@ Ab Version 1.28.0 meldet sich jedes PrioMeister beim Einloggen und beim Betreten
 | `/pm teilen [gilde\|offiziere\|raid\|gruppe\|Name]` | Vergaben teilen |
 | `/pm erinnern`, `/pm check` | Spieler ohne Prio erinnern, Priocheck zeigen |
 | `/pm wer` | wer in der Gruppe PrioMeister hat, mit Version |
+| `/pm sicherung` | Stand der Sicherung bei den Stellvertretern |
 | `/pm helfer`, `/pm schatzmeister`, `/pm entzauberer Name` | Rollen setzen (`-` leert) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | Spieler anheften, Panel ein- und ausblenden, Testmodus |
 | `/pm hilfe` | alle Befehle |

@@ -2130,7 +2130,7 @@ local function option(i)
 	return _G["PrioMeisterOption" .. i]
 end
 local wanted = { "enabled", "announceLoot", "awardsToRaid", "treasurerChat", "helperLowChat", "tierHints", "reportWrongRolls", "tierChangesToRaid",
-	"raidWarning", "always100", "secondaryRolls", "usableRolls", "recipeRolls", "recipePrio", "mountPrio", "prio0two", "confirmEpicWinner", "sortMasterLoot", "alwaysShow",
+	"raidWarning", "backup", "always100", "secondaryRolls", "usableRolls", "recipeRolls", "recipePrio", "mountPrio", "prio0two", "confirmEpicWinner", "sortMasterLoot", "alwaysShow",
 	"showTableAfterImport", "showMinimap" }
 for i, key in ipairs(wanted) do
 	eq(option(i).optKey, key, "Checkbox " .. i .. " ist " .. key)
@@ -2141,10 +2141,11 @@ do
 	local optionsPage = main.pages.options
 	local titles = {}
 	for _, h in ipairs(optionsPage.titles) do titles[#titles + 1] = h:GetText() end
-	eq(table.concat(titles, " | "), "Im Chat posten | Würfeln und Prio | Anzeige", "Gruppen der Optionen")
+	eq(table.concat(titles, " | "), "Im Chat posten | Sicherung | Würfeln und Prio | Anzeige", "Gruppen der Optionen")
 	for _, key in ipairs({ "announceLoot", "awardsToRaid", "treasurerChat", "helperLowChat", "tierHints", "reportWrongRolls", "tierChangesToRaid", "raidWarning" }) do
 		eq(option(key).group, "Im Chat posten", key .. " steht unter „Im Chat posten“")
 	end
+	eq(option("backup").group, "Sicherung", "backup steht unter „Sicherung“")
 	for _, key in ipairs({ "always100", "secondaryRolls", "usableRolls", "recipeRolls", "recipePrio", "mountPrio", "prio0two", "confirmEpicWinner" }) do
 		eq(option(key).group, "Würfeln und Prio", key .. " steht unter „Würfeln und Prio“")
 	end
@@ -3826,11 +3827,12 @@ do
 	mock.addonSent = {}
 	mock.Fire("ADDON_LOADED", "PrioMeister")
 	mock.Fire("PLAYER_LOGIN")
+	PM.db.settings.backup = false -- hier nur die Erkennung, die Sicherung prüft der Block zu 1.29
 	check(mock.addonPrefixes.PrioMeister, "Präfix für Addon-Nachrichten angemeldet")
 	mock.Fire("GROUP_ROSTER_UPDATE")
 	mock.RunTimers()
 	eq(#mock.addonSent, 1, "einmal in der Gruppe gemeldet")
-	eq(mock.addonSent[1] and mock.addonSent[1].msg, "HELLO\t1\t" .. PM.version .. "\t?", "Meldung mit Bitte um Antwort")
+	eq(mock.addonSent[1] and mock.addonSent[1].msg, "HELLO\t2\t" .. PM.version .. "\t?", "Meldung mit Bitte um Antwort")
 	eq(mock.addonSent[1] and mock.addonSent[1].channel, "RAID", "Meldung an den Raid")
 	mock.Fire("GROUP_ROSTER_UPDATE")
 	mock.RunTimers()
@@ -3842,7 +3844,7 @@ do
 	mock.Fire("CHAT_MSG_ADDON", "PrioMeister", "HELLO\t1\t1.28.0\t?", "RAID", "Lillianaa-Lakeshire")
 	mock.RunTimers()
 	eq(#mock.addonSent, 1, "zwei Bitten, eine Antwort")
-	eq(mock.addonSent[1] and mock.addonSent[1].msg, "HELLO\t1\t" .. PM.version .. "\t", "Antwort ohne Bitte")
+	eq(mock.addonSent[1] and mock.addonSent[1].msg, "HELLO\t2\t" .. PM.version .. "\t", "Antwort ohne Bitte")
 	local names = {}
 	for _, p in ipairs(PM:PeerList()) do names[#names + 1] = p.name .. " " .. p.version end
 	eq(table.concat(names, ","), "Lillianaa 1.28.0,Zenec 1.28.0", "beide stehen in der Liste")
@@ -3862,10 +3864,10 @@ do
 
 	-- neuere Version: einmal ein Hinweis, eine Meldung ohne Bitte bleibt ohne Antwort
 	mock.chat = {}
-	mock.Fire("CHAT_MSG_ADDON", "PrioMeister", "HELLO\t1\t1.29.0\t", "RAID", "Zenec-Lakeshire")
-	mock.Fire("CHAT_MSG_ADDON", "PrioMeister", "HELLO\t1\t1.29.0\t", "RAID", "Lillianaa-Lakeshire")
+	mock.Fire("CHAT_MSG_ADDON", "PrioMeister", "HELLO\t1\t9.0.0\t", "RAID", "Zenec-Lakeshire")
+	mock.Fire("CHAT_MSG_ADDON", "PrioMeister", "HELLO\t1\t9.0.0\t", "RAID", "Lillianaa-Lakeshire")
 	mock.RunTimers()
-	check(mock.ChatContains("Zenec hat PrioMeister 1.29.0, du hast " .. PM.version .. ". Bitte aktualisieren."),
+	check(mock.ChatContains("Zenec hat PrioMeister 9.0.0, du hast " .. PM.version .. ". Bitte aktualisieren."),
 		"Hinweis auf die neuere Version", table.concat(mock.chat, "\n"))
 	check(not mock.ChatContains("Lillianaa hat PrioMeister"), "Hinweis nur einmal")
 	eq(#mock.addonSent, 0, "Meldung ohne Bitte bleibt ohne Antwort")
@@ -3873,7 +3875,7 @@ do
 	-- /pm wer und /pm who
 	mock.chat = {}
 	SlashCmdList.PRIOMEISTER("wer")
-	check(mock.ChatContains("Auch mit PrioMeister: Lillianaa 1.29.0, Zenec 1.29.0. Versionen vor 1.28.0 melden sich nicht."),
+	check(mock.ChatContains("Auch mit PrioMeister: Lillianaa 9.0.0, Zenec 9.0.0. Versionen vor 1.28.0 melden sich nicht."),
 		"/pm wer listet sie", table.concat(mock.chat, "\n"))
 	mock.chat = {}
 	SlashCmdList.PRIOMEISTER("who")
@@ -3885,7 +3887,7 @@ do
 	eq(page.peers:GetText(), "Auch mit PrioMeister: Lillianaa, Zenec", "Reiter Raid nennt sie")
 	page.peersHover._scripts.OnEnter(page.peersHover)
 	eq(GameTooltip._text, "PrioMeister in der Gruppe", "Tooltip mit Titel")
-	check(GameTooltip._lines[1] and GameTooltip._lines[1]:find("Lillianaa: |cff40ff401.29.0|r", 1, true),
+	check(GameTooltip._lines[1] and GameTooltip._lines[1]:find("Lillianaa: |cff40ff409.0.0|r", 1, true),
 		"Tooltip mit Version, neuere grün", GameTooltip._lines[1])
 	page.peersHover._scripts.OnLeave(page.peersHover)
 	table.remove(mock.raid, 2)
@@ -3906,7 +3908,7 @@ do
 	mock.raid = { { "Arcanaa", "MAGE" }, { "Gustl", "WARRIOR" } }
 	mock.Fire("GROUP_ROSTER_UPDATE")
 	mock.RunTimers()
-	eq(mock.addonSent[1] and mock.addonSent[1].msg, "HELLO\t1\t" .. PM.version .. "\t?", "neue Gruppe, neue Meldung")
+	eq(mock.addonSent[1] and mock.addonSent[1].msg, "HELLO\t2\t" .. PM.version .. "\t?", "neue Gruppe, neue Meldung")
 	mock.chat = {}
 	SlashCmdList.PRIOMEISTER("wer")
 	check(mock.ChatContains("Sonst hat niemand in der Gruppe PrioMeister 1.28.0 oder neuer."), "/pm wer ohne Antworten",
@@ -3931,6 +3933,198 @@ do
 	mock.raid, mock.candidates, mock.now = rosterBefore, candidatesBefore, nowBefore
 	mock.Fire("GROUP_ROSTER_UPDATE")
 	mock.RunTimers()
+end
+
+-- 1.29: Sicherung bei Stellvertretern. Zwei Addons nebeneinander: Arcanaa ist Plündermeisterin,
+-- Zenec Assistent. Die Addon-Nachrichten laufen über eine eigene Weiterleitung statt über mock.Fire.
+do
+	mock.CloseLoot()
+	mock.ResetUI()
+	mock.RunTimers()
+	local before = { raid = mock.raid, candidates = mock.candidates, now = mock.now, player = mock.player,
+		lootMethod = mock.lootMethod, mlRaid = mock.mlRaid, send = C_ChatInfo.SendAddonMessage }
+
+	-- Logik: Text und zurück, Prüfsumme, Stücke, Änderungsschritte
+	local sample = { 1, "zwei", { drei = 3.5, ["4"] = false, [10] = "Ärwin|cffff0000\tx" }, ok = true, n = -12 }
+	local text = L.Serialize(sample)
+	local back = L.Deserialize(text)
+	eq(back and L.Serialize(back), text, "Text und zurück ergibt denselben Text")
+	eq(back and back[3][10], "Ärwin|cffff0000\tx", "Sonderzeichen bleiben")
+	eq(back and back[3]["4"], false, "Schlüssel als Text bleibt Text")
+	eq(L.Serialize({ b = 1, a = 2 }), L.Serialize({ a = 2, b = 1 }), "Reihenfolge der Schlüssel egal")
+	local plain = L.Serialize({ "Lavakern", "Lavakern", "Lavakern" })
+	local short = L.Serialize({ "Lavakern", "Lavakern", "Lavakern" }, {})
+	check(#short < #plain, "Wiederholungen werden kürzer")
+	eq(L.Deserialize(short) and L.Deserialize(short)[3], "Lavakern", "Verweise lösen sich auf")
+	for _, junk in ipairs({ "", "{", "s5:ab", "r1;", "n;", "{s1:a}", "X", "{n1;n2;}x" }) do
+		eq(L.Deserialize(junk), nil, "kaputter Text wird abgelehnt: " .. junk)
+	end
+	check(L.Hash("abc") == L.Hash("abc") and L.Hash("abc") ~= L.Hash("abd"), "Prüfsumme")
+	local pieces = L.SplitText(string.rep("x", 500), 230)
+	check(#pieces == 3 and table.concat(pieces) == string.rep("x", 500), "Stücke ergeben den Text")
+	local oldEntry = { started = 1, players = { a = 1 }, awards = { { t = 1, name = "A" }, { t = 2, name = "B" }, { t = 3, name = "C" } } }
+	local newEntry = { started = 1, players = { a = 2 },
+		awards = { { t = 1, name = "A" }, { t = 2, name = "B2" }, { t = 3, name = "C" }, { t = 4, name = "D" } } }
+	local ops = L.BackupOps(L.BackupImage(oldEntry), L.BackupImage(newEntry), newEntry)
+	local copy = L.Deserialize(L.Serialize(oldEntry))
+	check(L.ApplyBackupOps(copy, L.Deserialize(L.Serialize(ops))), "Schritte lassen sich anwenden")
+	eq(L.BackupImage(copy).hash, L.BackupImage(newEntry).hash, "nach den Schritten derselbe Stand")
+	eq(L.ApplyBackupOps(copy, { { "weg", "awards" } }), false, "unbekannter Schritt wird abgelehnt")
+
+	-- zwei Addons, jedes mit eigener Leitung für seine Addon-Nachrichten
+	mock.raid = { { "Arcanaa", "MAGE" }, { "Zenec", "HUNTER", rank = 1 }, { "Gustl", "WARRIOR" }, { "Hesti", "PRIEST" } }
+	mock.candidates = { "Arcanaa", "Zenec", "Gustl", "Hesti" }
+	mock.lootMethod, mock.mlRaid = 2, 1
+	local clients, log = {}, {}
+	local function client(name, db)
+		local c = { name = name, sent = {} }
+		C_ChatInfo.SendAddonMessage = function(prefix, msg, channel, target)
+			assert(#msg <= 255 and not msg:find("%z"), "Addon-Nachricht ungültig: " .. msg)
+			assert(channel ~= "WHISPER" or (target and target ~= ""), "Flüstern ohne Ziel")
+			c.sent[#c.sent + 1] = { msg = msg, channel = channel, target = target }
+			return 0
+		end
+		mock.player = name
+		PrioMeisterDB = db
+		loadAddon()
+		C_ChatInfo.SendAddonMessage = before.send
+		c.PM = PM
+		c.PM:ADDON_LOADED("PrioMeister")
+		c.PM:PLAYER_LOGIN()
+		mock.ResetUI()
+		return c
+	end
+	local function deliver()
+		for _, from in ipairs(clients) do
+			local queue = from.sent
+			from.sent = {}
+			for _, m in ipairs(queue) do
+				local kind = m.msg:match("^P\t[^\t]+\t1\t%d+\t(%u+)\t")
+				if kind then log[#log + 1] = from.name .. ":" .. kind end
+				for _, to in ipairs(clients) do
+					if to ~= from and (m.channel ~= "WHISPER" or m.target == to.name) then
+						mock.player = to.name
+						to.PM:CHAT_MSG_ADDON("PrioMeister", m.msg, m.channel, from.name .. "-Lakeshire")
+					end
+				end
+			end
+		end
+	end
+	local function pump(rounds)
+		for _ = 1, rounds do
+			mock.now = mock.now + 1
+			mock.RunTimers()
+			deliver()
+		end
+	end
+	local function logged(entry)
+		for _, l in ipairs(log) do
+			if l == entry then return true end
+		end
+		return false
+	end
+
+	local ownerDB = { dbVersion = 9, settings = {}, pins = {}, history = {} }
+	local owner = client("Arcanaa", ownerDB)
+	local deputy = client("Zenec", { dbVersion = 9, settings = {}, pins = {}, history = {} })
+	clients = { owner, deputy }
+	local function deputyCopy() return deputy.PM.db.backups.arcanaa end
+	local function sameState()
+		local c = deputyCopy()
+		return c and c.entry and L.BackupImage(c.entry).hash == L.BackupImage(L.BackupEntry(owner.PM.db.raid)).hash
+	end
+	mock.chat = {}
+	mock.player = "Arcanaa"
+	owner.PM:ImportText("Name;Klasse;prio1itemid;prio2itemid;prio3itemid;\nGustl;Krieger;16914;0;0;\nHesti;Priester;18813;0;0;\n", true)
+	owner.PM:Slash("vergabe Gustl " .. mock.Link(16914))
+	owner.PM:Slash("vergabe Hesti " .. mock.Link(18813))
+	eq(#owner.PM.db.raid.awards, 2, "zwei Vergaben bei Arcanaa")
+	pump(90)
+	check(deputyCopy() and #deputyCopy().entry.awards == 2, "Zenec hat beide Vergaben")
+	eq(deputyCopy() and deputyCopy().owner, "Arcanaa", "die Kopie gehört Arcanaa")
+	check(sameState(), "Kopie und Raid sind gleich")
+	check(logged("Arcanaa:PING") and logged("Arcanaa:FULL"), "erst die Anfrage, dann der ganze Raid", table.concat(log, ","))
+	local d = owner.PM.backup and owner.PM.backup.deputies.zenec
+	eq(d and d.confirmed, owner.PM.backup and owner.PM.backup.rev, "Zenec hat den Stand bestätigt")
+	check(mock.ChatContains("Sicherung läuft: Die Vergaben liegen jetzt auch bei Zenec."), "Arcanaa erfährt es", table.concat(mock.chat, "\n"))
+	check(mock.ChatContains("Du sicherst jetzt die Vergaben von Arcanaa."), "Zenec erfährt es", table.concat(mock.chat, "\n"))
+	mock.player = "Arcanaa"
+	check(owner.PM:PeerSummary():find("Sicherung bei: |cff40ff40Zenec|r", 1, true), "Reiter Raid: Zenec grün", owner.PM:PeerSummary())
+	check(table.concat(owner.PM:PeerLines(), "\n"):find("Zenec: |cff40ff40auf Stand|r", 1, true), "Tooltip: Zenec auf Stand",
+		table.concat(owner.PM:PeerLines(), "\n"))
+	mock.player = "Zenec"
+	check(table.concat(deputy.PM:PeerLines(), "\n"):find("Kopie von Arcanaa: 2 Vergaben", 1, true), "Tooltip bei Zenec nennt die Kopie",
+		table.concat(deputy.PM:PeerLines(), "\n"))
+
+	-- eine weitere Vergabe geht als Änderung hinüber, das Zurücknehmen ebenso
+	log = {}
+	mock.player = "Arcanaa"
+	owner.PM:Slash("vergabe Gustl " .. mock.Link(18813))
+	pump(15)
+	eq(#deputyCopy().entry.awards, 3, "dritte Vergabe kommt an")
+	check(logged("Arcanaa:UPD") and not logged("Arcanaa:FULL"), "nur die Änderung geht hinüber", table.concat(log, ","))
+	check(sameState(), "weiter gleich")
+	mock.player = "Arcanaa"
+	owner.PM:Slash("undo")
+	pump(15)
+	eq(#deputyCopy().entry.awards, 2, "Zurücknehmen kommt an")
+	check(sameState(), "nach dem Zurücknehmen gleich")
+
+	-- Absturz: Auf Arcanaas Festplatte liegt der Stand mit zwei Vergaben, bei Zenec kommen zwei dazu
+	local disk = NS.deepcopy(ownerDB)
+	mock.player = "Arcanaa"
+	owner.PM:Slash("vergabe Hesti " .. mock.Link(16914))
+	owner.PM:Slash("vergabe Gustl " .. mock.Link(18813))
+	pump(15)
+	eq(#deputyCopy().entry.awards, 4, "Zenec hat vier Vergaben")
+	owner = client("Arcanaa", NS.deepcopy(disk))
+	clients = { owner, deputy }
+	mock.chat, mock.popup, log = {}, nil, {}
+	pump(40)
+	eq(#owner.PM.db.raid.awards, 2, "nach dem Absturz kennt Arcanaa nur zwei")
+	eq(mock.popup and mock.popup.name, "PRIOMEISTER_RESTORE", "Rückfrage zum Zurückholen")
+	check(mock.popup and mock.popup.text:find("Zenec hat einen neueren Stand deines Raids", 1, true)
+		and mock.popup.text:find("4 Vergaben", 1, true), "Rückfrage nennt Zenec und vier Vergaben", mock.popup and mock.popup.text)
+	check(not logged("Arcanaa:FULL") and #deputyCopy().entry.awards == 4, "die neuere Kopie bleibt", table.concat(log, ","))
+	mock.player = "Arcanaa"
+	owner.PM:AcceptRestore()
+	pump(60)
+	eq(#owner.PM.db.raid.awards, 4, "alle vier Vergaben zurück")
+	eq(#owner.PM.db.history, 1, "der Stand von der Festplatte liegt im Archiv")
+	check(mock.ChatContains("Raid aus dem Stand von Zenec zurückgeholt: 4 Vergaben."), "Meldung nach dem Zurückholen",
+		table.concat(mock.chat, "\n"))
+	pump(30)
+	check(sameState(), "danach wieder gleich")
+
+	-- noch ein Absturz, diesmal gilt der eigene Stand
+	owner = client("Arcanaa", NS.deepcopy(disk))
+	clients = { owner, deputy }
+	mock.chat, mock.popup = {}, nil
+	pump(40)
+	eq(mock.popup and mock.popup.name, "PRIOMEISTER_RESTORE", "wieder die Rückfrage")
+	mock.player = "Arcanaa"
+	owner.PM:DeclineRestore()
+	pump(60)
+	check(mock.ChatContains("Dein Stand gilt, die Stellvertreter bekommen ihn als neue Sicherung."), "Meldung beim Nein",
+		table.concat(mock.chat, "\n"))
+	eq(#deputyCopy().entry.awards, 2, "Zenec hat jetzt den Stand von Arcanaa")
+	check(sameState(), "und beide sind gleich")
+
+	-- Nachrichten von außerhalb des Raids, mit abgeschalteter Sicherung oder kaputt bleiben ohne Wirkung
+	deputy.sent = {}
+	mock.player = "Zenec"
+	local ping = "P\t1.1\t1\t1\tPING\t" .. L.Serialize({ id = 1, rev = 1, hash = 1 }, {})
+	deputy.PM:CHAT_MSG_ADDON("PrioMeister", ping, "WHISPER", "Fremder-Lakeshire")
+	deputy.PM.db.settings.backup = false
+	deputy.PM:CHAT_MSG_ADDON("PrioMeister", ping:gsub("^P\t1%.1", "P\t1.2"), "WHISPER", "Arcanaa-Lakeshire")
+	deputy.PM.db.settings.backup = true
+	eq(#deputy.sent, 0, "keine Antwort an Fremde und ohne Sicherung")
+	local okCall, err = pcall(deputy.PM.CHAT_MSG_ADDON, deputy.PM, "PrioMeister", "P\t1.3\t1\t1\tFULL\tkaputt", "WHISPER", "Arcanaa-Lakeshire")
+	check(okCall and #deputy.sent == 0, "kaputte Nachricht ohne Fehler und ohne Antwort", err)
+
+	mock.raid, mock.candidates, mock.now, mock.player = before.raid, before.candidates, before.now, before.player
+	mock.lootMethod, mock.mlRaid = before.lootMethod, before.mlRaid
+	C_ChatInfo.SendAddonMessage = before.send
 end
 
 -- 1.24: Wartelisten im Spiel. Tiger: John fehlt, Mike ist dran. Bindungen mit „Set vervollständigen“.

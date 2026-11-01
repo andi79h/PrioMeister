@@ -1082,6 +1082,9 @@ local OPTION_COLUMNS = {
 			tip = "Plus und Minus im Reiter Raid oder /pm stufen: die Änderung und ihr Zurücknehmen gehen in den Raidchat. In der Vergabeliste stehen sie immer." },
 		{ key = "raidWarning", label = "Würfelaufrufe als Schlachtzugswarnung",
 			tip = "Die erste Zeile des Würfelaufrufs kommt als Schlachtzugswarnung, wenn du Leiter oder Assistent bist." },
+		{ title = "Sicherung" },
+		{ key = "backup", label = "Vergaben bei Stellvertretern sichern",
+			tip = "Als Plündermeister schickt das Addon jede Änderung an Raidleitung und Assistenten mit PrioMeister ab 1.29.0, höchstens drei. Als Stellvertreter hebst du die Vergaben eines anderen Plündermeisters auf. Nach einem Absturz holt sich der Plündermeister seinen Stand zurück." },
 	},
 	{
 		{ title = "Würfeln und Prio" },
@@ -1263,6 +1266,11 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.29.0", "01.11.2026", {
+		"Sicherung bei Stellvertretern: Als Plündermeister schickt das Addon jede Vergabe sofort an Raidleitung und Assistenten, die PrioMeister ab 1.29.0 haben, höchstens drei. Zuerst geht der ganze Raid hinüber, danach nur die Änderungen. Im Chat sieht man davon nichts.",
+		"Stürzt WoW beim Plündermeister ab, fehlen ihm danach die Vergaben seit dem letzten Speichern. Nach dem Einloggen meldet sich der Stellvertreter mit dem neueren Stand, ein Klick holt ihn zurück. Der bisherige Raid kommt dabei ins Archiv.",
+		"Im Reiter Raid steht oben rechts, bei wem die Vergaben liegen: grün auf Stand, gelb unterwegs. Die Maus darüber zeigt Einzelheiten, /pm sicherung zeigt dasselbe im Chat. Unter Optionen lässt sich die Sicherung abschalten.",
+	} },
 	{ "1.28.0", "01.11.2026", {
 		"Das Addon erkennt jetzt, wer in der Gruppe ebenfalls PrioMeister hat. Jedes PrioMeister meldet sich beim Einloggen und beim Betreten einer Gruppe mit einer unsichtbaren Addon-Nachricht, die anderen antworten. Im Chat sieht man davon nichts.",
 		"Im Reiter Raid steht oben rechts, wer in der Gruppe auch PrioMeister hat, die Maus darüber zeigt die Versionen. /pm wer listet sie im Chat. Versionen vor 1.28.0 melden sich nicht.",
