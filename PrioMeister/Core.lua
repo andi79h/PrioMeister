@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.30.0"
+PM.version = "1.30.1"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -436,7 +436,7 @@ function PM:UpdateRoster()
 				local short = Ambiguate and Ambiguate(name, "short") or name
 				local key = L.NameKey(short)
 				if key then
-					roster[key] = { name = short, class = classFile, online = online and true or false, rank = rank or 0 }
+					roster[key] = { name = short, full = name, class = classFile, online = online and true or false, rank = rank or 0 }
 					order[#order + 1] = { name = short, group = subgroup or 1, index = i }
 				end
 			end
@@ -1349,6 +1349,9 @@ Popup("PRIOMEISTER_RESTORE", {
 
 function PM:SendPacket(kind, data, target)
 	if not target then return end
+	-- Spieler von verbundenen Realms erreicht ein Flüstern nur mit Realmnamen.
+	local m = self.roster[L.NameKey(target)]
+	if m and m.full then target = m.full end
 	local chunks = L.SplitText(kind .. "\t" .. L.Serialize(data, {}), CHUNK_SIZE)
 	commSeq = commSeq + 1
 	local id = commSession .. "." .. commSeq
@@ -1384,12 +1387,13 @@ function PM:OnFrame(key, name, text)
 end
 
 function PM:OnPacket(kind, data, key, name)
-	if kind == "PING" or kind == "UPD" or kind == "FULL" or kind == "WANT" then
+	if kind == "PING" or kind == "UPD" or kind == "FULL" or kind == "WANT" or kind == "RULES" then
 		-- als Stellvertreter: nur mit eingeschalteter Sicherung und nur aus dem eigenen Raid
 		if self.db.settings.backup == false or not self.roster[key] then return end
 		if kind == "PING" then self:OnBackupPing(data, key, name)
 		elseif kind == "UPD" then self:OnBackupUpdate(data, key, name)
 		elseif kind == "FULL" then self:OnBackupFull(data, key, name)
+		elseif kind == "RULES" then self:OnBackupRules(data, key)
 		else self:OnBackupWant(data, key, name) end
 		return
 	end
@@ -1499,6 +1503,15 @@ function PM:RunBackup()
 	for key in pairs(b.deputies) do
 		if not keep[key] then b.deputies[key] = nil end
 	end
+	-- Rollen, Listen und Würfelregeln gehen getrennt hinüber, sobald sie sich ändern.
+	local rules = self:BackupRules()
+	local rulesText = L.Serialize(rules)
+	for _, d in pairs(b.deputies) do
+		if d.sent and d.rules ~= rulesText and not d.have and not d.failed then
+			self:SendPacket("RULES", { rules = rules }, d.name)
+			d.rules = rulesText
+		end
+	end
 end
 
 -- Kompletter Stand an einen Stellvertreter. Nimmt er ihn viermal nicht an, gibt das Addon auf.
@@ -1513,7 +1526,7 @@ function PM:SendBackupFull(key)
 		refreshUI()
 		return
 	end
-	d.fulls, d.full, d.sent, d.asked = (d.fulls or 0) + 1, b.rev, b.rev, GetTime()
+	d.fulls, d.full, d.sent, d.asked, d.rules = (d.fulls or 0) + 1, b.rev, b.rev, GetTime(), nil
 	self:SendPacket("FULL", { id = b.id, rev = b.rev, hash = b.image.hash, entry = L.BackupEntry(self.db.raid) }, d.name)
 end
 
@@ -1595,6 +1608,7 @@ function PM:OnBackupCopy(data, key, d)
 	self.db.raid, self.noPrioSeen, self.backup = r, {}, nil
 	self:Print("Raid aus dem Stand von %s zurückgeholt: %d Vergaben.%s", d.name, L.AwardCount(r),
 		archived and T(" Der bisherige Raid liegt im Archiv.") or "")
+	if self:ApplyRules(data.rules) then self:Print("Auch deine Rollen, Listen und Würfelregeln sind zurück.") end
 	self:BindListNames()
 	refreshUI()
 end
@@ -1610,7 +1624,7 @@ function PM:StoreCopy(key, name, id, rev, hash, entry)
 		end
 		if count >= 3 then copies[oldest] = nil end
 	end
-	copies[key] = { owner = name, id = id, rev = rev, hash = hash, entry = entry, updated = time() }
+	copies[key] = { owner = name, id = id, rev = rev, hash = hash, entry = entry, updated = time(), rules = copies[key] and copies[key].rules }
 	if not self.copyNoticed[key] then
 		self.copyNoticed[key] = true
 		self:Print("Du sicherst jetzt die Vergaben von %s.", name)
@@ -1671,10 +1685,15 @@ function PM:OnBackupFull(data, key, name)
 	self:SendPacket("ACK", { ok = true, id = data.id, rev = rev, hash = data.hash }, name)
 end
 
+function PM:OnBackupRules(data, key)
+	local c = self.db.backups[key]
+	if c and type(data.rules) == "table" then c.rules = data.rules end
+end
+
 function PM:OnBackupWant(data, key, name)
 	local c = self.db.backups[key]
 	if c and c.id == data.id and type(c.entry) == "table" then
-		self:SendPacket("COPY", { id = c.id, rev = c.rev, hash = L.BackupImage(c.entry).hash, entry = c.entry }, name)
+		self:SendPacket("COPY", { id = c.id, rev = c.rev, hash = L.BackupImage(c.entry).hash, entry = c.entry, rules = c.rules }, name)
 	end
 end
 
@@ -1709,6 +1728,29 @@ function PM:PrintBackup()
 	for _, line in ipairs(self:PeerLines()) do
 		if line ~= " " then DEFAULT_CHAT_FRAME:AddMessage("  " .. line) end
 	end
+end
+
+-- Was bestimmt, wer was bekommt: Rollen, Listen je Instanz und Würfelregeln. Es reist getrennt
+-- vom Raid mit der Sicherung (RULES) und gilt nach dem Übernehmen oder Zurückholen weiter.
+local RULE_KEYS = { "lootHelper", "treasurer", "disenchanter", "lootLists", "rollLists", "autoLootQualities",
+	"always100", "secondaryRolls", "usableRolls", "recipeRolls", "recipePrio", "mountPrio", "prio0Mode" }
+local ROLE_KEYS = { lootHelper = true, treasurer = true, disenchanter = true }
+
+function PM:BackupRules()
+	local rules = {}
+	for _, k in ipairs(RULE_KEYS) do rules[k] = self.db.settings[k] end
+	return rules
+end
+
+-- Rollen dürfen leer sein; alles andere gilt nur, wenn es mitkam. false ohne Regeln.
+function PM:ApplyRules(rules)
+	if type(rules) ~= "table" then return false end
+	local s = self.db.settings
+	for _, k in ipairs(RULE_KEYS) do
+		local v = rules[k]
+		if v ~= nil or ROLE_KEYS[k] then s[k] = type(v) == "table" and deepcopy(v) or v end
+	end
+	return true
 end
 
 -------------------------------------------------------------------------------
@@ -1768,7 +1810,7 @@ function PM:OfferTakeover(name, auto)
 	if auto and self.takeoverOffered[mark] then return end
 	self.takeoverOffered[mark] = true
 	local e = c.entry
-	StaticPopup_Show("PRIOMEISTER_TAKEOVER", format(T("Raid von %s übernehmen? %s, %d Vergaben, Stand %s.\n\nDu führst die Vergaben weiter, die Würfelstufen gelten weiter. Dein bisheriger Raid kommt ins Archiv."),
+	StaticPopup_Show("PRIOMEISTER_TAKEOVER", format(T("Raid von %s übernehmen? %s, %d Vergaben, Stand %s.\n\nDu führst die Vergaben weiter. Würfelstufen, Rollen, Listen und Würfelregeln gelten weiter. Dein bisheriger Raid kommt ins Archiv."),
 		c.owner or key, type(e.meta) == "table" and e.meta.run or date("%d.%m. %H:%M", tonumber(e.started) or 0),
 		L.AwardCount(e), date("%H:%M", c.updated or 0)), nil, { key = key })
 end
@@ -1801,6 +1843,11 @@ function PM:TakeOver(key)
 	self.db.raid, self.noPrioSeen, self.backup = r, {}, nil
 	self:Print("Raid von %s übernommen: %d Vergaben, die Würfelstufen gelten weiter.%s", c.owner or key, L.AwardCount(r),
 		archived and T(" Der bisherige Raid liegt im Archiv.") or "")
+	if self:ApplyRules(c.rules) then
+		local s = self.db.settings
+		self:Print("Es gelten jetzt die Rollen, Listen und Würfelregeln von %s: Plünderhelfer %s, Schatzmeister %s, Entzauberer %s.",
+			c.owner or key, s.lootHelper or T("niemand"), s.treasurer or T("niemand"), s.disenchanter or T("niemand"))
+	end
 	self:BindListNames()
 	refreshUI()
 end

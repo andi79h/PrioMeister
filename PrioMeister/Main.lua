@@ -1266,6 +1266,10 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.30.1", "01.11.2026", {
+		"Rollen, Listen und Würfelregeln reisen mit der Sicherung: Plünderhelfer, Schatzmeister, Entzauberer, die Listen je Instanz und Regeln wie „Immer mit /roll 100 würfeln“. Nach dem Übernehmen gelten die des bisherigen Plündermeisters, nach einem Absturz kommen die eigenen zurück. Die Plündergrenze bleibt Sache der Raidleitung: Liegen Items darunter, plündert man sie selbst, und sie zählen nicht als Vergabe.",
+		"Die Sicherung flüstert Spieler von verbundenen Realms jetzt mit Realmnamen an, so kommt sie auch dort sicher an.",
+	} },
 	{ "1.30.0", "01.11.2026", {
 		"Raid übernehmen: Wird ein Stellvertreter Plündermeister, fragt sein Addon, ob er den Raid aus seiner Kopie weiterführen will. Mit „Übernehmen“ hat er alle Vergaben, Würfelstufen und die Prioliste, sein bisheriger Raid kommt ins Archiv. Von Hand geht das mit /pm übernehmen.",
 		"So klappt ein Wechsel des Plündermeisters, etwa nach einem Disconnect oder wenn ein Charakter im Raid gebraucht wird: Der neue Plündermeister sollte vorher Assistent sein und PrioMeister ab 1.29.0 haben, dann hat er die Kopie schon. Wechselt es später zurück, geht die Übernahme genauso in die andere Richtung.",
