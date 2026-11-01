@@ -143,6 +143,10 @@ Unter **Optionen**, hinter dem Knopf „?“ oben rechts, stehen die Häkchen na
 
 Darunter legst du die angehefteten Spieler fest.
 
+## Andere PrioMeister in der Gruppe
+
+Ab Version 1.28.0 meldet sich jedes PrioMeister beim Einloggen und beim Betreten einer Gruppe mit einer unsichtbaren Addon-Nachricht, die anderen antworten. Im Reiter **Raid** steht oben rechts, wer in der Gruppe auch PrioMeister hat, die Maus darüber zeigt die Versionen. `/pm wer` listet sie im Chat. Hat jemand eine neuere Version, weist das Addon einmal darauf hin. Versionen vor 1.28.0 melden sich nicht. Im Chat sieht man von den Addon-Nachrichten nichts.
+
 ## Befehle
 
 | Befehl | Wirkung |
@@ -161,6 +165,7 @@ Darunter legst du die angehefteten Spieler fest.
 | `/pm stich` | Stichwurf bei Gleichstand an der Spitze |
 | `/pm zufall [Item]` | Item zufällig vergeben |
 | `/pm erinnern` | Spieler ohne Prio im Raid erinnern |
+| `/pm wer` | wer in der Gruppe PrioMeister hat, mit Version |
 | `/pm helfer Name`, `/pm schatzmeister Name`, `/pm entzauberer Name` | Rollen setzen, `-` leert |
 | `/pm test` | Testmodus ohne Raid, dazu `/pm testwurf Name 87 99` und `/pm vergabe Name` |
 

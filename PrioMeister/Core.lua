@@ -9,11 +9,12 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.27.0"
+PM.version = "1.28.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
 PM.noPrioSeen = {}
+PM.peers = {} -- andere PrioMeister in der Gruppe: Name und Version (seit 1.28)
 PM.roleBatch = {}
 
 local format = string.format
@@ -1119,15 +1120,17 @@ function PM:PLAYER_LOGIN()
 	for _, ev in ipairs({
 		"GROUP_ROSTER_UPDATE", "UNIT_NAME_UPDATE", "LOOT_OPENED", "LOOT_CLOSED", "LOOT_SLOT_CLEARED", "LOOT_SLOT_CHANGED",
 		"CHAT_MSG_SYSTEM", "CHAT_MSG_LOOT", "UI_ERROR_MESSAGE", "GET_ITEM_INFO_RECEIVED", "PARTY_LOOT_METHOD_CHANGED",
-		"UI_INFO_MESSAGE", "TRADE_SHOW", "TRADE_PLAYER_ITEM_CHANGED", "TRADE_ACCEPT_UPDATE",
+		"UI_INFO_MESSAGE", "TRADE_SHOW", "TRADE_PLAYER_ITEM_CHANGED", "TRADE_ACCEPT_UPDATE", "CHAT_MSG_ADDON",
 	}) do
 		self:RegisterEvent(ev)
 	end
+	self:InitComm()
 	if ns.UI and ns.UI.UpdateMinimapButton then ns.UI:UpdateMinimapButton() end
 end
 
 function PM:GROUP_ROSTER_UPDATE()
 	self:UpdateRoster()
+	self:UpdatePeers()
 	self:BindListNames()
 	refreshUI()
 	self:ScheduleNoPrioCheck()
@@ -1137,6 +1140,153 @@ end
 function PM:UNIT_NAME_UPDATE(unit)
 	if self.rosterUnknown and type(unit) == "string" and (unit:find("^raid%d") or unit:find("^party%d")) then
 		self:GROUP_ROSTER_UPDATE()
+	end
+end
+
+-------------------------------------------------------------------------------
+-- Andere PrioMeister in der Gruppe (seit 1.28)
+-------------------------------------------------------------------------------
+
+-- Jedes PrioMeister meldet sich beim Einloggen und beim Betreten einer Gruppe mit einer
+-- unsichtbaren Addon-Nachricht „HELLO<Tab>Protokoll<Tab>Version<Tab>?“. Das „?“ bittet die
+-- anderen um eine Antwort, sie melden sich dann einmal ohne „?“ an die Gruppe zurück.
+-- Versionen vor 1.28 schicken nichts.
+local COMM_PREFIX, COMM_PROTO = "PrioMeister", 1
+
+-- WoW erlaubt je Präfix zehn Nachrichten am Stück, danach eine pro Sekunde.
+local commQueue, commBudget, commStamp, commWaiting = {}, 10, nil, false
+
+local function commFlush()
+	commWaiting = false
+	local now = GetTime()
+	if commStamp then commBudget = math.min(10, commBudget + (now - commStamp)) end
+	commStamp = now
+	while commQueue[1] and commBudget >= 1 do
+		local m = table.remove(commQueue, 1)
+		C_ChatInfo.SendAddonMessage(COMM_PREFIX, m.msg, m.channel, m.target)
+		commBudget = commBudget - 1
+	end
+	if commQueue[1] then
+		commWaiting = true
+		C_Timer.After(1, commFlush)
+	end
+end
+
+function PM:CommSend(msg, channel, target)
+	if not channel or not (C_ChatInfo and C_ChatInfo.SendAddonMessage) then return end
+	commQueue[#commQueue + 1] = { msg = msg, channel = channel, target = target }
+	if not commWaiting then commFlush() end
+end
+
+function PM:InitComm()
+	if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
+		C_ChatInfo.RegisterAddonMessagePrefix(COMM_PREFIX)
+	end
+	self:UpdatePeers()
+end
+
+function PM:SendHello(ask)
+	self:CommSend(table.concat({ "HELLO", COMM_PROTO, self.version, ask and "?" or "" }, "\t"), self:GroupChannel())
+end
+
+-- Nach jeder Änderung der Gruppe: Wer gegangen ist, fällt aus der Liste. In einer neuen
+-- Gruppe meldet sich das Addon einmal, nach kurzer Pause, wenn die Gruppe vollständig ist.
+function PM:UpdatePeers()
+	if not IsInGroup() then
+		self.peers, self.helloSent = {}, false
+		return
+	end
+	for key in pairs(self.peers) do
+		if not self.roster[key] then self.peers[key] = nil end
+	end
+	if self.helloSent or self.helloQueued then return end
+	self.helloQueued = true
+	C_Timer.After(3, function()
+		PM.helloQueued = false
+		if IsInGroup() and not PM.helloSent then
+			PM.helloSent = true
+			PM:SendHello(true)
+		end
+	end)
+end
+
+local function splitTabs(text)
+	local fields = {}
+	for field in (text .. "\t"):gmatch("([^\t]*)\t") do fields[#fields + 1] = field end
+	return fields
+end
+
+function PM:CHAT_MSG_ADDON(prefix, text, channel, sender)
+	if prefix ~= COMM_PREFIX or type(text) ~= "string" or type(sender) ~= "string" then return end
+	local name = Ambiguate and Ambiguate(sender, "short") or sender
+	local key = L.NameKey(name)
+	if not key or key == L.NameKey(UnitName("player")) then return end
+	local f = splitTabs(text)
+	if f[1] == "HELLO" then self:OnHello(key, name, tonumber(f[2] or ""), f[3], f[4] == "?") end
+end
+
+-- Meldung eines anderen PrioMeister: merken, auf eine neuere Version einmal hinweisen und,
+-- wenn erbeten, antworten. Mehrere Bitten kurz nacheinander bekommen eine Antwort.
+function PM:OnHello(key, name, proto, version, ask)
+	if not proto or type(version) ~= "string" or not version:match("^%d+%.%d+[%.%d]*$") then return end
+	local before = self.peers[key]
+	self.peers[key] = { name = name, version = version }
+	if L.CompareVersions(version, self.version) > 0 and L.CompareVersions(version, self.newerNoticed or "0") > 0 then
+		self.newerNoticed = version
+		self:Print("%s hat PrioMeister %s, du hast %s. Bitte aktualisieren.", name, version, self.version)
+	end
+	if ask and not self.helloReply then
+		self.helloReply = true
+		C_Timer.After(1 + math.random() * 2, function()
+			PM.helloReply = false
+			PM:SendHello(false)
+		end)
+	end
+	if not before or before.version ~= version then refreshUI() end
+end
+
+-- Andere PrioMeister, die gerade in der Gruppe sind, nach Namen sortiert.
+function PM:PeerList()
+	local list = {}
+	for key, p in pairs(self.peers) do
+		if self.roster[key] then list[#list + 1] = p end
+	end
+	table.sort(list, function(a, b) return L.SortKey(a.name) < L.SortKey(b.name) end)
+	return list
+end
+
+-- Zeile im Reiter Raid, ohne Gruppe leer.
+function PM:PeerSummary()
+	if not IsInGroup() then return "" end
+	local names = {}
+	for _, p in ipairs(self:PeerList()) do names[#names + 1] = p.name end
+	return format(T("Auch mit PrioMeister: %s"), #names > 0 and table.concat(names, ", ") or T("niemand"))
+end
+
+-- Tooltip dazu: Versionen, neuere grün, ältere orange.
+function PM:PeerLines()
+	local lines = {}
+	for _, p in ipairs(self:PeerList()) do
+		local cmp = L.CompareVersions(p.version, self.version)
+		local color = (cmp > 0 and "|cff40ff40") or (cmp < 0 and "|cffff8000") or "|cffffffff"
+		lines[#lines + 1] = format("%s: %s%s|r", p.name, color, p.version)
+	end
+	lines[#lines + 1] = format(T("Du: %s"), self.version)
+	lines[#lines + 1] = T("Versionen vor 1.28.0 melden sich nicht. /pm wer listet alle im Chat.")
+	return lines
+end
+
+function PM:PrintPeers()
+	if not IsInGroup() then
+		self:Print("Du bist in keiner Gruppe.")
+		return
+	end
+	local parts = {}
+	for _, p in ipairs(self:PeerList()) do parts[#parts + 1] = p.name .. " " .. p.version end
+	if #parts == 0 then
+		self:Print("Sonst hat niemand in der Gruppe PrioMeister 1.28.0 oder neuer.")
+	else
+		self:Print("Auch mit PrioMeister: %s. Versionen vor 1.28.0 melden sich nicht.", table.concat(parts, ", "))
 	end
 end
 
@@ -2225,6 +2375,7 @@ local HELP = {
 	"|cffffd100/pm erinnern|r – Spieler ohne Prio im Raid erinnern",
 	"|cffffd100/pm check|r – Priocheck: wer im Raid noch Prios braucht und wer mit Prios fehlt (einfügen unter |cffffd100/pm import|r)",
 	"|cffffd100/pm helfer Name|r, |cffffd100/pm schatzmeister Name|r, |cffffd100/pm entzauberer Name|r – Rollen setzen (|cffffd100-|r leert)",
+	"|cffffd100/pm wer|r – wer in der Gruppe PrioMeister hat, mit Version",
 	"|cffffd100/pm pin Name|r – Spieler oben anheften, |cffffd100/pm panel|r – Panel ein-/ausblenden",
 	"|cffffd100/pm test|r – Testmodus ohne Raid (|cffffd100/pm testwurf Name 87 99|r, |cffffd100/pm vergabe Name|r)",
 }
@@ -2233,7 +2384,7 @@ local HELP = {
 local COMMAND_ALIASES = {
 	status = "stand", table = "tabelle", list = "liste", tiers = "stufen", award = "vergabe", free = "frei",
 	random = "zufall", tiebreak = "stich", remind = "erinnern", helper = "helfer", treasurer = "schatzmeister",
-	disenchanter = "entzauberer", testroll = "testwurf",
+	disenchanter = "entzauberer", testroll = "testwurf", who = "wer",
 }
 
 function PM:Slash(msg)
@@ -2349,6 +2500,8 @@ function PM:Slash(msg)
 		ns.UI:ShowMain("options")
 	elseif cmd == "plündern" or cmd == "pluendern" or cmd == "loot" then
 		ns.UI:ShowMain("loot")
+	elseif cmd == "wer" or cmd == "addons" then
+		self:PrintPeers()
 	elseif cmd == "test" then
 		self:ToggleTest()
 	elseif cmd == "testwurf" then

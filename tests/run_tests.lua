@@ -3813,6 +3813,126 @@ do
 	mock.RunTimers()
 end
 
+-- 1.28: Andere PrioMeister in der Gruppe melden sich mit einer unsichtbaren Addon-Nachricht.
+do
+	mock.CloseLoot()
+	mock.ResetUI()
+	mock.RunTimers()
+	local rosterBefore, candidatesBefore, nowBefore = mock.raid, mock.candidates, mock.now
+	mock.raid = { { "Arcanaa", "MAGE" }, { "Zenec", "HUNTER" }, { "Lillianaa", "PRIEST" }, { "Gustl", "WARRIOR" } }
+	mock.candidates = { "Arcanaa", "Zenec", "Lillianaa", "Gustl" }
+	PrioMeisterDB = { dbVersion = 9, settings = {}, pins = {}, history = {} }
+	loadAddon()
+	mock.addonSent = {}
+	mock.Fire("ADDON_LOADED", "PrioMeister")
+	mock.Fire("PLAYER_LOGIN")
+	check(mock.addonPrefixes.PrioMeister, "Präfix für Addon-Nachrichten angemeldet")
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+	eq(#mock.addonSent, 1, "einmal in der Gruppe gemeldet")
+	eq(mock.addonSent[1] and mock.addonSent[1].msg, "HELLO\t1\t" .. PM.version .. "\t?", "Meldung mit Bitte um Antwort")
+	eq(mock.addonSent[1] and mock.addonSent[1].channel, "RAID", "Meldung an den Raid")
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+	eq(#mock.addonSent, 1, "in derselben Gruppe nur einmal")
+
+	-- zwei Bitten kurz nacheinander, eine Antwort an die Gruppe
+	mock.addonSent, mock.chat = {}, {}
+	mock.Fire("CHAT_MSG_ADDON", "PrioMeister", "HELLO\t1\t1.28.0\t?", "RAID", "Zenec-Lakeshire")
+	mock.Fire("CHAT_MSG_ADDON", "PrioMeister", "HELLO\t1\t1.28.0\t?", "RAID", "Lillianaa-Lakeshire")
+	mock.RunTimers()
+	eq(#mock.addonSent, 1, "zwei Bitten, eine Antwort")
+	eq(mock.addonSent[1] and mock.addonSent[1].msg, "HELLO\t1\t" .. PM.version .. "\t", "Antwort ohne Bitte")
+	local names = {}
+	for _, p in ipairs(PM:PeerList()) do names[#names + 1] = p.name .. " " .. p.version end
+	eq(table.concat(names, ","), "Lillianaa 1.28.0,Zenec 1.28.0", "beide stehen in der Liste")
+	check(not mock.ChatContains("Bitte aktualisieren"), "gleiche Version: kein Hinweis")
+
+	-- eigene, fremde und kaputte Nachrichten
+	mock.addonSent = {}
+	mock.Fire("CHAT_MSG_ADDON", "PrioMeister", "HELLO\t1\t1.28.0\t?", "RAID", "Arcanaa-Lakeshire")
+	mock.Fire("CHAT_MSG_ADDON", "DBM4", "HELLO\t1\t1.28.0\t?", "RAID", "Gustl-Lakeshire")
+	for _, junk in ipairs({ "", "HELLO", "HELLO\tx\t1.28.0\t?", "HELLO\t1\tneu\t?", "WAS\t1\t1.28.0\t?" }) do
+		local okCall, err = pcall(mock.Fire, "CHAT_MSG_ADDON", "PrioMeister", junk, "RAID", "Gustl-Lakeshire")
+		check(okCall, "kaputte Nachricht ohne Fehler: " .. junk, err)
+	end
+	mock.RunTimers()
+	eq(#mock.addonSent, 0, "eigene, fremde und kaputte Nachrichten bekommen keine Antwort")
+	check(not PM.peers.arcanaa and not PM.peers.gustl, "und stehen nicht in der Liste")
+
+	-- neuere Version: einmal ein Hinweis, eine Meldung ohne Bitte bleibt ohne Antwort
+	mock.chat = {}
+	mock.Fire("CHAT_MSG_ADDON", "PrioMeister", "HELLO\t1\t1.29.0\t", "RAID", "Zenec-Lakeshire")
+	mock.Fire("CHAT_MSG_ADDON", "PrioMeister", "HELLO\t1\t1.29.0\t", "RAID", "Lillianaa-Lakeshire")
+	mock.RunTimers()
+	check(mock.ChatContains("Zenec hat PrioMeister 1.29.0, du hast " .. PM.version .. ". Bitte aktualisieren."),
+		"Hinweis auf die neuere Version", table.concat(mock.chat, "\n"))
+	check(not mock.ChatContains("Lillianaa hat PrioMeister"), "Hinweis nur einmal")
+	eq(#mock.addonSent, 0, "Meldung ohne Bitte bleibt ohne Antwort")
+
+	-- /pm wer und /pm who
+	mock.chat = {}
+	SlashCmdList.PRIOMEISTER("wer")
+	check(mock.ChatContains("Auch mit PrioMeister: Lillianaa 1.29.0, Zenec 1.29.0. Versionen vor 1.28.0 melden sich nicht."),
+		"/pm wer listet sie", table.concat(mock.chat, "\n"))
+	mock.chat = {}
+	SlashCmdList.PRIOMEISTER("who")
+	check(mock.ChatContains("Auch mit PrioMeister: Lillianaa"), "/pm who wie /pm wer", table.concat(mock.chat, "\n"))
+
+	-- Reiter Raid: Namen, im Tooltip die Versionen
+	UI:ShowMain("raid")
+	local page = _G.PrioMeisterMainFrame.pages.raid
+	eq(page.peers:GetText(), "Auch mit PrioMeister: Lillianaa, Zenec", "Reiter Raid nennt sie")
+	page.peersHover._scripts.OnEnter(page.peersHover)
+	eq(GameTooltip._text, "PrioMeister in der Gruppe", "Tooltip mit Titel")
+	check(GameTooltip._lines[1] and GameTooltip._lines[1]:find("Lillianaa: |cff40ff401.29.0|r", 1, true),
+		"Tooltip mit Version, neuere grün", GameTooltip._lines[1])
+	page.peersHover._scripts.OnLeave(page.peersHover)
+	table.remove(mock.raid, 2)
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+	eq(page.peers:GetText(), "Auch mit PrioMeister: Lillianaa", "wer geht, fällt aus der Liste")
+	_G.PrioMeisterMainFrame:Hide()
+
+	-- ohne Gruppe ist die Liste leer, in einer neuen Gruppe meldet sich das Addon wieder
+	mock.raid = {}
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+	check(next(PM.peers) == nil and PM:PeerSummary() == "", "ohne Gruppe niemand")
+	mock.chat = {}
+	SlashCmdList.PRIOMEISTER("wer")
+	check(mock.ChatContains("Du bist in keiner Gruppe."), "/pm wer ohne Gruppe", table.concat(mock.chat, "\n"))
+	mock.addonSent = {}
+	mock.raid = { { "Arcanaa", "MAGE" }, { "Gustl", "WARRIOR" } }
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+	eq(mock.addonSent[1] and mock.addonSent[1].msg, "HELLO\t1\t" .. PM.version .. "\t?", "neue Gruppe, neue Meldung")
+	mock.chat = {}
+	SlashCmdList.PRIOMEISTER("wer")
+	check(mock.ChatContains("Sonst hat niemand in der Gruppe PrioMeister 1.28.0 oder neuer."), "/pm wer ohne Antworten",
+		table.concat(mock.chat, "\n"))
+
+	-- Drossel: zehn Nachrichten am Stück, danach eine pro Sekunde
+	mock.now = mock.now + 60
+	mock.addonSent = {}
+	for i = 1, 12 do PM:CommSend("TEST\t" .. i, "RAID") end
+	eq(#mock.addonSent, 10, "zehn Nachrichten am Stück")
+	mock.RunTimers()
+	eq(#mock.addonSent, 10, "ohne Pause keine weitere")
+	mock.now = mock.now + 2
+	mock.RunTimers()
+	eq(#mock.addonSent, 12, "nach zwei Sekunden die übrigen")
+	eq(mock.addonSent[12] and mock.addonSent[12].msg, "TEST\t12", "in der richtigen Reihenfolge")
+
+	eq(L.CompareVersions("1.28.0", "1.27.9"), 1, "Versionen vergleichen: neuer")
+	eq(L.CompareVersions("1.9", "1.10.0"), -1, "Versionen vergleichen: älter")
+	eq(L.CompareVersions("1.28", "1.28.0"), 0, "Versionen vergleichen: gleich")
+
+	mock.raid, mock.candidates, mock.now = rosterBefore, candidatesBefore, nowBefore
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+end
+
 -- 1.24: Wartelisten im Spiel. Tiger: John fehlt, Mike ist dran. Bindungen mit „Set vervollständigen“.
 do
 	mock.CloseLoot()

@@ -59,6 +59,10 @@ The Loot tab exports all awards and rolls as CSV for priomeister.de or a spreads
 
 “Reset” next to the raid selection deletes all saved raids after a confirmation, the current one and all earlier ones, with awards, roll tiers, roll logs and prio list. They cannot be exported from the addon afterwards. Settings, lists and roles stay. If you still need the data, save it first with “Export all raids”.
 
+## Other PrioMeisters in the group
+
+Since version 1.28.0 every PrioMeister announces itself with an invisible addon message when logging in and when joining a group, and the others answer. The Raid tab shows at the top right who else in the group has PrioMeister, hovering shows the versions. `/pm who` lists them in the chat. If someone has a newer version, the addon points it out once. Versions before 1.28.0 do not answer. The addon messages never show in the chat.
+
 ## Commands
 
 | Command | Effect |
@@ -76,6 +80,7 @@ The Loot tab exports all awards and rolls as CSV for priomeister.de or a spreads
 | `/pm list`, `/pm export [all]` | awards in chat or as CSV |
 | `/pm share [guild\|officer\|raid\|party\|Name]` | share the awards |
 | `/pm remind`, `/pm check` | remind players without prio, show the priocheck |
+| `/pm who` | who in the group has PrioMeister, with version |
 | `/pm helper`, `/pm treasurer`, `/pm disenchanter Name` | set roles (`-` clears) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | pin a player, toggle the panel, test mode |
 | `/pm help` | all commands |
