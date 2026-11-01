@@ -69,6 +69,10 @@ Since version 1.29.0 the addon, as loot master, sends every award right away to 
 
 If WoW crashes for the loot master, all awards since the last `/reload` or logout are missing afterwards, because WoW saves addon data only then. After logging in, the deputy reports the newer state, one click on “Bring back” restores it. The previous raid goes to the archive. After a disconnect the data is still there anyway. The backup can be turned off in the options.
 
+## Changing the loot master
+
+Since version 1.30.0 a deputy can continue the raid, for example after the loot master disconnects or when their character is needed in the raid. When the raid leader makes them loot master, their addon asks: “Take over the raid of Arcanaa?” With “Take over” they have all awards, roll tiers and the prio list, their previous raid goes to the archive. From then on they back up with the deputies themselves, including the previous loot master if that one is raid leader or assistant. If it changes back later, the takeover works the same way in the other direction. By hand this works with `/pm takeover`, with a name also for a specific copy. Important: the new loot master must be assistant beforehand and have PrioMeister 1.29.0 or newer, otherwise they have no copy. Items the previous loot master still carries go to the new one, who hands them out by trade as usual.
+
 ## Commands
 
 | Command | Effect |
@@ -88,6 +92,7 @@ If WoW crashes for the loot master, all awards since the last `/reload` or logou
 | `/pm remind`, `/pm check` | remind players without prio, show the priocheck |
 | `/pm who` | who in the group has PrioMeister, with version |
 | `/pm backup` | state of the backup with the deputies |
+| `/pm takeover [Name]` | continue the raid from another loot master's copy |
 | `/pm helper`, `/pm treasurer`, `/pm disenchanter Name` | set roles (`-` clears) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | pin a player, toggle the panel, test mode |
 | `/pm help` | all commands |
@@ -179,6 +184,10 @@ Ab Version 1.29.0 schickt das Addon als Plündermeister jede Vergabe sofort an R
 
 Stürzt WoW beim Plündermeister ab, fehlen ihm danach alle Vergaben seit dem letzten `/reload` oder Ausloggen, denn erst dann speichert WoW die Daten der Addons. Nach dem Einloggen meldet sich der Stellvertreter mit dem neueren Stand, ein Klick auf „Zurückholen“ holt ihn zurück. Der bisherige Raid kommt dabei ins Archiv. Nach einem Disconnect sind die Daten ohnehin noch da. Unter Optionen lässt sich die Sicherung abschalten.
 
+## Plündermeister wechseln
+
+Ab Version 1.30.0 kann ein Stellvertreter den Raid weiterführen, etwa nach einem Disconnect des Plündermeisters oder wenn dessen Charakter im Raid gebraucht wird. Macht die Raidleitung ihn zum Plündermeister, fragt sein Addon: „Raid von Arcanaa übernehmen?“ Mit „Übernehmen“ hat er alle Vergaben, Würfelstufen und die Prioliste, sein bisheriger Raid kommt ins Archiv. Danach sichert er selbst bei den Stellvertretern, also auch beim bisherigen Plündermeister, wenn der Raidleitung oder Assistent ist. Wechselt es später zurück, geht die Übernahme genauso in die andere Richtung. Von Hand geht das mit `/pm übernehmen`, mit Namen auch für eine bestimmte Kopie. Wichtig: Der neue Plündermeister muss vorher Assistent sein und PrioMeister ab 1.29.0 haben, sonst hat er keine Kopie. Items, die der bisherige Plündermeister noch in der Tasche hat, gibt er dem neuen, der sie wie gewohnt per Handel verteilt.
+
 ## Befehle
 
 | Befehl | Wirkung |
@@ -198,6 +207,7 @@ Stürzt WoW beim Plündermeister ab, fehlen ihm danach alle Vergaben seit dem le
 | `/pm erinnern`, `/pm check` | Spieler ohne Prio erinnern, Priocheck zeigen |
 | `/pm wer` | wer in der Gruppe PrioMeister hat, mit Version |
 | `/pm sicherung` | Stand der Sicherung bei den Stellvertretern |
+| `/pm übernehmen [Name]` | Raid aus der Kopie eines anderen Plündermeisters weiterführen |
 | `/pm helfer`, `/pm schatzmeister`, `/pm entzauberer Name` | Rollen setzen (`-` leert) |
 | `/pm pin Name`, `/pm panel`, `/pm test` | Spieler anheften, Panel ein- und ausblenden, Testmodus |
 | `/pm hilfe` | alle Befehle |

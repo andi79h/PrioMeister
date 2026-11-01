@@ -2567,6 +2567,15 @@ function L.BackupOps(old, new, entry)
 	return ops
 end
 
+-- Ist die Liste a der Anfang der Liste b, Eintrag für Eintrag gleich?
+function L.IsPrefix(a, b)
+	if #a > #b then return false end
+	for i = 1, #a do
+		if a[i] ~= b[i] then return false end
+	end
+	return true
+end
+
 -- Schritte auf einen Eintrag anwenden; false bei unbekannten Schritten.
 function L.ApplyBackupOps(entry, ops)
 	if type(ops) ~= "table" then return false end
