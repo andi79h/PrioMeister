@@ -3915,6 +3915,8 @@ do
 		table.concat(mock.chat, "\n"))
 
 	-- 1.30.2: Plündermeister mit ausgeschaltetem Addon wird einmal gefragt, ob es an soll
+	local lootBefore, mlBefore = mock.lootMethod, mock.mlRaid
+	mock.lootMethod, mock.mlRaid = 2, 1 -- Arcanaa ist Plündermeisterin; ein früherer Test stellt die Methode um
 	PM.db.settings.enabled, mock.popup = false, nil
 	PM:PARTY_LOOT_METHOD_CHANGED()
 	mock.RunTimers()
@@ -3926,6 +3928,7 @@ do
 	mock.RunTimers()
 	eq(mock.popup, nil, "je Sitzung nur einmal")
 	PM.db.settings.enabled = true
+	mock.lootMethod, mock.mlRaid = lootBefore, mlBefore
 
 	-- Drossel: zehn Nachrichten am Stück, danach eine pro Sekunde
 	mock.now = mock.now + 60
