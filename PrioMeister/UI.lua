@@ -681,6 +681,19 @@ local function PickerClick(btn)
 	end
 end
 
+-- Zusatzknopf Nummer i unter der Auswahl, etwa „Weitergabe zurücknehmen“.
+local function PickerAction(f, i)
+	local b = UI.Button(f, "", 230, 20, true)
+	b:SetScript("OnClick", function()
+		local opts = f.opts
+		local action = opts and (opts.actions or { opts.action })[i]
+		f:Hide()
+		if action then action.onClick() end
+	end)
+	f.actions[i] = b
+	return b
+end
+
 function UI:GetPicker()
 	if self.picker then return self.picker end
 	local f = self.Box("PrioMeisterPicker", UIParent, "FULLSCREEN_DIALOG")
@@ -717,12 +730,8 @@ function UI:GetPicker()
 	f.ok:SetScript("OnClick", manual)
 	f.done = self.Button(f, "Fertig", 60, 20, true)
 	f.done:SetScript("OnClick", function() f:Hide() end)
-	f.action = self.Button(f, "", 170, 20, true)
-	f.action:SetScript("OnClick", function()
-		local action = f.opts and f.opts.action
-		f:Hide()
-		if action then action.onClick() end
-	end)
+	f.actions = {}
+	f.action = PickerAction(f, 1)
 	f:Hide()
 	self.picker = f
 	return f
@@ -750,7 +759,8 @@ end
 
 -- opts: multi (Mehrfachauswahl), current (Schlüssel der aktuellen Wahl),
 -- isSelected(name), onPick(name oder nil), onToggle(name), names (eigene Liste
--- { key, name }), noNone (ohne „niemand“), action ({ text, onClick }: Zusatzknopf)
+-- { key, name }), noNone (ohne „niemand“), action ({ text, onClick }: Zusatzknopf),
+-- actions (mehrere davon untereinander)
 function UI:ShowPicker(anchor, title, opts)
 	local f = self:GetPicker()
 	f.opts = opts
@@ -803,17 +813,16 @@ function UI:FillPicker()
 	f.done:ClearAllPoints()
 	f.done:SetPoint("LEFT", f.ok, "RIGHT", 4, 0)
 	f.done:SetShown(opts.multi and true or false)
-	local extra = 0
-	if opts.action then
-		f.action:SetText(opts.action.text)
-		f.action:ClearAllPoints()
-		f.action:SetPoint("TOPLEFT", f, "TOPLEFT", 10, bottom - 30)
-		f.action:Show()
-		extra = 26
-	else
-		f.action:Hide()
+	local actions = opts.actions or { opts.action }
+	for i, a in ipairs(actions) do
+		local b = f.actions[i] or PickerAction(f, i)
+		b:SetText(a.text)
+		b:ClearAllPoints()
+		b:SetPoint("TOPLEFT", f, "TOPLEFT", 10, bottom - 30 - (i - 1) * 26)
+		b:Show()
 	end
-	f:SetSize(math.max(width, 330), -bottom + 34 + extra)
+	for i = #actions + 1, #f.actions do f.actions[i]:Hide() end
+	f:SetSize(math.max(width, 330), -bottom + 34 + #actions * 26)
 end
 
 -------------------------------------------------------------------------------

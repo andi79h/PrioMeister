@@ -14,6 +14,8 @@ Open the main window with `/pm` or a left-click on the minimap button. A right-c
 4. **Award:** “To Name (roll)” gives the item to the winner. For epic items the addon asks first. “Award randomly” rolls over all raid members, “To disenchanter” gives it to the disenchanter.
 5. **Undo:** “Undo last” in the Loot tab takes back the last entry.
 
+Started the new raid only after the first awards? Select the old raid at the top of the Loot tab, right-click the first award of the new raid and choose “Move from here to the current raid”. It and all later entries move to the current raid, sorted by time and with their rolls.
+
 ## Rules
 
 - **Roll tiers:** everyone starts with /roll 100. Each free roll win lowers your tier by one (99, 98 …), and you roll with your tier. Prio awards do not change the tier. The Raid tab lists everyone who rolled; plus raises a tier by hand, minus lowers it. With “Always roll /roll 100” in the options, off by default, everyone rolls /roll 100 and rolls are ranked by tier first, then by value: every tier-100 roll beats every tier-99 roll. A /roll 99 then counts with your own tier.
@@ -128,6 +130,8 @@ Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Re
 3. **Ansagen und Würfeln:** Hat nur ein Spieler Prio, gibt „An Name“ ihm das Item direkt. Bei mehreren startet „Würfeln“ eine Würfelrunde für die Prio-Halter, ohne Prio ist es ein freier Wurf. Ein Rechtsklick erzwingt einen freien Wurf.
 4. **Vergeben:** „An Name (Wurf)“ gibt das Item dem Gewinner. Bei epischen Items fragt das Addon vorher nach. „Zufällig vergeben“ würfelt über alle Spieler im Raid, „An Entzauberer“ gibt das Item dem Entzauberer.
 5. **Zurücknehmen:** „Letzte zurücknehmen“ im Reiter Beute nimmt den letzten Eintrag zurück.
+
+Neuen Raid erst nach den ersten Vergaben gestartet? Im Reiter Beute oben den alten Raid wählen, die erste Vergabe des neuen Raids mit rechts anklicken und „Ab hier in den laufenden Raid“ wählen. Sie und alle späteren Einträge ziehen in den laufenden Raid um, nach Zeit einsortiert und mit ihren Würfen.
 
 ## Regeln
 

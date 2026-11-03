@@ -50,6 +50,18 @@ Popup("PRIOMEISTER_REOPEN", {
 	timeout = 0, whileDead = true, hideOnEscape = true,
 })
 
+Popup("PRIOMEISTER_MOVE", {
+	text = "%s",
+	button1 = "Verschieben", button2 = CANCEL,
+	OnAccept = function(_, data)
+		if data and PM:MoveToCurrent(data.entry, data.from, data.aw) and UI.main then
+			UI.main.pages.awards.view = 0
+			UI:RefreshAll()
+		end
+	end,
+	timeout = 0, whileDead = true, hideOnEscape = true,
+})
+
 Popup("PRIOMEISTER_RESET", {
 	text = "%s",
 	button1 = "Löschen", button2 = CANCEL,
@@ -425,6 +437,31 @@ function UI:RequestReopen(index)
 		date("%d.%m. %H:%M", h.started or h.ended or 0), self:RaidInstanceText(h), L.AwardCount(h), list, tail), nil, { entry = h })
 end
 
+-- Rückfrage vor dem Verschieben (seit 1.31): Einträge eines früheren Raids (Nummer im
+-- Archiv) ab from in den laufenden Raid.
+function UI:RequestMove(index, from)
+	local h = PM.db.history[index]
+	if not h then return end
+	if PM.testMode then
+		PM:Print("Im Testmodus lässt sich nichts verschieben.")
+		return
+	end
+	local plan, err = L.MovePlan(h, from)
+	if not plan then
+		PM:Print(err)
+		return
+	end
+	local first = date("%d.%m. %H:%M", plan.first or 0)
+	local head = (plan.count == 1) and format(T("Den Eintrag vom %s in den laufenden Raid verschieben?"), first)
+		or format(T("%d Einträge vom %s bis %s in den laufenden Raid verschieben?"), plan.count, first, date("%H:%M", plan.last or 0))
+	local started = date("%d.%m. %H:%M", h.started or h.ended or 0)
+	local rest = (#plan.rest == 0) and format(T("Der Raid vom %s ist danach leer und verschwindet aus dem Archiv."), started)
+		or L.MoveRestText(started, L.AwardCount({ awards = plan.rest }))
+	StaticPopup_Show("PRIOMEISTER_MOVE", format("%s\n\n%s\n\n%s %s", head, L.AwardLine(plan.moved[1]),
+		T("Im laufenden Raid zählt alles wie dort vergeben, auch für Würfelstufen, Prios und den Export."), rest), nil,
+		{ entry = h, from = from, aw = plan.moved[1] })
+end
+
 -- Rückfrage vor dem Reset: nennt, was gelöscht wird.
 function UI:RequestReset()
 	local stored = PM:StoredRaids()
@@ -474,28 +511,35 @@ function UI:AwardRow(page, content)
 end
 
 -- Rechtsklick auf eine Vergabe: Namen zur Auswahl, bei einer Weitergabe auch Zurücknehmen.
--- Geht auch in früheren Raids, etwa wenn die Weitergabe erst nach dem Raid auffällt.
+-- Geht auch in früheren Raids, etwa wenn die Weitergabe erst nach dem Raid auffällt. Dort
+-- lassen sich die Einträge ab hier auch in den laufenden Raid verschieben (seit 1.31).
 function UI:AwardMenu(page, index, anchor)
 	local view = page.view
 	local raid = PM:ViewRaid(view)
 	local aw = index and raid.awards[index]
 	if not aw then return end
+	local move = view > 0 and PM.db.history[view] ~= nil
 	if not L.CanHandOver(aw) then
-		if aw.givenTo then
+		if move then
+			UI:RequestMove(view, index)
+		elseif aw.givenTo then
 			PM:Print("%s hat %s schon an %s weitergegeben.", aw.name, aw.link or "das Item", aw.givenTo)
 		else
 			PM:Print("Weitergeben lassen sich nur vergebene Items.")
 		end
 		return
 	end
-	local action
+	local actions = {}
 	if aw.kind == "given" then
-		action = { text = T("Weitergabe zurücknehmen"), onClick = function()
+		actions[#actions + 1] = { text = T("Weitergabe zurücknehmen"), onClick = function()
 			StaticPopup_Show("PRIOMEISTER_HANDOVER_UNDO", L.AwardLine(aw), nil, { view = view, index = index, aw = aw })
 		end }
 	end
+	if move then
+		actions[#actions + 1] = { text = T("Ab hier in den laufenden Raid"), onClick = function() UI:RequestMove(view, index) end }
+	end
 	self:ShowPicker(anchor, format(T("%s hat es weitergegeben an:"), aw.name), {
-		names = PM:HandoverNames(raid, aw.key), noNone = true, action = action,
+		names = PM:HandoverNames(raid, aw.key), noNone = true, actions = actions,
 		onPick = function(name) if name then PM:RequestHandover(view, index, name) end end,
 	})
 end
@@ -626,6 +670,8 @@ function UI:BuildAwardsPage(page)
 		undo:SetShown(page.view == 0)
 		resume:SetShown(page.view > 0)
 		page.hint:SetShown(n > 0)
+		page.hint:SetText(page.view > 0 and T("Rechtsklick auf eine Vergabe: Weitergabe eintragen oder ab hier in den laufenden Raid verschieben.")
+			or T("Rechtsklick auf eine Vergabe: Weitergabe an einen anderen Spieler eintragen."))
 		for i = 1, math.max(n, 1) do
 			local row = page.rows[i]
 			if not row then
@@ -1266,6 +1312,9 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.31.0", "03.11.2026", {
+		"Einträge in den laufenden Raid verschieben: Wer den neuen Raid erst nach den ersten Vergaben startet, hat sie noch im alten Raid. Im Reiter „Beute“ den alten Raid wählen, die erste Vergabe des neuen Raids mit rechts anklicken und „Ab hier in den laufenden Raid“ wählen. Sie und alle späteren Einträge ziehen um, nach Zeit einsortiert und mit ihren Würfen. Würfelstufen, Prios und der Export richten sich danach.",
+	} },
 	{ "1.30.2", "01.11.2026", {
 		"Übernimmt ein Stellvertreter den Raid, schaltet sich PrioMeister bei ihm jetzt selbst ein. Im Test war es beim neuen Plündermeister ausgeschaltet und hat deshalb nichts verteilt und nichts aufgezeichnet.",
 		"Wer Plündermeister wird, während PrioMeister ausgeschaltet ist, bekommt einmal je Sitzung eine Rückfrage zum Einschalten.",

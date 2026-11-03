@@ -856,6 +856,162 @@ function L.NewRaid(now)
 	}
 end
 
+-------------------------------------------------------------------------------
+-- Einträge in den laufenden Raid verschieben (seit 1.31): Wer den neuen Raid erst
+-- nach den ersten Vergaben startet, hat sie im alten Raid. Ab einem Eintrag ziehen
+-- er und alle späteren um, nach Zeit einsortiert und mit ihren Würfen.
+-------------------------------------------------------------------------------
+
+-- Was ab Eintrag from umzöge: { count = Einträge, awards = echte Vergaben, first und
+-- last = Zeiten, moved, rest } oder nil und Fehlertext.
+function L.MovePlan(source, from)
+	local list = source and source.awards or {}
+	if not from or not list[from] then return nil, T("Diese Vergabe gibt es nicht mehr.") end
+	local moved, rest = {}, {}
+	for i, aw in ipairs(list) do
+		if i < from then rest[#rest + 1] = aw else moved[#moved + 1] = aw end
+	end
+	-- Eine Weitergabe zieht nur mit der Vergabe um, aus der sie stammt.
+	for _, aw in ipairs(moved) do
+		if aw.kind == "given" and not L.HandoverSource({ awards = moved }, aw) and L.HandoverSource({ awards = rest }, aw) then
+			return nil, format(T("%s hat das Item vor dieser Stelle bekommen und erst danach an %s weitergegeben. Verschiebe ab dieser früheren Vergabe."),
+				aw.from or "?", aw.name or "?")
+		end
+	end
+	return { count = #moved, awards = L.AwardCount({ awards = moved }), first = moved[1].t, last = moved[#moved].t,
+		moved = moved, rest = rest }
+end
+
+-- Was im früheren Raid bleibt, für Rückfrage und Chat.
+function L.MoveRestText(started, n)
+	if n == 1 then return format(T("Im Raid vom %s bleibt eine Vergabe."), started) end
+	return format(T("Im Raid vom %s bleiben %d Vergaben."), started, n)
+end
+
+-- Zwei nach Zeit sortierte Listen zusammenführen, bei gleicher Zeit a zuerst. Das
+-- Ergebnis steht in b, Verweise auf b bleiben gültig.
+local function mergeByTime(a, b)
+	local out, i, j = {}, 1, 1
+	while i <= #a or j <= #b do
+		if j > #b or (i <= #a and (a[i].t or 0) <= (b[j].t or 0)) then
+			out[#out + 1] = a[i]
+			i = i + 1
+		else
+			out[#out + 1] = b[j]
+			j = j + 1
+		end
+	end
+	for k, v in ipairs(out) do b[k] = v end
+	return b
+end
+
+-- Zieht die Einträge ab from aus source nach target um. Ihre Runden bekommen neue
+-- Nummern hinter denen von target. Würfelstufen von Hand rechnet das Addon für die
+-- betroffenen Spieler in beiden Raids aus den Einträgen neu, so gilt jede Änderung
+-- weiter als die Stufe, die sie gesetzt hat. Ergebnis: Plan wie bei L.MovePlan oder
+-- nil und Fehlertext.
+function L.MoveAwards(source, target, from)
+	local plan, err = L.MovePlan(source, from)
+	if not plan then return nil, err end
+	local moved = plan.moved
+	local sids, restSids = {}, {}
+	for _, aw in ipairs(moved) do
+		if aw.session then sids[aw.session] = true end
+	end
+	for _, aw in ipairs(plan.rest) do
+		if aw.session then restSids[aw.session] = true end
+	end
+	-- Würfe: die der umziehenden Runden und alle ab der ersten umziehenden Vergabe.
+	-- Hat eine Runde Exemplare auf beiden Seiten, behalten beide Raids ihre Würfe.
+	local keepLog, moveLog = {}, {}
+	for _, e in ipairs(source.rollLog or {}) do
+		local theirs = e.sid ~= nil and restSids[e.sid]
+		local move = from == 1 or (e.sid ~= nil and sids[e.sid]) or ((e.t or 0) >= (plan.first or 0) and not theirs)
+		if move and theirs then
+			local copy = {}
+			for k, v in pairs(e) do copy[k] = v end
+			moveLog[#moveLog + 1] = copy
+			keepLog[#keepLog + 1] = e
+		elseif move then
+			moveLog[#moveLog + 1] = e
+		else
+			keepLog[#keepLog + 1] = e
+		end
+	end
+
+	local seq = target.sessionSeq or 0
+	for _, aw in ipairs(target.awards) do
+		if type(aw.session) == "number" and aw.session > seq then seq = aw.session end
+	end
+	for _, e in ipairs(target.rollLog or {}) do
+		if type(e.sid) == "number" and e.sid > seq then seq = e.sid end
+	end
+	for _, s in ipairs(target.sessions or {}) do
+		if type(s.id) == "number" and s.id > seq then seq = s.id end
+	end
+	local ids = {}
+	local function renumber(id)
+		if id == nil then return nil end
+		if not ids[id] then
+			seq = seq + 1
+			ids[id] = seq
+		end
+		return ids[id]
+	end
+	for _, aw in ipairs(moved) do aw.session = renumber(aw.session) end
+	for _, e in ipairs(moveLog) do e.sid = renumber(e.sid) end
+	target.sessionSeq = seq
+
+	for i = #source.awards, from, -1 do source.awards[i] = nil end
+	mergeByTime(moved, target.awards)
+	if #moveLog > 0 then
+		target.rollLog = mergeByTime(moveLog, target.rollLog or {})
+		while #target.rollLog > L.ROLL_LOG_MAX do table.remove(target.rollLog, 1) end
+	end
+	if source.rollLog then source.rollLog = keepLog end
+	for _, e in ipairs(moveLog) do
+		local key = e.n and L.NameKey(e.n)
+		if key and source.rolled and source.rolled[key] then
+			target.rolled = target.rolled or {}
+			target.rolled[key] = source.rolled[key]
+		end
+	end
+
+	-- Würfelstufen der Spieler mit freien Gewinnen, Weitergaben oder Änderungen von Hand
+	local keys = {}
+	for _, aw in ipairs(moved) do
+		if aw.key and (aw.kind == "free" or aw.kind == "tier" or aw.kind == "given") then keys[aw.key] = true end
+		if aw.fromKey then keys[aw.fromKey] = true end
+	end
+	for _, raid in ipairs({ source, target }) do
+		local adjust = L.AdjustFromAwards(raid.awards)
+		raid.adjust = raid.adjust or {}
+		for key in pairs(keys) do raid.adjust[key] = adjust[key] end
+	end
+
+	-- Instanzen, die nur die umgezogenen Einträge kennen, gehören zum laufenden Raid.
+	if source.instances then
+		local keep, gone = {}, {}
+		for _, id in ipairs(L.RaidInstances({ awards = source.awards })) do keep[id] = true end
+		for _, e in ipairs(keepLog) do
+			if tonumber(e.ins) then keep[tonumber(e.ins)] = true end
+		end
+		for _, id in ipairs(L.RaidInstances({ awards = moved })) do gone[id] = not keep[id] end
+		for _, e in ipairs(moveLog) do
+			local id = tonumber(e.ins)
+			if id and not keep[id] then gone[id] = true end
+		end
+		local kept = {}
+		for _, id in ipairs(source.instances) do
+			if not gone[tonumber(id) or id] then kept[#kept + 1] = id end
+		end
+		source.instances = kept
+	end
+	local last = source.awards[#source.awards]
+	if last and last.t then source.ended = last.t end
+	return plan
+end
+
 local function normOpts(opts)
 	if type(opts) == "number" then return { prio0Mode = opts } end
 	return opts or {}

@@ -60,6 +60,8 @@ Die ersten zehn Spalten sind dieselben wie vor Version 1.17. Wer nur sie liest, 
 
 Einen früheren Raid machst du wieder zum laufenden Raid, etwa nach einem versehentlichen „Neuer Raid“ oder am zweiten Abend. Im Reiter **Beute** wählst du ihn oben aus und klickst „Raid fortsetzen“, oder du nutzt `/pm fortsetzen`, ohne Nummer zeigt der Befehl die Liste. Vergaben und Würfelstufen gelten weiter, der laufende Raid kommt ins Archiv und lässt sich genauso wieder fortsetzen.
 
+Hast du den neuen Raid erst nach den ersten Vergaben gestartet, liegen diese noch im alten Raid. Seit Version 1.31.0 holst du sie in den laufenden Raid: im Reiter **Beute** oben den alten Raid wählen, die erste Vergabe des neuen Raids mit rechts anklicken und „Ab hier in den laufenden Raid“ wählen. Sie und alle späteren Einträge ziehen um, nach Zeit einsortiert und mit ihren Würfen. Im laufenden Raid zählen sie für Würfelstufen, Prios und den Export, der alte Raid behält den Rest.
+
 Der Raid bekommt seine eigene Prioliste zurück, das Archiv speichert sie bei jedem Weg dorthin mit: „Neuer Raid“, `/pm neu`, „Import als neuer Raid“ und beim Fortsetzen eines anderen Raids. Die Rückfrage vor dem Fortsetzen nennt die Liste mit Spielerzahl und Importzeit. Eine neuere Liste importierst du danach mit „Nur Liste ersetzen“. Raids, die vor Version 1.14 ins Archiv kamen, haben ihre Liste nicht gespeichert. Sie starten ohne Liste, du importierst sie mit „Nur Liste ersetzen“. Die Korrekturen der Würfelstufe holt das Addon bei ihnen aus dem Protokoll.
 
 ## Priocheck
