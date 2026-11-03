@@ -14,6 +14,8 @@ Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Re
 4. **Vergeben:** „An Name (Wurf)“ gibt das Item dem Gewinner. Bei epischen Items fragt das Addon vorher nach. „Zufällig vergeben“ würfelt über alle Spieler im Raid, „An Entzauberer“ gibt das Item dem Entzauberer.
 5. **Zurücknehmen:** „Letzte zurücknehmen“ im Reiter Beute nimmt den letzten Eintrag zurück.
 
+Neuen Raid erst nach den ersten Vergaben gestartet? Im Reiter Beute oben den alten Raid wählen, die erste Vergabe des neuen Raids mit rechts anklicken und „Ab hier in den laufenden Raid“ wählen. Sie und alle späteren Einträge ziehen in den laufenden Raid um, nach Zeit einsortiert und mit ihren Würfen.
+
 ## Regeln
 
 - **Würfelstufen:** Alle beginnen mit /roll 100. Jeder Gewinn per freiem Wurf senkt die eigene Stufe um eins (99, 98 …), gewürfelt wird mit der eigenen Stufe. Vergaben über Prio ändern die Stufe nicht. Der Reiter Raid listet alle, die gewürfelt haben; Plus hebt eine Stufe von Hand, Minus senkt sie. Mit „Immer mit /roll 100 würfeln“ unter Optionen, voreingestellt aus, würfeln alle mit /roll 100. Gewertet wird dann erst nach Stufe, dann nach Wert: Jeder Wurf mit Stufe 100 schlägt jeden mit Stufe 99. Ein /roll 99 zählt dann mit der eigenen Stufe.

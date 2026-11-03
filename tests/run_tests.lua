@@ -1117,6 +1117,69 @@ do
 	eq(L.ParsePrioCheck("Name;Klasse;prio1itemid;\nHesti;Priester;1;0;0;"), nil, "eine Prioliste ist kein Priocheck")
 end
 
+-- 1.31: Einträge eines früheren Raids in den laufenden verschieben
+do
+	local function entry(t, key, kind, extra)
+		local aw = { t = t, key = key, name = key:sub(1, 1):upper() .. key:sub(2), kind = kind, itemID = 18813, link = "[Item]" }
+		for k, v in pairs(extra or {}) do aw[k] = v end
+		return aw
+	end
+	local gustlWin = entry(5100, "gustl", "free", { session = 4, roll = 80, low = 1, high = 100, instance = 509,
+		givenTo = "Valas", givenKey = "valas" })
+	local source = { started = 900, ended = 6000, instances = { 309, 509 },
+		awards = {
+			entry(1000, "amibur", "free", { session = 2, roll = 22, low = 1, high = 100, instance = 309 }),
+			entry(1100, "evony", "prio", { level = 1, session = 3, instance = 309 }),
+			entry(5000, "hestina", "none", { instance = 509 }),
+			gustlWin,
+			{ t = 5200, key = "gustl", name = "Gustl", kind = "tier", from = 99, to = 97 },
+			entry(5300, "valas", "given", { fromKey = "gustl", from = "Gustl", srcT = 5100 }),
+		},
+		rollLog = { { t = 990, sid = 2, n = "Amibur", v = 22, ins = 309 }, { t = 4990, sid = 4, n = "Gustl", v = 80, ins = 509 },
+			{ t = 5050, sid = 9, n = "Zenec", v = 10, ins = 509 } },
+		adjust = { gustl = 2 }, rolled = { amibur = "Amibur", gustl = "Gustl", zenec = "Zenec" } }
+	local target = L.NewRaid(5500)
+	target.awards = { entry(5600, "noraja", "free", { session = 1, roll = 70, low = 1, high = 100 }),
+		{ t = 5700, key = "gustl", name = "Gustl", kind = "tier", from = 100, to = 99 } }
+	target.adjust = { gustl = 1 } -- von Hand, weil Gustls Wurf noch im alten Raid stand
+	target.sessionSeq = 1
+	target.rollLog = { { t = 5590, sid = 1, n = "Noraja", v = 70 } }
+	local function list(t, field)
+		local out = {}
+		for _, x in ipairs(t or {}) do out[#out + 1] = tostring(x[field]) end
+		return table.concat(out, ",")
+	end
+
+	eq(select(2, L.MovePlan(source, 99)), "Diese Vergabe gibt es nicht mehr.", "Verschieben: unbekannter Eintrag")
+	eq(select(2, L.MovePlan(source, 5)),
+		"Gustl hat das Item vor dieser Stelle bekommen und erst danach an Valas weitergegeben. Verschiebe ab dieser früheren Vergabe.",
+		"Weitergabe zieht nicht ohne ihre Vergabe um")
+	local plan = L.MovePlan(source, 3)
+	eq(plan and (plan.count .. "/" .. plan.awards .. "/" .. plan.first .. "/" .. plan.last), "4/2/5000/5300", "Plan: Einträge, Vergaben, Zeiten")
+	eq(#source.awards, 6, "der Plan ändert nichts")
+	check(L.MoveAwards(source, target, 3), "verschoben")
+	eq(list(source.awards, "t"), "1000,1100", "im alten Raid bleibt der Anfang")
+	eq(list(target.awards, "t"), "5000,5100,5200,5300,5600,5700", "laufender Raid nach Zeit einsortiert")
+	eq(gustlWin.session, 2, "Runde bekommt die nächste freie Nummer")
+	eq(target.sessionSeq, 3, "Rundenzähler dahinter")
+	eq(list(target.rollLog, "sid"), "2,3,1", "Würfe ziehen mit, nach Zeit")
+	eq(list(source.rollLog, "t"), "990", "Würfe des alten Teils bleiben")
+	eq(target.rolled and target.rolled.gustl, "Gustl", "Würfler ziehen mit")
+	eq(target.rolled and target.rolled.zenec, "Zenec", "auch ohne Vergabe")
+	eq(table.concat(source.instances, ","), "309", "Instanz des neuen Teils geht mit")
+	eq(source.ended, 1100, "Ende des alten Raids: seine letzte Vergabe")
+	eq(L.AllowedMax(target, "gustl"), 99, "Änderung von Hand gilt weiter als die Stufe, die sie gesetzt hat")
+	eq(L.AllowedMax(target, "valas"), 99, "Weitergabe zählt im laufenden Raid")
+	eq(L.AllowedMax(source, "gustl"), 100, "alter Raid ohne Gustls Änderung")
+	check(L.HandoverSource(target, target.awards[4]) == gustlWin, "Weitergabe findet ihre Vergabe")
+	-- alles verschieben: der alte Raid ist danach leer
+	local all = { started = 1, awards = { entry(10, "zenec", "none") }, rollLog = { { t = 5, sid = 7, n = "Zenec", v = 3 } } }
+	check(L.MoveAwards(all, target, 1), "alles verschoben")
+	eq(#all.awards + #all.rollLog, 0, "alter Raid ist leer")
+	eq(target.awards[1].t, 10, "ganz vorn einsortiert")
+	eq(target.rollLog[1].sid, 4, "auch sein Wurf, mit neuer Rundennummer")
+end
+
 -- 1.18: Weitergaben zählen wie eine neue Vergabe
 do
 	local raid = L.NewRaid(1000)
@@ -3622,6 +3685,73 @@ do
 	picker:Hide()
 	raid.awards, raid.players = savedAwards, savedPlayers
 	PM.db.settings.awardsToRaid, PM.db.settings.tierHints = saved.awardsToRaid, saved.tierHints
+	page.refresh()
+end
+
+-- 1.31: Rechtsklick in einem früheren Raid: ab hier in den laufenden Raid verschieben
+do
+	check(not PM.testMode, "kein Testmodus")
+	local raid = PM:Raid()
+	local savedAwards = raid.awards
+	raid.awards = { { key = "valas", name = "Valas", kind = "none", itemID = 16914, link = mock.Link(16914), t = 9000 } }
+	local old = { started = 100, ended = 9500, awards = {
+		{ key = "amibur", name = "Amibur", kind = "free", itemID = 19874, link = mock.Link(19874), t = 200, roll = 22, low = 1, high = 100 },
+		{ key = "hestina", name = "Hestina", kind = "none", itemID = 18813, link = mock.Link(18813), t = 8000 },
+		{ key = "hexxman", name = "Hexxman", kind = "de", itemID = 16914, link = mock.Link(16914), t = 8100 },
+	} }
+	table.insert(PM.db.history, 1, old)
+	UI:SelectTab("awards")
+	local page = _G.PrioMeisterMainFrame.pages.awards
+	page.view = 1
+	page.refresh()
+	check(page.hint:GetText():find("ab hier in den laufenden Raid verschieben", 1, true), "Hinweis nennt das Verschieben", page.hint:GetText())
+	page.rows[2]._scripts.OnMouseUp(page.rows[2], "RightButton")
+	local picker = _G.PrioMeisterPicker
+	check(picker:IsShown() and picker.action:IsShown() and picker.action:GetText() == "Ab hier in den laufenden Raid",
+		"Rechtsklick im früheren Raid: Verschieben in der Auswahl", picker.action:GetText())
+	mock.popup = nil
+	picker.action._scripts.OnClick(picker.action)
+	check(not picker:IsShown() and mock.popup and mock.popup.name == "PRIOMEISTER_MOVE", "Rückfrage vor dem Verschieben")
+	check(mock.popup and mock.popup.text:find("2 Einträge vom", 1, true) and mock.popup.text:find("Hestina erhält", 1, true)
+		and mock.popup.text:find("bleibt eine Vergabe.", 1, true), "Rückfrage nennt Einträge, den ersten und den Rest",
+		mock.popup and mock.popup.text)
+	mock.chat = {}
+	mock.AcceptPopup()
+	eq(#old.awards, 1, "im alten Raid bleibt Amiburs Vergabe")
+	local keys = {}
+	for _, aw in ipairs(raid.awards) do keys[#keys + 1] = aw.key end
+	eq(table.concat(keys, ","), "hestina,hexxman,valas", "laufender Raid: nach Zeit einsortiert")
+	eq(page.view, 0, "Auswahl springt auf den laufenden Raid")
+	check(mock.ChatContains("2 Einträge in den laufenden Raid verschoben, er hat jetzt 3 Vergaben.")
+		and mock.ChatContains("bleibt eine Vergabe."), "Meldung im Chat", table.concat(mock.chat, "\n"))
+	-- der Rest auch: Amiburs freier Wurf zählt danach im laufenden Raid, der leere Raid verschwindet
+	page.view = 1
+	page.refresh()
+	page.rows[1]._scripts.OnMouseUp(page.rows[1], "RightButton")
+	picker.action._scripts.OnClick(picker.action)
+	check(mock.popup and mock.popup.text:find("Den Eintrag vom", 1, true) and mock.popup.text:find("verschwindet aus dem Archiv", 1, true),
+		"Rückfrage: ein Eintrag, alter Raid wird leer", mock.popup and mock.popup.text)
+	local before = #PM.db.history
+	mock.AcceptPopup()
+	eq(#PM.db.history, before - 1, "leerer Raid nicht mehr im Archiv")
+	eq(L.AllowedMax(raid, "amibur"), 99, "Amiburs freier Wurf zählt jetzt im laufenden Raid")
+	-- Eintrag ohne Weitergabe, etwa eine Änderung der Würfelstufe: Rechtsklick fragt gleich
+	table.insert(PM.db.history, 1, { started = 300, ended = 400,
+		awards = { { key = "gustl", name = "Gustl", kind = "tier", from = 100, to = 99, t = 350 } } })
+	page.view = 1
+	page.refresh()
+	mock.popup = nil
+	page.rows[1]._scripts.OnMouseUp(page.rows[1], "RightButton")
+	check(mock.popup and mock.popup.name == "PRIOMEISTER_MOVE", "Änderung der Würfelstufe: gleich die Rückfrage")
+	mock.popup = nil
+	table.remove(PM.db.history, 1)
+	-- im laufenden Raid gibt es kein Verschieben
+	page.view = 0
+	page.refresh()
+	page.rows[1]._scripts.OnMouseUp(page.rows[1], "RightButton")
+	check(picker:IsShown() and not picker.action:IsShown(), "laufender Raid: kein Verschieben")
+	picker:Hide()
+	raid.awards = savedAwards
 	page.refresh()
 end
 

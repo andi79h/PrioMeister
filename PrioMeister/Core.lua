@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.30.2"
+PM.version = "1.31.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -311,6 +311,50 @@ function PM:ReopenRaid(entry)
 		self:Print("Es gilt die Prioliste vom %s. Eine neuere Liste importierst du mit „Nur Liste ersetzen“.", date("%d.%m. %H:%M", r.imported))
 	end
 	self:BindListNames()
+	refreshUI()
+	return true
+end
+
+-- Einträge eines früheren Raids ab Nummer from in den laufenden Raid holen (seit 1.31),
+-- etwa wenn der neue Raid erst nach den ersten Vergaben gestartet wurde. aw ist der
+-- angeklickte Eintrag: Hat sich der Raid seit der Rückfrage geändert, zählt er.
+function PM:MoveToCurrent(entry, from, aw)
+	local db = self.db
+	local index
+	for i, h in ipairs(db.history) do
+		if h == entry then index = i end
+	end
+	if not index then
+		self:Print("Diesen Raid gibt es nicht mehr im Archiv.")
+		return false
+	end
+	if self.testMode then
+		self:Print("Im Testmodus lässt sich nichts verschieben.")
+		return false
+	end
+	if aw and entry.awards[from] ~= aw then
+		from = nil
+		for i, o in ipairs(entry.awards) do
+			if o == aw then from = i end
+		end
+	end
+	local plan, err = L.MoveAwards(entry, db.raid, from)
+	if not plan then
+		self:Print(err)
+		return false
+	end
+	local started = date("%d.%m. %H:%M", entry.started or entry.ended or 0)
+	if plan.count == 1 then
+		self:Print("Ein Eintrag in den laufenden Raid verschoben, er hat jetzt %d Vergaben.", L.AwardCount(db.raid))
+	else
+		self:Print("%d Einträge in den laufenden Raid verschoben, er hat jetzt %d Vergaben.", plan.count, L.AwardCount(db.raid))
+	end
+	if #entry.awards == 0 then
+		table.remove(db.history, index)
+		self:Print("Der Raid vom %s ist jetzt leer und nicht mehr im Archiv.", started)
+	else
+		self:Print(L.MoveRestText(started, L.AwardCount(entry)))
+	end
 	refreshUI()
 	return true
 end

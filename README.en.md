@@ -14,6 +14,8 @@ Open the main window with `/pm` or a left-click on the minimap button. A right-c
 4. **Award:** “To Name (roll)” gives the item to the winner. For epic items the addon asks first. “Award randomly” rolls over all raid members, “To disenchanter” gives it to the disenchanter.
 5. **Undo:** “Undo last” in the Loot tab takes back the last entry.
 
+Started the new raid only after the first awards? Select the old raid at the top of the Loot tab, right-click the first award of the new raid and choose “Move from here to the current raid”. It and all later entries move to the current raid, sorted by time and with their rolls.
+
 ## Rules
 
 - **Roll tiers:** everyone starts with /roll 100. Each free roll win lowers your tier by one (99, 98 …), and you roll with your tier. Prio awards do not change the tier. The Raid tab lists everyone who rolled; plus raises a tier by hand, minus lowers it. With “Always roll /roll 100” in the options, off by default, everyone rolls /roll 100 and rolls are ranked by tier first, then by value: every tier-100 roll beats every tier-99 roll. A /roll 99 then counts with your own tier.
