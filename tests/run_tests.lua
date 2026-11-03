@@ -3695,7 +3695,7 @@ do
 	local savedAwards = raid.awards
 	raid.awards = { { key = "valas", name = "Valas", kind = "none", itemID = 16914, link = mock.Link(16914), t = 9000 } }
 	local old = { started = 100, ended = 9500, awards = {
-		{ key = "amibur", name = "Amibur", kind = "free", itemID = 19874, link = mock.Link(19874), t = 200, roll = 22, low = 1, high = 100 },
+		{ key = "amibur", name = "Amibur", kind = "free", itemID = 18205, link = mock.Link(18205), t = 200, roll = 22, low = 1, high = 100 },
 		{ key = "hestina", name = "Hestina", kind = "none", itemID = 18813, link = mock.Link(18813), t = 8000 },
 		{ key = "hexxman", name = "Hexxman", kind = "de", itemID = 16914, link = mock.Link(16914), t = 8100 },
 	} }
