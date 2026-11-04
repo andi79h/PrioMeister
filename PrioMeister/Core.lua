@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.31.1"
+PM.version = "1.32.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -2029,8 +2029,15 @@ function PM:FinishRandomAssign(rr, value)
 	local key = L.NameKey(name)
 	self.lastRandom = { item = L.Canon(rr.itemID), key = key, place = value, of = rr.n, t = GetTime() }
 	local result = string.format(T("%s zufällig vergeben: Platz %d von %d ist %s"), rr.link, value, rr.n, name)
-	if self.testMode or not rr.slot then
-		self:ConfirmAward({ key = key, name = name, itemID = rr.itemID, link = rr.link, reason = "random", place = value, of = rr.n })
+	local award = { key = key, name = name, itemID = rr.itemID, link = rr.link, reason = "random", place = value, of = rr.n }
+	if self.testMode then
+		self:ConfirmAward(award)
+		return
+	end
+	if not rr.slot then
+		-- Das Item liegt nicht in der Beute: Alle müssen erfahren, wer es bekommt
+		if not self.db.settings.awardsToRaid then self:Send(result) end
+		self:RecordHandAward(award)
 		return
 	end
 	local _, slotID = self:LootSlotItem(rr.slot)
@@ -2217,6 +2224,7 @@ function PM:StartRoll(itemID, link, res, forceFree, ctx)
 			always100 = self.db.settings.always100,
 			source = ctx and ctx.source,
 			copies = self:CopiesInLoot(itemID, ctx and ctx.source),
+			manual = ctx and ctx.manual,
 		})
 	elseif s.tiebreak then
 		-- Während eines Stichwurfs wird der Stichwurf erneut angesagt.
@@ -2230,6 +2238,18 @@ function PM:StartRoll(itemID, link, res, forceFree, ctx)
 		self:Send(m, (i == 1) and self:RollCallChannel() or self:GroupChannel())
 	end
 	refreshUI()
+	return s
+end
+
+-- /pm würfeln [Item]. Liegt das Item nicht in der offenen Beute, ist es eine Runde von Hand: Der
+-- Plündermeister war etwa zu weit weg, WoW hat normal ausgewürfelt und das Item liegt in einer
+-- Tasche. Das Panel zeigt diese Runde auch ohne Plünderfenster.
+function PM:RollCommand(itemID, link, forceFree)
+	local ctx = self:ContextForItem(itemID)
+	local s = self:StartRoll(itemID, link, nil, forceFree, ctx or { manual = true })
+	if s and not ctx and self.db.settings.panelEnabled and not ns.UI:GetPanel():IsShown() then
+		ns.UI:ShowPanel(self.lootOpen)
+	end
 	return s
 end
 
@@ -2337,12 +2357,14 @@ function PM:ConfirmAward(p)
 	-- Würfelrunde abschließen, wenn kein weiteres Exemplar dieser Beute mehr daliegt.
 	-- Per Handel: wenn so viele Stück vergeben sind, wie in der Beute lagen.
 	local s = L.SessionById(raid, aw.session)
-	if s and p.viaTrade then
+	if s and (p.viaTrade or s.manual) then
 		s.given = (s.given or 0) + (p.count or 1)
 		if s.given >= (s.copies or 1) then s.closed, s.done = true, true end
 	elseif s and not self:LootHasItem(p.itemID, p.slot) then
 		s.closed, s.done = true, true
 	end
+	-- Runde von Hand erledigt: Das Panel hat ohne Plünderfenster nichts mehr zu zeigen
+	if s and s.manual and s.done and not (self.lootOpen or self.panelPinned or self.testMode) then ns.UI:HidePanel() end
 	refreshUI()
 	return aw
 end
@@ -2995,9 +3017,9 @@ local HELP = {
 	"|cffffd100/pm undo|r – letzte Vergabe zurücknehmen, |cffffd100/pm vergabe Name [Item]|r – von Hand eintragen",
 	"|cffffd100/pm prio Name|r oder |cffffd100/pm prio [Item]|r – Prios nachsehen",
 	"|cffffd100/pm stufen|r – Würfelstufen; |cffffd100/pm stufen Name 2|r setzt 2 freie Siege",
-	"|cffffd100/pm würfeln [Item]|r / |cffffd100/pm frei [Item]|r – Würfelrunde starten, |cffffd100/pm stopp|r beendet sie",
+	"|cffffd100/pm rollitem [Item]|r oder |cffffd100/pm würfeln [Item]|r – Würfelrunde starten, auch für ein Item außerhalb der Beute; |cffffd100/pm frei [Item]|r übergeht Prios, |cffffd100/pm stopp|r beendet die Runde",
 	"|cffffd100/pm stich|r – Stichwurf bei Gleichstand (gleiche Stufe wie beim ersten Wurf)",
-	"|cffffd100/pm zufall [Item]|r – zufällig vergeben: Wurf über alle Spieler, gezählt durch die Gruppen 1 bis 8",
+	"|cffffd100/pm rollrandom [Item]|r oder |cffffd100/pm zufall [Item]|r – zufällig vergeben: Wurf über alle Spieler, gezählt durch die Gruppen 1 bis 8, auch für ein Item außerhalb der Beute",
 	"|cffffd100/pm erinnern|r – Spieler ohne Prio im Raid erinnern",
 	"|cffffd100/pm check|r – Priocheck: wer im Raid noch Prios braucht und wer mit Prios oder Warteplatz fehlt (einfügen unter |cffffd100/pm import|r)",
 	"|cffffd100/pm helfer Name|r, |cffffd100/pm schatzmeister Name|r, |cffffd100/pm entzauberer Name|r – Rollen setzen (|cffffd100-|r leert)",
@@ -3013,6 +3035,7 @@ local COMMAND_ALIASES = {
 	status = "stand", table = "tabelle", list = "liste", tiers = "stufen", award = "vergabe", free = "frei",
 	random = "zufall", tiebreak = "stich", remind = "erinnern", helper = "helfer", treasurer = "schatzmeister",
 	disenchanter = "entzauberer", testroll = "testwurf", who = "wer", backup = "sicherung", takeover = "übernehmen",
+	rollitem = "würfeln", rollrandom = "zufall",
 }
 
 function PM:Slash(msg)
@@ -3089,7 +3112,7 @@ function PM:Slash(msg)
 			self:Print("Bitte ein Item verlinken (Shift-Klick), z. B. /pm würfeln [Item].")
 			return
 		end
-		self:StartRoll(id, L.ExtractLink(rest), nil, cmd == "frei", self:ContextForItem(id))
+		self:RollCommand(id, L.ExtractLink(rest), cmd == "frei")
 	elseif cmd == "zufall" or cmd == "zufällig" then
 		local id = L.ItemID(rest)
 		if not id then

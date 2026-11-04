@@ -456,7 +456,7 @@ function UI:GetPanel()
 	p.rollDE = self.Button(p, "An Entzauberer", 104, 18, true)
 	p.rollDE:SetScript("OnClick", function() PM:GiveToDisenchanter() end)
 	self.Tooltip(p.rollDE, "An Entzauberer",
-		T("Gibt das Item der Würfelrunde an den Entzauberer, z. B. wenn niemand gewürfelt hat. Seine Würfelstufe bleibt gleich. Hat schon jemand gewürfelt oder ist es eine Prio-Runde, fragt das Addon vorher nach."))
+		T("Gibt das Item der Würfelrunde an den Entzauberer, z. B. wenn niemand gewürfelt hat. Seine Würfelstufe bleibt gleich. Hat schon jemand gewürfelt oder ist es eine Prio-Runde, fragt das Addon vorher nach. In einer Runde von Hand trägt der Knopf die Vergabe nur ein."))
 	p.rollEnd = self.Button(p, "Beenden", 80, 18, true)
 	p.rollEnd:SetScript("OnClick", function() PM:EndSession() end)
 	self.Tooltip(p.rollEnd, "Beenden",
@@ -464,7 +464,7 @@ function UI:GetPanel()
 	p.rollWin = self.Button(p, "", 150, 18, true)
 	p.rollWin:SetScript("OnClick", function() PM:GiveToWinner() end)
 	self.Tooltip(p.rollWin, "An den Gewinner",
-		T("Gibt das Item dem Spieler mit dem höchsten gültigen Wurf, bei mehreren Exemplaren dem nächsten. Bei epischen Items fragt das Addon vorher nach, wie Blizzards Plündermeister-Liste. Das lässt sich unter Optionen abschalten. Liegt das Item unter der Plündergrenze, plünderst du es selbst und handelst es, das Addon trägt den Handel ein."))
+		T("Gibt das Item dem Spieler mit dem höchsten gültigen Wurf, bei mehreren Exemplaren dem nächsten. Bei epischen Items fragt das Addon vorher nach, wie Blizzards Plündermeister-Liste. Das lässt sich unter Optionen abschalten. Liegt das Item unter der Plündergrenze, plünderst du es selbst und handelst es, das Addon trägt den Handel ein. In einer Runde von Hand trägt der Knopf die Vergabe nur ein, handeln muss, wer das Item hat."))
 
 	p.rows = {}
 	p.rollLines = {}
@@ -603,13 +603,13 @@ function UI:RefreshPanel()
 		for i = math.min(#lines, MAX_ROLL_LINES) + 1, #p.rollLines do p.rollLines[i]:Hide() end
 		y = y - 4
 		-- erste Reihe: wer das Item bekommt, zweite Reihe: die Runde selbst
-		local winner = L.RoundWinner(s)
+		local winner = L.RoundTarget(s)
 		local _, _, tieFirst = L.RankRolls(s)
 		local showTie = tieFirst ~= nil and not s.closed
 		local showDE = not showTie and PM.db.settings.disenchanter ~= nil
 		local first, second = {}, { p.rollPost }
 		if winner then
-			p.rollWin:SetText(format(T("An %s (%d)"), winner.name, winner.value))
+			p.rollWin:SetText(winner.value and format(T("An %s (%d)"), winner.name, winner.value) or format(T("An %s"), winner.name))
 			first[#first + 1] = p.rollWin
 		end
 		if showTie then first[#first + 1] = p.rollTie end

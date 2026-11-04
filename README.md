@@ -23,6 +23,21 @@ Spieler brauchen das Addon nicht, sie tragen ihre Prios auf priomeister.de ein. 
 10. Jede bestätigte Vergabe steht im Raidchat, damit ein anderer Spieler sie mitschreiben kann, zum Beispiel:
    `Gustl erhält [Ring der Bindung] – freier Wurf 88 (1-100) – würfelt ab jetzt mit /roll 99`
 
+## Würfelrunde von Hand
+
+Ist der Plündermeister zu weit weg, lässt WoW die Beute normal auswürfeln und das Item landet in einer Tasche. Verteilen lässt es sich trotzdem: `/pm rollitem [Item]` eingeben und das Item per Shift-Klick verlinken, etwa aus dem Chat. `/pm würfeln [Item]` tut dasselbe.
+
+Es gilt dasselbe wie beim Knopf **Würfeln**: Erst kommen Warteliste und Prios, sonst würfeln alle mit ihrer aktuellen Würfelstufe. Würfe auf Items, die die Klasse nicht tragen kann, zählen nicht. `/pm frei [Item]` übergeht die Prios.
+
+Das Panel öffnet sich von selbst und zeigt die Würfe, auch ohne Plünderfenster. Danach kommt es darauf an, wer das Item hat:
+
+- **Du selbst:** an den Gewinner handeln, das Addon trägt den Handel als Vergabe ein.
+- **Jemand anderes:** „An Name (Wurf)“ trägt die Vergabe ein und nennt sie im Raidchat, der Spieler mit dem Item handelt es weiter.
+
+Hat nur noch ein Spieler Prio, heißt der Knopf „An Name“ und es braucht keinen Wurf. „An Entzauberer“ trägt die Vergabe ebenfalls nur ein.
+
+`/pm rollrandom [Item]` vergibt das Item stattdessen zufällig, wie der Knopf **Zufällig vergeben**: Wurf über alle Spieler im Raid, gezählt durch die Gruppen 1 bis 8, bei Prio oder vorhandenen Würfen erst nach Rückfrage. Die Klasse spielt dabei keine Rolle. Auch hier trägt das Addon die Vergabe nur ein, handeln muss, wer das Item hat. `/pm zufall [Item]` tut dasselbe.
+
 ## Vergaben teilen
 
 Im Reiter **Beute** wählst du oben den Raid: den aktuellen oder einen früheren. So kannst du die Vergaben auch später noch teilen, wenn schon ein neuer Raid läuft. Die Auswahl nennt die Instanz, das Addon merkt sie sich seit Version 1.11 bei jeder Vergabe. Items in der Liste sind klickbar wie im Chat: Maus darüber zeigt das Item, Shift-Klick verlinkt es. Das gilt überall, wo Items farbig stehen, auch in den Listen unter **Plünderoptionen** und bei Rezepten und Reittieren im Reiter **Raid**.
@@ -174,8 +189,9 @@ Ab Version 1.30.0 kann ein Stellvertreter den Raid weiterführen, etwa nach eine
 | `/pm vergabe Name [Item]` | Vergabe von Hand eintragen, etwa nach einem Handel |
 | `/pm prio Name` oder `/pm prio [Item]` | Prios nachsehen |
 | `/pm stufen` | Würfelstufen, `/pm stufen Name 2` setzt zwei freie Gewinne |
+| `/pm rollitem [Item]`, `/pm würfeln [Item]`, `/pm frei [Item]`, `/pm stopp` | Würfelrunde starten oder beenden, auch für ein Item außerhalb der Beute |
 | `/pm stich` | Stichwurf bei Gleichstand an der Spitze |
-| `/pm zufall [Item]` | Item zufällig vergeben |
+| `/pm rollrandom [Item]`, `/pm zufall [Item]` | Item zufällig vergeben, auch außerhalb der Beute |
 | `/pm erinnern` | Spieler ohne Prio im Raid erinnern |
 | `/pm wer` | wer in der Gruppe PrioMeister hat, mit Version |
 | `/pm sicherung` | Stand der Sicherung bei den Stellvertretern |

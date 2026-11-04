@@ -4642,6 +4642,153 @@ do
 	mock.RunTimers()
 end
 
+-- 1.32: Würfelrunde von Hand: Der Plündermeister war zu weit weg, das Item liegt in keiner Beute
+do
+	mock.CloseLoot()
+	mock.ResetUI()
+	local rosterBefore, candidatesBefore = mock.raid, mock.candidates
+	mock.raid = { { "Arcanaa", "MAGE" }, { "Gustl", "WARRIOR" }, { "Hesti", "PRIEST" }, { "Zenec", "HUNTER" } }
+	mock.candidates = { "Arcanaa", "Gustl", "Hesti", "Zenec" }
+	PrioMeisterDB = { dbVersion = 8, settings = {}, pins = {}, history = {},
+		raid = { started = 100, players = {}, awards = {}, adjust = { gustl = 1 }, sessions = {}, sessionSeq = 0 } }
+	loadAddon()
+	mock.Fire("ADDON_LOADED", "PrioMeister")
+	mock.Fire("PLAYER_LOGIN")
+	local raid, p = PM:Raid(), UI:GetPanel()
+	local function click(b) b._scripts.OnClick(b) end
+
+	mock.chat = {}
+	SlashCmdList.PRIOMEISTER("rollitem")
+	check(mock.ChatContains("Bitte ein Item verlinken"), "/pm rollitem ohne Item: Hinweis")
+	eq(L.ActiveSession(raid), nil, "ohne Item keine Runde")
+
+	-- freie Runde: alle mit ihrer Würfelstufe, untragbare Items zählen nicht
+	local plate = mock.Link(99001)
+	mock.sent, mock.given = {}, {}
+	SlashCmdList.PRIOMEISTER("rollitem " .. plate)
+	local s = L.ActiveSession(raid)
+	check(s and s.manual and s.mode == "free", "/pm rollitem: freie Runde von Hand")
+	check(mock.SentContains(plate .. " – kein Prio, freier Wurf: /roll 100"), "Aufruf im Raid", sentText())
+	check(mock.SentContains("Mit /roll 99: Gustl"), "Aufruf nennt die Würfelstufe", sentText())
+	check(p:IsShown() and p.rollHeader:GetText():find("freier Wurf", 1, true), "Panel zeigt die Runde ohne Plünderfenster")
+	mock.sent = {}
+	mock.Roll("Gustl", 80, 1, 99)
+	mock.Roll("Hesti", 95)
+	eq(s.rolls[1].status, "ok", "Gustl würfelt mit seiner Stufe")
+	check(s.rolls[2].unusable, "Priesterin auf Platte: Wurf zählt nicht")
+	check(mock.SentContains("Hesti: Wurf 95 zählt nicht"), "Hinweis im Raid", sentText())
+	eq(p.rollWin:IsShown() and p.rollWin:GetText(), "An Gustl (80)", "Knopf nennt den Gewinner")
+
+	-- „An Name“ trägt nur ein, bei epischen Items nach der Rückfrage
+	mock.popup, mock.chat, mock.sent = nil, {}, {}
+	click(p.rollWin)
+	eq(mock.popup and mock.popup.name, "PRIOMEISTER_WINNER", "episches Item: erst die Rückfrage")
+	eq(mock.popup and mock.popup.arg2, "Gustl (Wurf 80)", "Rückfrage nennt den Wurf")
+	eq(#raid.awards, 0, "vor der Rückfrage nichts eingetragen")
+	mock.AcceptPopup()
+	local aw = raid.awards[#raid.awards]
+	check(aw and aw.key == "gustl" and aw.kind == "free" and aw.roll == 80, "Vergabe eingetragen", aw and aw.kind)
+	eq(#mock.given, 0, "nichts aus einer Beute gegeben")
+	check(mock.SentContains("Gustl erhält " .. plate), "Vergabe im Raid", sentText())
+	check(mock.ChatContains("Nur eingetragen: Wer das Item hat, handelt es an Gustl."), "Hinweis: nur eingetragen")
+	eq(L.AllowedMax(raid, "gustl"), 98, "freier Gewinn senkt die Stufe")
+	check(s.closed and s.done, "Runde erledigt")
+	check(not p:IsShown(), "Panel geht danach zu")
+
+	-- Ein Plünderfenster zwischendurch stört die Runde nicht, nach „Beenden“ bleibt sie im Panel
+	local neck = mock.Link(18205)
+	SlashCmdList.PRIOMEISTER("frei " .. neck)
+	s = L.ActiveSession(raid)
+	check(s.manual and s.mode == "free" and p:IsShown(), "/pm frei: auch von Hand")
+	mock.OpenLoot({ { id = 4000 } })
+	check(p:IsShown(), "Beute ohne Items fürs Panel: Runde von Hand bleibt stehen")
+	mock.CloseLoot()
+	check(p:IsShown(), "nach dem Schließen auch")
+	mock.Roll("Hesti", 70)
+	click(p.rollEnd)
+	check(s.closed and p.rollHeader:IsShown() and p.rollHeader:GetText():find("beendet", 1, true), "Beenden: Runde bleibt im Panel")
+	eq(p.rollWin:IsShown() and p.rollWin:GetText(), "An Hesti (70)", "Knopf bleibt nach dem Beenden")
+
+	-- Handelt der Plündermeister das Item selbst, trägt der Handel die Vergabe ein
+	mock.Trade("Hesti", { { 18205, 1 } })
+	aw = raid.awards[#raid.awards]
+	check(aw.key == "hesti" and aw.kind == "free" and aw.roll == 70, "Handel an den Gewinner eingetragen", aw.kind)
+	check(s.done and not p:IsShown(), "Runde erledigt, Panel zu")
+
+	-- Prios gelten auch von Hand; bleibt nur einer übrig, braucht es keinen Wurf
+	PM:ImportText("Name;Klasse;prio1itemid;prio2itemid;prio3itemid;prio1itemname;prio2itemname;prio3itemname;\n"
+		.. "Zenec;Jäger;17075;0;0;;;;\nGustl;Krieger;17075;0;0;;;;\n", false)
+	SlashCmdList.PRIOMEISTER("rollitem " .. mock.Link(17075))
+	s = L.ActiveSession(raid)
+	check(s.manual and s.mode == "prio" and s.level == 1, "Prio gilt auch von Hand")
+	check(p:IsShown() and not p.rollWin:IsShown(), "zwei Prio-Halter ohne Wurf: kein Knopf")
+	mock.Roll("Gustl", 1, 1, 1)
+	eq(p.rollWin:IsShown() and p.rollWin:GetText(), "An Zenec", "Verzicht: der letzte Prio-Halter braucht keinen Wurf")
+	mock.popup = nil
+	click(p.rollWin)
+	eq(mock.popup and mock.popup.arg2, "Zenec", "Rückfrage ohne Wurf")
+	mock.AcceptPopup()
+	aw = raid.awards[#raid.awards]
+	check(aw.key == "zenec" and aw.kind == "prio" and aw.level == 1, "Prio eingetragen", aw.kind)
+	check(s.done, "Prio-Runde erledigt")
+
+	-- „An Entzauberer“ trägt ebenfalls nur ein
+	PM:SetRole("disenchanter", "Arcanaa")
+	SlashCmdList.PRIOMEISTER("rollitem " .. mock.Link(18813))
+	s = L.ActiveSession(raid)
+	mock.given = {}
+	click(p.rollDE)
+	aw = raid.awards[#raid.awards]
+	check(aw.key == "arcanaa" and aw.kind == "de" and aw.session == s.id, "Entzauberer eingetragen", aw.kind)
+	check(s.done and #mock.given == 0, "Runde erledigt, nichts aus einer Beute gegeben")
+
+	-- Liegt das Item in der offenen Beute, ist es eine Runde wie über das Panel
+	mock.OpenLoot({ { id = 18813 } }, "Creature-Hand")
+	SlashCmdList.PRIOMEISTER("rollitem " .. mock.Link(18813))
+	s = L.ActiveSession(raid)
+	check(not s.manual and s.source ~= nil, "Item in der Beute: Runde gehört zur Leiche")
+	mock.CloseLoot()
+	check(not p:IsShown(), "Panel schließt mit dem Plünderfenster")
+	eq(L.RoundTarget(L.NewSession({}, 17075, "x", { top = 1, topHolders = { { key = "zenec", name = "Zenec" } } }, 1, {})), nil,
+		"Runde aus der Beute: Ohne Wurf gilt „An Name“ an der Zeile des Items")
+
+	-- /pm rollrandom: wie der Knopf „Zufällig vergeben“, nur ohne Beute
+	local order = PM:RandomOrder()
+	mock.sent, mock.chat, mock.given = {}, {}, {}
+	mock.nextRandom = 2
+	SlashCmdList.PRIOMEISTER("rollrandom " .. mock.Link(99007))
+	check(mock.SentContains(" wird zufällig vergeben: Wurf 1-" .. #order), "Zufall angesagt", sentText())
+	aw = raid.awards[#raid.awards]
+	check(aw.kind == "random" and aw.key == L.NameKey(order[2]) and aw.roll == 2, "Zufallsvergabe eingetragen", aw.kind)
+	check(mock.SentContains(order[2] .. " erhält"), "Zufallsvergabe im Raid", sentText())
+	check(mock.ChatContains("Nur eingetragen: Wer das Item hat, handelt es an " .. order[2] .. "."), "Hinweis: nur eingetragen")
+	eq(#mock.given, 0, "nichts aus einer Beute gegeben")
+	-- Läuft für das Item eine Runde von Hand, erledigt die Zufallsvergabe sie mit
+	SlashCmdList.PRIOMEISTER("rollitem " .. mock.Link(99006))
+	s = L.ActiveSession(raid)
+	check(s.manual and p:IsShown(), "Runde von Hand läuft")
+	mock.nextRandom = 1
+	SlashCmdList.PRIOMEISTER("rollrandom " .. mock.Link(99006))
+	check(s.done and not p:IsShown(), "Zufallsvergabe erledigt die Runde, Panel zu")
+	-- ohne Raidansage der Vergaben steht das Ergebnis trotzdem im Raidchat
+	PM.db.settings.awardsToRaid = false
+	mock.sent = {}
+	mock.nextRandom = 3
+	SlashCmdList.PRIOMEISTER("rollrandom " .. mock.Link(99005))
+	check(mock.SentContains("zufällig vergeben: Platz 3 von " .. #order .. " ist " .. order[3]), "Ergebnis im Raidchat", sentText())
+	PM.db.settings.awardsToRaid = true
+	mock.nextRandom = nil
+
+	-- Panel unter Optionen abgeschaltet: Die Runde läuft trotzdem
+	PM.db.settings.panelEnabled = false
+	SlashCmdList.PRIOMEISTER("rollitem " .. mock.Link(99005))
+	check(L.ActiveSession(raid).manual and not p:IsShown(), "Panel bleibt aus")
+
+	mock.raid, mock.candidates = rosterBefore, candidatesBefore
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	mock.RunTimers()
+end
+
 -- 1.21: Englisch. Jeder Text, der übersetzt wird, hat eine englische Fassung (Quelltext durchsucht)
 do
 	local LNS = {}

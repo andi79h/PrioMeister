@@ -16,6 +16,21 @@ Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Re
 
 Neuen Raid erst nach den ersten Vergaben gestartet? Im Reiter Beute oben den alten Raid wählen, die erste Vergabe des neuen Raids mit rechts anklicken und „Ab hier in den laufenden Raid“ wählen. Sie und alle späteren Einträge ziehen in den laufenden Raid um, nach Zeit einsortiert und mit ihren Würfen.
 
+## Würfelrunde von Hand
+
+Ist der Plündermeister zu weit weg, lässt WoW die Beute normal auswürfeln und das Item landet in einer Tasche. Verteilen lässt es sich trotzdem: `/pm rollitem [Item]` eingeben und das Item per Shift-Klick verlinken, etwa aus dem Chat. `/pm würfeln [Item]` tut dasselbe.
+
+Es gilt dasselbe wie beim Knopf **Würfeln**: Erst kommen Warteliste und Prios, sonst würfeln alle mit ihrer aktuellen Würfelstufe. Würfe auf Items, die die Klasse nicht tragen kann, zählen nicht. `/pm frei [Item]` übergeht die Prios.
+
+Das Panel öffnet sich von selbst und zeigt die Würfe, auch ohne Plünderfenster. Danach kommt es darauf an, wer das Item hat:
+
+- **Du selbst:** an den Gewinner handeln, das Addon trägt den Handel als Vergabe ein.
+- **Jemand anderes:** „An Name (Wurf)“ trägt die Vergabe ein und nennt sie im Raidchat, der Spieler mit dem Item handelt es weiter.
+
+Hat nur noch ein Spieler Prio, heißt der Knopf „An Name“ und es braucht keinen Wurf. „An Entzauberer“ trägt die Vergabe ebenfalls nur ein.
+
+`/pm rollrandom [Item]` vergibt das Item stattdessen zufällig, wie der Knopf **Zufällig vergeben**: Wurf über alle Spieler im Raid, gezählt durch die Gruppen 1 bis 8, bei Prio oder vorhandenen Würfen erst nach Rückfrage. Die Klasse spielt dabei keine Rolle. Auch hier trägt das Addon die Vergabe nur ein, handeln muss, wer das Item hat. `/pm zufall [Item]` tut dasselbe.
+
 ## Regeln
 
 - **Würfelstufen:** Alle beginnen mit /roll 100. Jeder Gewinn per freiem Wurf senkt die eigene Stufe um eins (99, 98 …), gewürfelt wird mit der eigenen Stufe. Vergaben über Prio ändern die Stufe nicht. Der Reiter Raid listet alle, die gewürfelt haben; Plus hebt eine Stufe von Hand, Minus senkt sie. Mit „Immer mit /roll 100 würfeln“ unter Optionen, voreingestellt aus, würfeln alle mit /roll 100. Gewertet wird dann erst nach Stufe, dann nach Wert: Jeder Wurf mit Stufe 100 schlägt jeden mit Stufe 99. Ein /roll 99 zählt dann mit der eigenen Stufe.
@@ -84,8 +99,8 @@ Ab Version 1.30.0 kann ein Stellvertreter den Raid weiterführen, etwa nach eine
 | `/pm neu`, `/pm fortsetzen [n]` | neuer Raid, früheren Raid fortsetzen |
 | `/pm stand` | Stand der Prioliste |
 | `/pm tabelle` | Prio-Tabelle aller Spieler |
-| `/pm würfeln [Item]`, `/pm frei [Item]`, `/pm stopp` | Würfelrunde starten oder beenden |
-| `/pm stich`, `/pm zufall [Item]` | Stichwurf, zufällig vergeben |
+| `/pm rollitem [Item]`, `/pm würfeln [Item]`, `/pm frei [Item]`, `/pm stopp` | Würfelrunde starten oder beenden, auch für ein Item außerhalb der Beute |
+| `/pm stich`, `/pm rollrandom [Item]`, `/pm zufall [Item]` | Stichwurf, zufällig vergeben |
 | `/pm stufen [Name N]` | Würfelstufen zeigen oder setzen |
 | `/pm vergabe Name [Item]` | Vergabe von Hand eintragen |
 | `/pm undo` | letzte Vergabe zurücknehmen |
