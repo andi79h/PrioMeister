@@ -16,6 +16,23 @@ Open the main window with `/pm` or a left-click on the minimap button. A right-c
 
 Started the new raid only after the first awards? Select the old raid at the top of the Loot tab, right-click the first award of the new raid and choose “Move from here to the current raid”. It and all later entries move to the current raid, sorted by time and with their rolls.
 
+## Roll round by hand
+
+If the loot master is too far away, WoW falls back to normal group rolls and the item ends up in a bag. You can still hand it out: type `/pm rollitem [Item]` and shift-click the item, for example from the chat. `/pm roll [Item]` does the same.
+
+The same rules apply as for the **Roll** button: waitlist and prios come first, otherwise everyone rolls with their current tier. Rolls on items the class cannot use do not count. `/pm free [Item]` skips the prios.
+
+The panel opens by itself and shows the rolls, even without a loot window. What comes next depends on who has the item:
+
+- **You:** trade it to the winner, the addon records the trade as an award.
+- **Someone else:** “To Name (roll)” records the award and names it in raid chat, the player with the item trades it on.
+
+If only one player still has prio, the button reads “To Name” and no roll is needed. “To disenchanter” also only records the award.
+
+The round does not belong to any loot. If you open a loot window in the meantime, the panel shows only that loot, even if it holds the same item. The rolls keep counting and are back in the panel once the window closes. If you start a separate round for the loot, the round by hand pauses, `/pm rollitem [Item]` brings it back with its rolls.
+
+`/pm rollrandom [Item]` awards the item randomly instead, like the **Award randomly** button: a roll over all players in the raid, counted through groups 1 to 8, after a confirmation if someone has prio or has already rolled. The class does not matter here. Again the addon only records the award, whoever has the item trades it. `/pm random [Item]` does the same.
+
 ## Rules
 
 - **Roll tiers:** everyone starts with /roll 100. Each free roll win lowers your tier by one (99, 98 …), and you roll with your tier. Prio awards do not change the tier. The Raid tab lists everyone who rolled; plus raises a tier by hand, minus lowers it. With “Always roll /roll 100” in the options, off by default, everyone rolls /roll 100 and rolls are ranked by tier first, then by value: every tier-100 roll beats every tier-99 roll. A /roll 99 then counts with your own tier.
@@ -53,7 +70,7 @@ If a player gave an item to someone else in the game, right-click the award in t
 
 ## Priocheck
 
-To see who in the raid has not entered prios yet without closing the sign-up on priomeister.de: click “Copy priocheck” under “All prios” on the player page of the prio run, paste it into `/pm import` and choose “Check”. The result appears in the chat and in the Raid tab, including who entered prios but is not in the raid; “Remind raid” posts the missing names with the link and PIN.
+To see who in the raid has not entered prios yet without closing the sign-up on priomeister.de: click “Copy priocheck” under “All prios” on the player page of the prio run, paste it into `/pm import` and choose “Check”. The result appears in the chat and in the Raid tab, including who has prios or a waitlist spot but is not in the raid; “Remind raid” posts the missing names with the link and PIN.
 
 ## Export
 
@@ -84,8 +101,8 @@ Since version 1.30.0 a deputy can continue the raid, for example after the loot 
 | `/pm new`, `/pm resume [n]` | new raid, resume an earlier raid |
 | `/pm status` | state of the prio list |
 | `/pm table` | prio table of all players |
-| `/pm roll [Item]`, `/pm free [Item]`, `/pm stop` | start or end a roll round |
-| `/pm tiebreak`, `/pm random [Item]` | tiebreak roll, award randomly |
+| `/pm rollitem [Item]`, `/pm roll [Item]`, `/pm free [Item]`, `/pm stop` | start or end a roll round, also for an item outside the loot |
+| `/pm tiebreak`, `/pm rollrandom [Item]`, `/pm random [Item]` | tiebreak roll, award randomly |
 | `/pm tiers [Name N]` | show or set roll tiers |
 | `/pm award Name [Item]` | record an award by hand |
 | `/pm undo` | undo the last award |

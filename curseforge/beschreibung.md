@@ -16,6 +16,23 @@ Open the main window with `/pm` or a left-click on the minimap button. A right-c
 
 Started the new raid only after the first awards? Select the old raid at the top of the Loot tab, right-click the first award of the new raid and choose “Move from here to the current raid”. It and all later entries move to the current raid, sorted by time and with their rolls.
 
+## Roll round by hand
+
+If the loot master is too far away, WoW falls back to normal group rolls and the item ends up in a bag. You can still hand it out: type `/pm rollitem [Item]` and shift-click the item, for example from the chat. `/pm roll [Item]` does the same.
+
+The same rules apply as for the **Roll** button: waitlist and prios come first, otherwise everyone rolls with their current tier. Rolls on items the class cannot use do not count. `/pm free [Item]` skips the prios.
+
+The panel opens by itself and shows the rolls, even without a loot window. What comes next depends on who has the item:
+
+- **You:** trade it to the winner, the addon records the trade as an award.
+- **Someone else:** “To Name (roll)” records the award and names it in raid chat, the player with the item trades it on.
+
+If only one player still has prio, the button reads “To Name” and no roll is needed. “To disenchanter” also only records the award.
+
+The round does not belong to any loot. If you open a loot window in the meantime, the panel shows only that loot, even if it holds the same item. The rolls keep counting and are back in the panel once the window closes. If you start a separate round for the loot, the round by hand pauses, `/pm rollitem [Item]` brings it back with its rolls.
+
+`/pm rollrandom [Item]` awards the item randomly instead, like the **Award randomly** button: a roll over all players in the raid, counted through groups 1 to 8, after a confirmation if someone has prio or has already rolled. The class does not matter here. Again the addon only records the award, whoever has the item trades it. `/pm random [Item]` does the same.
+
 ## Rules
 
 - **Roll tiers:** everyone starts with /roll 100. Each free roll win lowers your tier by one (99, 98 …), and you roll with your tier. Prio awards do not change the tier. The Raid tab lists everyone who rolled; plus raises a tier by hand, minus lowers it. With “Always roll /roll 100” in the options, off by default, everyone rolls /roll 100 and rolls are ranked by tier first, then by value: every tier-100 roll beats every tier-99 roll. A /roll 99 then counts with your own tier.
@@ -53,7 +70,7 @@ If a player gave an item to someone else in the game, right-click the award in t
 
 ## Priocheck
 
-To see who in the raid has not entered prios yet without closing the sign-up on priomeister.de: click “Copy priocheck” under “All prios” on the player page of the prio run, paste it into `/pm import` and choose “Check”. The result appears in the chat and in the Raid tab, including who entered prios but is not in the raid; “Remind raid” posts the missing names with the link and PIN.
+To see who in the raid has not entered prios yet without closing the sign-up on priomeister.de: click “Copy priocheck” under “All prios” on the player page of the prio run, paste it into `/pm import` and choose “Check”. The result appears in the chat and in the Raid tab, including who has prios or a waitlist spot but is not in the raid; “Remind raid” posts the missing names with the link and PIN.
 
 ## Export
 
@@ -84,8 +101,8 @@ Since version 1.30.0 a deputy can continue the raid, for example after the loot 
 | `/pm new`, `/pm resume [n]` | new raid, resume an earlier raid |
 | `/pm status` | state of the prio list |
 | `/pm table` | prio table of all players |
-| `/pm roll [Item]`, `/pm free [Item]`, `/pm stop` | start or end a roll round |
-| `/pm tiebreak`, `/pm random [Item]` | tiebreak roll, award randomly |
+| `/pm rollitem [Item]`, `/pm roll [Item]`, `/pm free [Item]`, `/pm stop` | start or end a roll round, also for an item outside the loot |
+| `/pm tiebreak`, `/pm rollrandom [Item]`, `/pm random [Item]` | tiebreak roll, award randomly |
 | `/pm tiers [Name N]` | show or set roll tiers |
 | `/pm award Name [Item]` | record an award by hand |
 | `/pm undo` | undo the last award |
@@ -133,6 +150,23 @@ Das Hauptfenster öffnet `/pm` oder ein Linksklick auf den Minimap-Knopf. Ein Re
 
 Neuen Raid erst nach den ersten Vergaben gestartet? Im Reiter Beute oben den alten Raid wählen, die erste Vergabe des neuen Raids mit rechts anklicken und „Ab hier in den laufenden Raid“ wählen. Sie und alle späteren Einträge ziehen in den laufenden Raid um, nach Zeit einsortiert und mit ihren Würfen.
 
+## Würfelrunde von Hand
+
+Ist der Plündermeister zu weit weg, lässt WoW die Beute normal auswürfeln und das Item landet in einer Tasche. Verteilen lässt es sich trotzdem: `/pm rollitem [Item]` eingeben und das Item per Shift-Klick verlinken, etwa aus dem Chat. `/pm würfeln [Item]` tut dasselbe.
+
+Es gilt dasselbe wie beim Knopf **Würfeln**: Erst kommen Warteliste und Prios, sonst würfeln alle mit ihrer aktuellen Würfelstufe. Würfe auf Items, die die Klasse nicht tragen kann, zählen nicht. `/pm frei [Item]` übergeht die Prios.
+
+Das Panel öffnet sich von selbst und zeigt die Würfe, auch ohne Plünderfenster. Danach kommt es darauf an, wer das Item hat:
+
+- **Du selbst:** an den Gewinner handeln, das Addon trägt den Handel als Vergabe ein.
+- **Jemand anderes:** „An Name (Wurf)“ trägt die Vergabe ein und nennt sie im Raidchat, der Spieler mit dem Item handelt es weiter.
+
+Hat nur noch ein Spieler Prio, heißt der Knopf „An Name“ und es braucht keinen Wurf. „An Entzauberer“ trägt die Vergabe ebenfalls nur ein.
+
+Die Runde gehört zu keiner Beute. Öffnest du währenddessen ein Plünderfenster, zeigt das Panel nur diese Beute, auch wenn dort dasselbe Item liegt. Die Würfe laufen weiter und stehen nach dem Schließen wieder im Panel. Startest du für die Beute eine eigene Runde, ruht die Runde von Hand, `/pm rollitem [Item]` holt sie mit ihren Würfen zurück.
+
+`/pm rollrandom [Item]` vergibt das Item stattdessen zufällig, wie der Knopf **Zufällig vergeben**: Wurf über alle Spieler im Raid, gezählt durch die Gruppen 1 bis 8, bei Prio oder vorhandenen Würfen erst nach Rückfrage. Die Klasse spielt dabei keine Rolle. Auch hier trägt das Addon die Vergabe nur ein, handeln muss, wer das Item hat. `/pm zufall [Item]` tut dasselbe.
+
 ## Regeln
 
 - **Würfelstufen:** Alle beginnen mit /roll 100. Jeder Gewinn per freiem Wurf senkt die eigene Stufe um eins (99, 98 …), gewürfelt wird mit der eigenen Stufe. Vergaben über Prio ändern die Stufe nicht. Der Reiter Raid listet alle, die gewürfelt haben; Plus hebt eine Stufe von Hand, Minus senkt sie. Mit „Immer mit /roll 100 würfeln“ unter Optionen, voreingestellt aus, würfeln alle mit /roll 100. Gewertet wird dann erst nach Stufe, dann nach Wert: Jeder Wurf mit Stufe 100 schlägt jeden mit Stufe 99. Ein /roll 99 zählt dann mit der eigenen Stufe.
@@ -170,7 +204,7 @@ Hat ein Spieler ein Item im Spiel an jemand anderen weitergegeben, klickst du di
 
 ## Priocheck
 
-So siehst du, wer im Raid noch keine Prios eingetragen hat, ohne die Eintragung auf priomeister.de zu schließen: Auf der Spielerseite des Prio-Runs unter „Alle Prios“ auf „Priocheck kopieren“ klicken, unter `/pm import` einfügen und „Prüfen“ wählen. Das Ergebnis steht im Chat und im Reiter Raid, auch wer Prios eingetragen hat, aber nicht im Raid ist. „Im Raid erinnern“ postet die fehlenden Namen mit Link und PIN.
+So siehst du, wer im Raid noch keine Prios eingetragen hat, ohne die Eintragung auf priomeister.de zu schließen: Auf der Spielerseite des Prio-Runs unter „Alle Prios“ auf „Priocheck kopieren“ klicken, unter `/pm import` einfügen und „Prüfen“ wählen. Das Ergebnis steht im Chat und im Reiter Raid, auch wer Prios oder einen Warteplatz hat, aber nicht im Raid ist. „Im Raid erinnern“ postet die fehlenden Namen mit Link und PIN.
 
 ## Export
 
@@ -201,8 +235,8 @@ Ab Version 1.30.0 kann ein Stellvertreter den Raid weiterführen, etwa nach eine
 | `/pm neu`, `/pm fortsetzen [n]` | neuer Raid, früheren Raid fortsetzen |
 | `/pm stand` | Stand der Prioliste |
 | `/pm tabelle` | Prio-Tabelle aller Spieler |
-| `/pm würfeln [Item]`, `/pm frei [Item]`, `/pm stopp` | Würfelrunde starten oder beenden |
-| `/pm stich`, `/pm zufall [Item]` | Stichwurf, zufällig vergeben |
+| `/pm rollitem [Item]`, `/pm würfeln [Item]`, `/pm frei [Item]`, `/pm stopp` | Würfelrunde starten oder beenden, auch für ein Item außerhalb der Beute |
+| `/pm stich`, `/pm rollrandom [Item]`, `/pm zufall [Item]` | Stichwurf, zufällig vergeben |
 | `/pm stufen [Name N]` | Würfelstufen zeigen oder setzen |
 | `/pm vergabe Name [Item]` | Vergabe von Hand eintragen |
 | `/pm undo` | letzte Vergabe zurücknehmen |

@@ -206,7 +206,7 @@ end
 
 -- Loot-Platz mit dem Item einer Würfelrunde, aus derselben Leiche oder Truhe.
 function PM:SlotForSession(s)
-	if not s or not self.lootOpen then return nil end
+	if not s or s.manual or not self.lootOpen then return nil end
 	local canon = L.Canon(s.itemID)
 	for slot = 1, GetNumLootItems() do
 		local _, id = self:LootSlotItem(slot)
@@ -218,12 +218,21 @@ end
 -- Würfelrunde für das Panel: laufende Runden immer. Ist das Item vergeben,
 -- verschwindet die Runde, die Vergabe steht im Chat. Eine beendete Runde ohne
 -- Vergabe bleibt nur, solange ihr Item noch in derselben offenen Beute liegt.
+-- Eine Runde von Hand gehört zu keiner Beute: Sie steht im Panel, solange es keine Beute
+-- zeigt, dann auch nach „Beenden“.
 function PM:PanelSession()
 	local s = L.ActiveSession(self:Raid())
+	if s and s.manual and not s.done then return #self.lootItems == 0 and s or nil end
 	if not s or not s.closed then return s end
 	if s.done then return nil end
 	if self.testMode then return s end
 	return self:SlotForSession(s) and s or nil
+end
+
+-- Läuft eine Runde von Hand? Dann bleibt das Panel auch ohne Plünderfenster offen.
+function PM:HandRoundRunning()
+	local s = L.ActiveSession(self:Raid())
+	return s ~= nil and s.manual == true and not s.closed
 end
 
 function PM:ShouldShowPanel()
@@ -374,6 +383,10 @@ function PM:GiveToDisenchanter(confirmed)
 		self:ConfirmAward({ key = L.NameKey(de), name = de, itemID = s.itemID, link = s.link, reason = "de" })
 		return
 	end
+	if s.manual then
+		self:RecordHandAward({ key = L.NameKey(de), name = de, itemID = s.itemID, link = s.link, session = s.id, reason = "de" })
+		return
+	end
 	local slot = self:SlotForSession(s)
 	if slot and not self:BelowThreshold(slot) then
 		if not self:GiveSlot(slot, de, "de") then
@@ -437,7 +450,7 @@ function PM:GiveItemToDisenchanter(itemID, slot, confirmed)
 	end
 	if not confirmed then
 		local s = L.ActiveSession(self:Raid())
-		local same = s and L.Canon(s.itemID) == L.Canon(itemID) and (not s.source or not source or s.source == source)
+		local same = s and not s.manual and L.Canon(s.itemID) == L.Canon(itemID) and (not s.source or not source or s.source == source)
 		local rolls = same and L.OpenRolls(s) or {}
 		if #rolls > 0 or (quality or 0) >= 4 then
 			StaticPopup_Show("PRIOMEISTER_DE_ITEM", L.ConfirmText(link, nil, rolls), de, { itemID = itemID, slot = slot })
@@ -467,12 +480,27 @@ Popup("PRIOMEISTER_WINNER", {
 	timeout = 0, whileDead = true, hideOnEscape = true,
 })
 
+-- Rückfrage vor einem epischen Item, abschaltbar unter Optionen. Rückgabe true: Sie läuft.
+function PM:AskEpicWinner(s, r, quality)
+	if not (self.db.settings.confirmEpicWinner and quality and quality >= (MASTER_LOOT_THREHOLD or 4)) then return false end
+	StaticPopup_Show("PRIOMEISTER_WINNER", s.link or "?", r.value and string.format(T("%s (Wurf %d)"), r.name, r.value) or r.name,
+		{ session = s.id, key = r.key })
+	return true
+end
+
+-- Vergabe von Hand: Das Item liegt in einer Tasche, also nur eintragen. Handeln muss, wer es hat.
+-- Handelt es der Plündermeister selbst, ohne den Knopf zu nutzen, trägt PM:CommitTrade es ein.
+function PM:RecordHandAward(p)
+	self:ConfirmAward(p)
+	self:Print("Nur eingetragen: Wer das Item hat, handelt es an %s.", p.name)
+end
+
 -- Gibt das Item der Würfelrunde dem Gewinner. Epische Items erst nach Rückfrage,
 -- wie in Blizzards Plündermeister-Liste, abschaltbar unter Optionen. confirmedSession und confirmedKey:
 -- Runde und Spieler, für die die Rückfrage bestätigt wurde.
 function PM:GiveToWinner(confirmedSession, confirmedKey)
 	local s = L.ActiveSession(self:Raid())
-	local r = L.RoundWinner(s)
+	local r = L.RoundTarget(s)
 	if confirmedSession and not (r and confirmedSession == s.id and confirmedKey == r.key) then
 		self:Print("Die Würfelrunde hat sich inzwischen geändert. Bitte noch einmal auf den Knopf klicken.")
 		return
@@ -485,14 +513,15 @@ function PM:GiveToWinner(confirmedSession, confirmedKey)
 		self:ConfirmAward({ key = r.key, name = r.name, itemID = s.itemID, link = s.link, session = s.id })
 		return
 	end
+	if s.manual then
+		if confirmedSession or not self:AskEpicWinner(s, r, select(3, self:ItemInfo(s.itemID))) then
+			self:RecordHandAward({ key = r.key, name = r.name, itemID = s.itemID, link = s.link, session = s.id })
+		end
+		return
+	end
 	local slot = self:SlotForSession(s)
 	if slot and not self:BelowThreshold(slot) then
-		local quality = select(5, GetLootSlotInfo(slot))
-		if not confirmedSession and self.db.settings.confirmEpicWinner and quality and quality >= (MASTER_LOOT_THREHOLD or 4) then
-			StaticPopup_Show("PRIOMEISTER_WINNER", s.link or "?", string.format(T("%s (Wurf %d)"), r.name, r.value),
-				{ session = s.id, key = r.key })
-			return
-		end
+		if not confirmedSession and self:AskEpicWinner(s, r, select(5, GetLootSlotInfo(slot))) then return end
 		if not self:GiveSlot(slot, r.name) then
 			self:Print("%s kann diese Beute nicht erhalten (nicht in der Nähe?).", r.name)
 		end
@@ -683,7 +712,7 @@ function PM:LOOT_OPENED()
 	self.personalLoot = self:PersonalLoot()
 	if self.personalLoot then
 		self:ScanLoot()
-		ns.UI:HidePanel()
+		if not self:HandRoundRunning() then ns.UI:HidePanel() end
 		return
 	end
 	self:AutoLoot()
@@ -691,7 +720,7 @@ function PM:LOOT_OPENED()
 	self:AnnounceLoot()
 	if self:ShouldShowPanel() then
 		ns.UI:ShowPanel(true)
-	else
+	elseif not self:HandRoundRunning() then
 		ns.UI:HidePanel()
 	end
 end
@@ -703,7 +732,8 @@ function PM:LOOT_CLOSED()
 	self.lootItems = {}
 	self.autoGiving = {}
 	self.personalLoot = false
-	if not self.testMode and not self.panelPinned then ns.UI:HidePanel() end
+	if not self.testMode and not self.panelPinned and not self:HandRoundRunning() then ns.UI:HidePanel() end
+	ns.UI:RefreshPanel()
 end
 
 function PM:LOOT_SLOT_CLEARED(slot)

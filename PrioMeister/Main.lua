@@ -1312,6 +1312,14 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.32.0", "04.11.2026", {
+		"Würfelrunde von Hand: Ist der Plündermeister zu weit weg, lässt WoW die Beute normal auswürfeln. Mit /pm rollitem [Item] wird das Item danach trotzdem verteilt. Prios, Würfelstufen und die Klassenprüfung gelten wie sonst, /pm frei [Item] übergeht die Prios.",
+		"Das Panel zeigt die Würfe dieser Runde auch ohne Plünderfenster. „An Name“ trägt die Vergabe ein, handeln muss, wer das Item hat. Handelst du es selbst an den Gewinner, trägt das Addon den Handel ein.",
+		"/pm rollrandom [Item] vergibt ein Item außerhalb der Beute zufällig, wie der Knopf „Zufällig vergeben“. Die Vergabe wird nur eingetragen, handeln muss, wer das Item hat.",
+	} },
+	{ "1.31.1", "04.11.2026", {
+		"Priocheck: Wer auf priomeister.de auf einer Warteliste steht, die als Prio 0 gilt, zählt auch ohne eigenen Eintrag. Das Addon nannte diese Spieler „mit Prios“, die Zeilen heißen jetzt „Mit Prios oder Warteplatz“.",
+	} },
 	{ "1.31.0", "03.11.2026", {
 		"Einträge in den laufenden Raid verschieben: Wer den neuen Raid erst nach den ersten Vergaben startet, hat sie noch im alten Raid. Im Reiter „Beute“ den alten Raid wählen, die erste Vergabe des neuen Raids mit rechts anklicken und „Ab hier in den laufenden Raid“ wählen. Sie und alle späteren Einträge ziehen um, nach Zeit einsortiert und mit ihren Würfen. Würfelstufen, Prios und der Export richten sich danach.",
 	} },

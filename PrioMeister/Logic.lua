@@ -536,7 +536,8 @@ end
 -- die Eintragung zu schließen und die Liste zu importieren.
 -- "# priocheck;v=1;run=Ony+ZG 21.10.;pin=482913;link=https://…;instanzen=Onyxias Hort:1|Zul'Gurub:3"
 -- "Arcanaa;Magier;1;111" – je Instanz eine Ziffer je Prio: 1 gesetzt, 0 leer.
--- Wer auf der Seite nichts eingetragen hat, steht nicht in der Liste.
+-- Wer auf der Seite nichts eingetragen hat, steht nicht in der Liste. Ausnahme: Ein Warteplatz,
+-- der als Prio 0 gilt, macht in seiner Instanz lauter Einsen, auch ohne eigenen Eintrag.
 -------------------------------------------------------------------------------
 
 function L.IsPrioCheck(text)
@@ -626,7 +627,7 @@ function L.CheckMissing(check, p)
 end
 
 -- Priocheck gegen den Raid: roster ist eine Liste { key, name }. Ergebnis: none (Namen ohne Prios),
--- partial ({ name, detail }), complete (Anzahl vollständig), away (Namen mit Prios, aber nicht im Raid).
+-- partial ({ name, detail }), complete (Anzahl vollständig), away (Namen mit Prios oder Warteplatz, aber nicht im Raid).
 -- Namen, die nur ohne Akzente passen, zählen wie bei der Prioliste (L.MatchFolded).
 function L.CheckRaid(check, roster)
 	local res = { none = {}, partial = {}, complete = 0, away = {} }
@@ -646,7 +647,7 @@ function L.CheckRaid(check, roster)
 			res.complete = res.complete + 1
 		end
 	end
-	-- Nicht im Raid zählt nur, wer auf der Seite Prios gesetzt hat.
+	-- Nicht im Raid zählt nur, wer auf der Seite Prios oder einen Warteplatz mit Prio 0 hat.
 	for key, p in pairs(check.players) do
 		if not inRaid[key] and not matched[key] and L.CheckMissing(check, p) ~= "all" then
 			res.away[#res.away + 1] = p.name
@@ -1375,6 +1376,7 @@ end
 -- opts.secondary: 50er-Würfe (Zweitchar/Zweitskillung) erlaubt
 -- opts.source: Herkunft der Beute (GUID der Leiche oder Truhe)
 -- opts.copies: Anzahl gleicher Items in dieser Beute (für Vergaben per Handel)
+-- opts.manual: Runde von Hand, das Item liegt in keiner offenen Beute
 function L.NewSession(raid, itemID, link, res, now, opts)
 	opts = opts or {}
 	raid.sessionSeq = (raid.sessionSeq or 0) + 1
@@ -1389,6 +1391,7 @@ function L.NewSession(raid, itemID, link, res, now, opts)
 		winners = {},
 		source = opts.source,
 		copies = opts.copies,
+		manual = opts.manual,
 	}
 	if res and res.top ~= nil then
 		s.mode = "prio"
@@ -1433,10 +1436,13 @@ end
 -- Gehört eine Würfelrunde zu diesem Exemplar? Erledigte Runden (alle Exemplare
 -- vergeben) zählen nie. ctx.session nennt die Runde direkt, ctx.source ist die
 -- GUID der Leiche oder Truhe. Ohne beides, etwa bei /pm vergabe, zählt die
--- neueste offene Runde.
+-- neueste offene Runde. Eine Runde von Hand gehört zu keiner Beute, ctx.manual
+-- sucht nur solche Runden.
 function L.SessionMatches(s, ctx)
 	if not s or s.done then return false end
 	if ctx and ctx.session then return s.id == ctx.session end
+	if ctx and ctx.manual then return s.manual == true end
+	if ctx and ctx.source and s.manual then return false end
 	if ctx and ctx.source and s.source then return ctx.source == s.source end
 	return true
 end
@@ -1803,6 +1809,17 @@ function L.RoundWinner(s)
 		if r == first then return nil end
 	end
 	return first
+end
+
+-- Wer das Item der Runde bekommt: der Gewinner. In einer Runde von Hand auch der letzte
+-- Berechtigte einer Prio-Runde ohne Wurf, denn dort fehlt die Zeile mit „An Name“ im Panel.
+function L.RoundTarget(s)
+	local r = L.RoundWinner(s)
+	if r or not (s and s.manual and s.mode == "prio") or L.RemainingEligible(s) ~= 1 then return r end
+	for key, name in pairs(s.eligible) do
+		if not (s.passed and s.passed[key]) and not s.winners[key] then return { key = key, name = name } end
+	end
+	return nil
 end
 
 -- Kurzfassung der Würfe für Rückfragen, z. B. „Shanya 87, Mira 45 (1-50), Bodo 95 (ungültig)“.
