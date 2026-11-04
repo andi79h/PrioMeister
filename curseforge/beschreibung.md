@@ -29,6 +29,8 @@ The panel opens by itself and shows the rolls, even without a loot window. What 
 
 If only one player still has prio, the button reads “To Name” and no roll is needed. “To disenchanter” also only records the award.
 
+The round does not belong to any loot. If you open a loot window in the meantime, the panel shows only that loot, even if it holds the same item. The rolls keep counting and are back in the panel once the window closes. If you start a separate round for the loot, the round by hand pauses, `/pm rollitem [Item]` brings it back with its rolls.
+
 `/pm rollrandom [Item]` awards the item randomly instead, like the **Award randomly** button: a roll over all players in the raid, counted through groups 1 to 8, after a confirmation if someone has prio or has already rolled. The class does not matter here. Again the addon only records the award, whoever has the item trades it. `/pm random [Item]` does the same.
 
 ## Rules
@@ -160,6 +162,8 @@ Das Panel öffnet sich von selbst und zeigt die Würfe, auch ohne Plünderfenste
 - **Jemand anderes:** „An Name (Wurf)“ trägt die Vergabe ein und nennt sie im Raidchat, der Spieler mit dem Item handelt es weiter.
 
 Hat nur noch ein Spieler Prio, heißt der Knopf „An Name“ und es braucht keinen Wurf. „An Entzauberer“ trägt die Vergabe ebenfalls nur ein.
+
+Die Runde gehört zu keiner Beute. Öffnest du währenddessen ein Plünderfenster, zeigt das Panel nur diese Beute, auch wenn dort dasselbe Item liegt. Die Würfe laufen weiter und stehen nach dem Schließen wieder im Panel. Startest du für die Beute eine eigene Runde, ruht die Runde von Hand, `/pm rollitem [Item]` holt sie mit ihren Würfen zurück.
 
 `/pm rollrandom [Item]` vergibt das Item stattdessen zufällig, wie der Knopf **Zufällig vergeben**: Wurf über alle Spieler im Raid, gezählt durch die Gruppen 1 bis 8, bei Prio oder vorhandenen Würfen erst nach Rückfrage. Die Klasse spielt dabei keine Rolle. Auch hier trägt das Addon die Vergabe nur ein, handeln muss, wer das Item hat. `/pm zufall [Item]` tut dasselbe.
 

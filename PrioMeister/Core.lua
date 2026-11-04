@@ -2214,10 +2214,12 @@ function PM:StartRoll(itemID, link, res, forceFree, ctx)
 	link = link or self:ItemLabel(itemID)
 	-- Läuft für dieses Exemplar schon eine offene Runde gleicher Art, nur erneut ansagen.
 	-- Nach einem Verzicht kann eine andere Prio-Stufe dran sein, die bekommt eine neue Runde.
-	local s = L.ActiveSession(raid)
+	-- Eine Runde von Hand, die eine Runde aus der Beute verdrängt hat, geht mit ihren Würfen weiter.
+	local s = ctx and ctx.manual and L.FindSession(raid, itemID, ctx) or L.ActiveSession(raid)
 	local mode = (res.top ~= nil) and "prio" or res.mode
 	local same = s and not s.closed and s.item == L.Canon(itemID) and s.mode == mode and L.SessionMatches(s, ctx)
 		and (mode ~= "prio" or s.level == res.top)
+	if same then raid.activeId = s.id end
 	if not same then
 		s = L.NewSession(raid, itemID, link, res, time(), {
 			secondary = self.db.settings.secondaryRolls,

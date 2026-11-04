@@ -29,6 +29,8 @@ The panel opens by itself and shows the rolls, even without a loot window. What 
 
 If only one player still has prio, the button reads “To Name” and no roll is needed. “To disenchanter” also only records the award.
 
+The round does not belong to any loot. If you open a loot window in the meantime, the panel shows only that loot, even if it holds the same item. The rolls keep counting and are back in the panel once the window closes. If you start a separate round for the loot, the round by hand pauses, `/pm rollitem [Item]` brings it back with its rolls.
+
 `/pm rollrandom [Item]` awards the item randomly instead, like the **Award randomly** button: a roll over all players in the raid, counted through groups 1 to 8, after a confirmation if someone has prio or has already rolled. The class does not matter here. Again the addon only records the award, whoever has the item trades it. `/pm random [Item]` does the same.
 
 ## Rules

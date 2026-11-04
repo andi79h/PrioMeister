@@ -29,6 +29,8 @@ Das Panel öffnet sich von selbst und zeigt die Würfe, auch ohne Plünderfenste
 
 Hat nur noch ein Spieler Prio, heißt der Knopf „An Name“ und es braucht keinen Wurf. „An Entzauberer“ trägt die Vergabe ebenfalls nur ein.
 
+Die Runde gehört zu keiner Beute. Öffnest du währenddessen ein Plünderfenster, zeigt das Panel nur diese Beute, auch wenn dort dasselbe Item liegt. Die Würfe laufen weiter und stehen nach dem Schließen wieder im Panel. Startest du für die Beute eine eigene Runde, ruht die Runde von Hand, `/pm rollitem [Item]` holt sie mit ihren Würfen zurück.
+
 `/pm rollrandom [Item]` vergibt das Item stattdessen zufällig, wie der Knopf **Zufällig vergeben**: Wurf über alle Spieler im Raid, gezählt durch die Gruppen 1 bis 8, bei Prio oder vorhandenen Würfen erst nach Rückfrage. Die Klasse spielt dabei keine Rolle. Auch hier trägt das Addon die Vergabe nur ein, handeln muss, wer das Item hat. `/pm zufall [Item]` tut dasselbe.
 
 ## Regeln

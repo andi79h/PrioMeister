@@ -218,20 +218,21 @@ end
 -- Würfelrunde für das Panel: laufende Runden immer. Ist das Item vergeben,
 -- verschwindet die Runde, die Vergabe steht im Chat. Eine beendete Runde ohne
 -- Vergabe bleibt nur, solange ihr Item noch in derselben offenen Beute liegt.
--- Eine Runde von Hand bleibt nach „Beenden“, solange kein Plünderfenster offen ist.
+-- Eine Runde von Hand gehört zu keiner Beute: Sie steht im Panel, solange es keine Beute
+-- zeigt, dann auch nach „Beenden“.
 function PM:PanelSession()
 	local s = L.ActiveSession(self:Raid())
+	if s and s.manual and not s.done then return #self.lootItems == 0 and s or nil end
 	if not s or not s.closed then return s end
 	if s.done then return nil end
 	if self.testMode then return s end
-	if s.manual and not self.lootOpen then return s end
 	return self:SlotForSession(s) and s or nil
 end
 
--- Zeigt das Panel eine Runde von Hand? Dann bleibt es auch ohne Plünderfenster offen.
-function PM:ShowsHandRound()
-	local s = self:PanelSession()
-	return s ~= nil and s.manual == true
+-- Läuft eine Runde von Hand? Dann bleibt das Panel auch ohne Plünderfenster offen.
+function PM:HandRoundRunning()
+	local s = L.ActiveSession(self:Raid())
+	return s ~= nil and s.manual == true and not s.closed
 end
 
 function PM:ShouldShowPanel()
@@ -449,7 +450,7 @@ function PM:GiveItemToDisenchanter(itemID, slot, confirmed)
 	end
 	if not confirmed then
 		local s = L.ActiveSession(self:Raid())
-		local same = s and L.Canon(s.itemID) == L.Canon(itemID) and (not s.source or not source or s.source == source)
+		local same = s and not s.manual and L.Canon(s.itemID) == L.Canon(itemID) and (not s.source or not source or s.source == source)
 		local rolls = same and L.OpenRolls(s) or {}
 		if #rolls > 0 or (quality or 0) >= 4 then
 			StaticPopup_Show("PRIOMEISTER_DE_ITEM", L.ConfirmText(link, nil, rolls), de, { itemID = itemID, slot = slot })
@@ -711,7 +712,7 @@ function PM:LOOT_OPENED()
 	self.personalLoot = self:PersonalLoot()
 	if self.personalLoot then
 		self:ScanLoot()
-		if not self:ShowsHandRound() then ns.UI:HidePanel() end
+		if not self:HandRoundRunning() then ns.UI:HidePanel() end
 		return
 	end
 	self:AutoLoot()
@@ -719,7 +720,7 @@ function PM:LOOT_OPENED()
 	self:AnnounceLoot()
 	if self:ShouldShowPanel() then
 		ns.UI:ShowPanel(true)
-	elseif not self:ShowsHandRound() then
+	elseif not self:HandRoundRunning() then
 		ns.UI:HidePanel()
 	end
 end
@@ -731,7 +732,8 @@ function PM:LOOT_CLOSED()
 	self.lootItems = {}
 	self.autoGiving = {}
 	self.personalLoot = false
-	if not self.testMode and not self.panelPinned and not self:ShowsHandRound() then ns.UI:HidePanel() end
+	if not self.testMode and not self.panelPinned and not self:HandRoundRunning() then ns.UI:HidePanel() end
+	ns.UI:RefreshPanel()
 end
 
 function PM:LOOT_SLOT_CLEARED(slot)

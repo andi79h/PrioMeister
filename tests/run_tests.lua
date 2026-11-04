@@ -4752,6 +4752,53 @@ do
 	eq(L.RoundTarget(L.NewSession({}, 17075, "x", { top = 1, topHolders = { { key = "zenec", name = "Zenec" } } }, 1, {})), nil,
 		"Runde aus der Beute: Ohne Wurf gilt „An Name“ an der Zeile des Items")
 
+	-- Eine Runde von Hand gehört zu keiner Beute, auch wenn dort dasselbe Item liegt
+	local card = mock.Link(19229)
+	SlashCmdList.PRIOMEISTER("rollitem " .. card)
+	local hand = L.ActiveSession(raid)
+	mock.Roll("Hesti", 60, 1, 99)
+	check(hand.manual and #hand.rolls == 1 and hand.rolls[1].status == "ok", "Wurf in der Runde von Hand")
+	check(p.rollHeader:IsShown(), "Runde von Hand im Panel")
+	mock.OpenLoot({ { id = 19229 } }, "Creature-Karte")
+	check(p:IsShown() and p.rows[1]:IsShown() and not p.rollHeader:IsShown() and not p.rollWin:IsShown(),
+		"Beute offen: Panel zeigt nur die Beute")
+	eq(L.FindSession(raid, 19229, { source = "Creature-Karte" }), nil, "Runde von Hand zählt nicht für das Exemplar aus der Beute")
+	mock.popup = nil
+	PM:GiveItemToDisenchanter(19229, 1)
+	check(mock.popup and not mock.popup.text:find("Hesti", 1, true), "Rückfrage nennt die Würfe von Hand nicht", mock.popup and mock.popup.text)
+	mock.popup = nil
+	p.rows[1].btn._scripts.OnClick(p.rows[1].btn, "LeftButton")
+	local looted = L.ActiveSession(raid)
+	check(looted ~= hand and not looted.manual and #looted.rolls == 0, "Exemplar aus der Beute: eigene Runde ohne die Würfe von Hand")
+	mock.Roll("Arcanaa", 45)
+	eq(p.rollWin:IsShown() and p.rollWin:GetText(), "An Arcanaa (45)", "Es zählt nur der Wurf auf dieses Exemplar")
+	mock.given = {}
+	click(p.rollWin)
+	mock.AcceptPopup()
+	eq(#mock.given, 1, "Exemplar aus der Beute geht an den Gewinner")
+	mock.loot[1] = false
+	mock.Fire("LOOT_SLOT_CLEARED", 1)
+	aw = raid.awards[#raid.awards]
+	check(aw.key == "arcanaa" and aw.kind == "free" and aw.roll == 45 and aw.session == looted.id, "Vergabe mit ihrem eigenen Wurf", aw.kind)
+	check(not hand.done and #hand.rolls == 1, "Runde von Hand bleibt unberührt")
+	mock.CloseLoot()
+	check(not p:IsShown(), "Panel schließt mit dem Plünderfenster")
+
+	-- /pm rollitem holt die verdrängte Runde mit ihren Würfen zurück
+	SlashCmdList.PRIOMEISTER("rollitem " .. card)
+	check(L.ActiveSession(raid) == hand and #hand.rolls == 1, "Runde von Hand geht mit ihren Würfen weiter")
+	eq(p:IsShown() and p.rollWin:IsShown() and p.rollWin:GetText(), "An Hesti (60)", "Panel zeigt sie wieder")
+	-- Ein anderes Item in der Beute: Danach steht wieder die Runde von Hand im Panel, ohne alte Zeilen
+	mock.OpenLoot({ { id = 18205 } }, "Creature-Anderes")
+	check(p.rows[1]:IsShown() and not p.rollHeader:IsShown(), "anderes Item: Panel zeigt nur die Beute")
+	mock.Roll("Zenec", 30)
+	eq(#hand.rolls, 2, "Würfe zählen auch bei offener Beute")
+	mock.CloseLoot()
+	check(p:IsShown() and p.rollHeader:IsShown() and not p.rows[1]:IsShown(), "nach dem Schließen wieder die Runde von Hand")
+	click(p.rollWin)
+	mock.AcceptPopup()
+	check(hand.done and not p:IsShown(), "Runde von Hand erledigt, Panel zu")
+
 	-- /pm rollrandom: wie der Knopf „Zufällig vergeben“, nur ohne Beute
 	local order = PM:RandomOrder()
 	mock.sent, mock.chat, mock.given = {}, {}, {}

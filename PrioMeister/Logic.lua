@@ -1436,10 +1436,13 @@ end
 -- Gehört eine Würfelrunde zu diesem Exemplar? Erledigte Runden (alle Exemplare
 -- vergeben) zählen nie. ctx.session nennt die Runde direkt, ctx.source ist die
 -- GUID der Leiche oder Truhe. Ohne beides, etwa bei /pm vergabe, zählt die
--- neueste offene Runde.
+-- neueste offene Runde. Eine Runde von Hand gehört zu keiner Beute, ctx.manual
+-- sucht nur solche Runden.
 function L.SessionMatches(s, ctx)
 	if not s or s.done then return false end
 	if ctx and ctx.session then return s.id == ctx.session end
+	if ctx and ctx.manual then return s.manual == true end
+	if ctx and ctx.source and s.manual then return false end
 	if ctx and ctx.source and s.source then return ctx.source == s.source end
 	return true
 end
