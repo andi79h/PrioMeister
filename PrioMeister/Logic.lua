@@ -536,7 +536,8 @@ end
 -- die Eintragung zu schließen und die Liste zu importieren.
 -- "# priocheck;v=1;run=Ony+ZG 21.10.;pin=482913;link=https://…;instanzen=Onyxias Hort:1|Zul'Gurub:3"
 -- "Arcanaa;Magier;1;111" – je Instanz eine Ziffer je Prio: 1 gesetzt, 0 leer.
--- Wer auf der Seite nichts eingetragen hat, steht nicht in der Liste.
+-- Wer auf der Seite nichts eingetragen hat, steht nicht in der Liste. Ausnahme: Ein Warteplatz,
+-- der als Prio 0 gilt, macht in seiner Instanz lauter Einsen, auch ohne eigenen Eintrag.
 -------------------------------------------------------------------------------
 
 function L.IsPrioCheck(text)
@@ -626,7 +627,7 @@ function L.CheckMissing(check, p)
 end
 
 -- Priocheck gegen den Raid: roster ist eine Liste { key, name }. Ergebnis: none (Namen ohne Prios),
--- partial ({ name, detail }), complete (Anzahl vollständig), away (Namen mit Prios, aber nicht im Raid).
+-- partial ({ name, detail }), complete (Anzahl vollständig), away (Namen mit Prios oder Warteplatz, aber nicht im Raid).
 -- Namen, die nur ohne Akzente passen, zählen wie bei der Prioliste (L.MatchFolded).
 function L.CheckRaid(check, roster)
 	local res = { none = {}, partial = {}, complete = 0, away = {} }
@@ -646,7 +647,7 @@ function L.CheckRaid(check, roster)
 			res.complete = res.complete + 1
 		end
 	end
-	-- Nicht im Raid zählt nur, wer auf der Seite Prios gesetzt hat.
+	-- Nicht im Raid zählt nur, wer auf der Seite Prios oder einen Warteplatz mit Prio 0 hat.
 	for key, p in pairs(check.players) do
 		if not inRaid[key] and not matched[key] and L.CheckMissing(check, p) ~= "all" then
 			res.away[#res.away + 1] = p.name

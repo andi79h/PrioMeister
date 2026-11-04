@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.31.0"
+PM.version = "1.31.1"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -749,7 +749,7 @@ function PM:CheckLines()
 		return { T("Kein Priocheck geladen. Auf priomeister.de auf der Spielerseite des Prio-Runs unter „Alle Prios“ „Priocheck kopieren“ klicken, hier unter „Importieren …“ einfügen und „Prüfen“ wählen. Die Eintragung kann dabei offen bleiben.") }
 	end
 	local res = L.CheckRaid(check, self:RosterList())
-	local lines = { format(T("Priocheck %s, Stand %s: %d mit Eintrag auf der Seite"), check.meta.run or "", date("%d.%m. %H:%M", check.t), check.count) }
+	local lines = { format(T("Priocheck %s, Stand %s: %d mit Eintrag oder Warteplatz auf der Seite"), check.meta.run or "", date("%d.%m. %H:%M", check.t), check.count) }
 	if #self:RosterList() == 0 then
 		lines[#lines + 1] = T("Nicht im Raid: Der Priocheck vergleicht mit den Mitgliedern des Raids.")
 		return lines
@@ -760,8 +760,8 @@ function PM:CheckLines()
 		for _, p in ipairs(res.partial) do lines[#lines + 1] = format("   %s: %s", p.name, p.detail) end
 	end
 	lines[#lines + 1] = format(T("Vollständig: %d"), res.complete)
-	lines[#lines + 1] = (#res.away > 0) and (T("|cffffd100Mit Prios, aber nicht im Raid:|r ") .. table.concat(res.away, ", "))
-		or T("|cff40ff40Alle mit Prios sind im Raid.|r")
+	lines[#lines + 1] = (#res.away > 0) and (T("|cffffd100Mit Prios oder Warteplatz, aber nicht im Raid:|r ") .. table.concat(res.away, ", "))
+		or T("|cff40ff40Alle mit Prios oder Warteplatz sind im Raid.|r")
 	return lines
 end
 
@@ -2999,7 +2999,7 @@ local HELP = {
 	"|cffffd100/pm stich|r – Stichwurf bei Gleichstand (gleiche Stufe wie beim ersten Wurf)",
 	"|cffffd100/pm zufall [Item]|r – zufällig vergeben: Wurf über alle Spieler, gezählt durch die Gruppen 1 bis 8",
 	"|cffffd100/pm erinnern|r – Spieler ohne Prio im Raid erinnern",
-	"|cffffd100/pm check|r – Priocheck: wer im Raid noch Prios braucht und wer mit Prios fehlt (einfügen unter |cffffd100/pm import|r)",
+	"|cffffd100/pm check|r – Priocheck: wer im Raid noch Prios braucht und wer mit Prios oder Warteplatz fehlt (einfügen unter |cffffd100/pm import|r)",
 	"|cffffd100/pm helfer Name|r, |cffffd100/pm schatzmeister Name|r, |cffffd100/pm entzauberer Name|r – Rollen setzen (|cffffd100-|r leert)",
 	"|cffffd100/pm wer|r – wer in der Gruppe PrioMeister hat, mit Version",
 	"|cffffd100/pm sicherung|r – Stand der Sicherung bei den Stellvertretern",
