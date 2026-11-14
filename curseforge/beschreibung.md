@@ -128,7 +128,7 @@ Please use the [bug report form on GitHub](https://github.com/andi79h/PrioMeiste
 
 ## License
 
-MIT, see [LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/LICENSE.txt).
+MIT, see [LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/LICENSE.txt). The font TeX Gyre Pagella in `PrioMeister/Media/Fonts` is by GUST e-foundry under the GUST Font License, see [GUST-FONT-LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/PrioMeister/Media/Fonts/GUST-FONT-LICENSE.txt).
 
 ---
 
@@ -262,4 +262,4 @@ Bitte über das [Formular auf GitHub](https://github.com/andi79h/PrioMeister/iss
 
 ## Lizenz
 
-MIT, siehe [LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/LICENSE.txt).
+MIT, siehe [LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/LICENSE.txt). Die Schrift TeX Gyre Pagella in `PrioMeister/Media/Fonts` stammt von GUST e-foundry und steht unter der GUST Font License, siehe [GUST-FONT-LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/PrioMeister/Media/Fonts/GUST-FONT-LICENSE.txt).

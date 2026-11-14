@@ -234,3 +234,5 @@ Das CurseForge-Projekt 1755238 steht in der TOC (`## X-Curse-Project-ID`). Hochl
 ## Lizenz
 
 MIT, siehe [LICENSE.txt](LICENSE.txt). Jeder darf das Addon nutzen, ändern und weitergeben, solange der Copyright-Hinweis erhalten bleibt.
+
+Die Schrift TeX Gyre Pagella in `PrioMeister/Media/Fonts` stammt von GUST e-foundry und steht unter der GUST Font License, siehe [GUST-FONT-LICENSE.txt](PrioMeister/Media/Fonts/GUST-FONT-LICENSE.txt).

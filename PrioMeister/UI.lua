@@ -18,36 +18,150 @@ local ROLL_BUTTONS = { "rollWin", "rollTie", "rollDE", "rollPost", "rollEnd" }
 -- Bausteine
 -------------------------------------------------------------------------------
 
-UI.BACKDROP = {
-	bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-	tile = true, tileSize = 16, edgeSize = 16,
-	insets = { left = 4, right = 4, top = 4, bottom = 4 },
+-- Design „Nacht und Pergament“ (Testversion, User 14.11.2026, Vorbild ist die Einsendeseite von
+-- QuestieTrace): nachtblaue Fenster im Doppelrahmen mit goldenen Eckbeschlägen, Knöpfe mit Goldverlauf
+-- und dunkler Schrift, Reiter als Schrift mit goldener Unterkante. Überschriften und Knöpfe in TeX Gyre
+-- Pagella (freier Nachbau von Palatino, Lizenz in Media/Fonts), Fließtext in Arial Narrow aus dem Spiel.
+local C = {
+	glow = { 0.110, 0.141, 0.212 }, panel = { 0.086, 0.106, 0.149 }, frame = { 0.165, 0.129, 0.075 },
+	gold = { 0.788, 0.635, 0.290 }, goldBright = { 0.925, 0.816, 0.498 }, goldDark = { 0.478, 0.373, 0.133 },
+	goldLow = { 0.659, 0.522, 0.227 }, ink = { 0.169, 0.137, 0.090 },
+	text = { 0.902, 0.894, 0.863 }, muted = { 0.655, 0.678, 0.729 }, disabled = { 0.42, 0.40, 0.36 },
 }
+UI.COLORS = C
+UI.WHITE = "Interface\\Buttons\\WHITE8X8"
+local FONT_DIR = "Interface\\AddOns\\PrioMeister\\Media\\Fonts\\"
+UI.FONT_SERIF_BOLD = FONT_DIR .. "texgyrepagella-bold.otf"
+UI.FONT_SERIF = FONT_DIR .. "texgyrepagella-regular.otf"
+UI.FONT_SANS = "Fonts\\ARIALN.TTF"
+-- Schrift des Spiels zuerst: Fehlt die Datei, etwa weil WoW nach dem Einspielen nicht neu gestartet
+-- wurde, bleibt sie stehen, statt dass der Text verschwindet
+local FALLBACK_FONT = "Fonts\\FRIZQT__.TTF"
 
--- Fenster mit deckendem Hintergrund: einfarbige Fläche statt der Tooltip-Textur,
--- die WoW leicht durchscheinend zeichnet. Nur das Hauptfenster bleibt durchscheinend.
+local function NewFont(name, file, size, color, shadow)
+	local font = CreateFont(name)
+	font:SetFont(FALLBACK_FONT, size - 2, "")
+	font:SetFont(file, size, "")
+	font:SetTextColor(color[1], color[2], color[3])
+	if shadow then
+		font:SetShadowColor(0, 0, 0, 0.9)
+		font:SetShadowOffset(1, -1)
+	end
+	return font
+end
+
+-- Schriftobjekte statt der Vorlagen des Spiels (GameFontNormal …), für CreateFontString über UI.Font
+local TEMPLATE_FONTS = {
+	{ "GameFontNormalLarge", "PrioMeisterFontTitle", UI.FONT_SERIF_BOLD, 18, C.goldBright },
+	{ "GameFontNormal", "PrioMeisterFontHeading", UI.FONT_SERIF_BOLD, 14, C.gold },
+	{ "GameFontNormalSmall", "PrioMeisterFontHeadingSmall", UI.FONT_SERIF_BOLD, 12, C.gold },
+	{ "GameFontHighlight", "PrioMeisterFontBody", UI.FONT_SANS, 14, C.text },
+	{ "GameFontHighlightSmall", "PrioMeisterFontBodySmall", UI.FONT_SANS, 12, C.text },
+	{ "GameFontDisableSmall", "PrioMeisterFontMuted", UI.FONT_SANS, 12, C.muted },
+}
+local FONT_NAMES = {}
+for _, f in ipairs(TEMPLATE_FONTS) do
+	NewFont(f[2], f[3], f[4], f[5], true)
+	FONT_NAMES[f[1]] = f[2]
+end
+UI.FONT_NAMES = FONT_NAMES
+local FONTS = {
+	button = NewFont("PrioMeisterFontButton", UI.FONT_SERIF_BOLD, 13, C.ink),
+	buttonSmall = NewFont("PrioMeisterFontButtonSmall", UI.FONT_SERIF_BOLD, 11, C.ink),
+	buttonDisabled = NewFont("PrioMeisterFontButtonDisabled", UI.FONT_SERIF_BOLD, 11, C.disabled),
+	tab = NewFont("PrioMeisterFontTab", UI.FONT_SERIF_BOLD, 15, C.muted, true),
+	tabActive = NewFont("PrioMeisterFontTabActive", UI.FONT_SERIF_BOLD, 15, C.goldBright, true),
+}
+UI.FONTS = FONTS
+
+-- Name des Schriftobjekts für eine Vorlage des Spiels; unbekannte Vorlagen bleiben
+function UI.Font(template)
+	return FONT_NAMES[template] or template
+end
+
+-- Senkrechter Verlauf: unten c1 mit a1, oben c2 mit a2; ohne CreateColor einfarbig
+local function Gradient(tex, c1, a1, c2, a2)
+	tex:SetTexture(UI.WHITE)
+	local ok = CreateColor and pcall(tex.SetGradient, tex, "VERTICAL",
+		CreateColor(c1[1], c1[2], c1[3], a1), CreateColor(c2[1], c2[2], c2[3], a2))
+	if not ok then tex:SetVertexColor(c2[1], c2[2], c2[3], (a1 + a2) / 2) end
+end
+
+-- Goldlinie rundum, inset Pixel vom Rand
+local function Ring(f, inset, c)
+	local function edge()
+		local t = f:CreateTexture(nil, "BORDER", nil, 1)
+		t:SetColorTexture(c[1], c[2], c[3], 1)
+		return t
+	end
+	local top, bottom, left, right = edge(), edge(), edge(), edge()
+	top:SetPoint("TOPLEFT", inset, -inset)
+	top:SetPoint("TOPRIGHT", -inset, -inset)
+	top:SetHeight(1)
+	bottom:SetPoint("BOTTOMLEFT", inset, inset)
+	bottom:SetPoint("BOTTOMRIGHT", -inset, inset)
+	bottom:SetHeight(1)
+	left:SetPoint("TOPLEFT", inset, -inset)
+	left:SetPoint("BOTTOMLEFT", inset, inset)
+	left:SetWidth(1)
+	right:SetPoint("TOPRIGHT", -inset, -inset)
+	right:SetPoint("BOTTOMRIGHT", -inset, inset)
+	right:SetWidth(1)
+end
+
+-- Goldener Beschlag auf dem Rahmen, ein Winkel an der Ecke point
+local function Corner(f, point)
+	local x = point:find("LEFT") and 1 or -1
+	local y = point:find("TOP") and -1 or 1
+	for _, size in ipairs({ { 16, 3 }, { 3, 16 } }) do
+		local t = f:CreateTexture(nil, "OVERLAY")
+		t:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
+		t:SetSize(size[1], size[2])
+		t:SetPoint(point, x, y)
+	end
+end
+
+-- Fenster: Fläche in Nachtblau, oben ein Schimmer; Rahmen außen und innen eine Goldlinie mit dunklem
+-- Band dazwischen. Ganz deckend, nur das Hauptfenster bleibt auf Wunsch des Users leicht durchscheinend.
 UI.WINDOW_BACKDROP = {
 	bgFile = "Interface\\Buttons\\WHITE8X8",
-	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-	tile = false, edgeSize = 16,
-	insets = { left = 4, right = 4, top = 4, bottom = 4 },
+	edgeFile = "Interface\\Buttons\\WHITE8X8",
+	tile = false, edgeSize = 5,
+	insets = { left = 5, right = 5, top = 5, bottom = 5 },
+}
+-- Kästen in einem Fenster (Listen, Textfelder): dunkler Grund mit feiner Goldlinie
+UI.BACKDROP = {
+	bgFile = "Interface\\Buttons\\WHITE8X8",
+	edgeFile = "Interface\\Buttons\\WHITE8X8",
+	tile = false, edgeSize = 1,
+	insets = { left = 1, right = 1, top = 1, bottom = 1 },
 }
 
--- translucent: leicht durchscheinend wie die WoW-Tooltips (Hauptfenster)
+-- translucent: leicht durchscheinend (Hauptfenster)
 function UI.Box(name, parent, strata, translucent)
 	local f = CreateFrame("Frame", name, parent or UIParent, "BackdropTemplate")
-	if translucent then
-		f:SetBackdrop(UI.BACKDROP)
-		f:SetBackdropColor(0.04, 0.04, 0.06, 0.94)
-	else
-		f:SetBackdrop(UI.WINDOW_BACKDROP)
-		f:SetBackdropColor(0.06, 0.06, 0.08, 1)
-	end
-	f:SetBackdropBorderColor(0.55, 0.55, 0.6, 1)
+	local alpha = translucent and 0.93 or 1
+	f:SetBackdrop(UI.WINDOW_BACKDROP)
+	f:SetBackdropColor(C.panel[1], C.panel[2], C.panel[3], alpha)
+	f:SetBackdropBorderColor(C.frame[1], C.frame[2], C.frame[3], 1)
+	local glow = f:CreateTexture(nil, "BACKGROUND", nil, 7)
+	glow:SetPoint("TOPLEFT", 5, -5)
+	glow:SetPoint("BOTTOMRIGHT", -5, 5)
+	Gradient(glow, C.glow, 0, C.glow, 0.85 * alpha)
+	Ring(f, 0, C.goldDark)
+	Ring(f, 4, C.goldDark)
+	Corner(f, "TOPLEFT")
+	Corner(f, "BOTTOMRIGHT")
 	if strata then f:SetFrameStrata(strata) end
 	f:SetClampedToScreen(true)
 	return f
+end
+
+-- Kasten im Fenster in den Farben des Designs (Main.lua ListBox, Textfelder)
+function UI.Inset(box)
+	box:SetBackdrop(UI.BACKDROP)
+	box:SetBackdropColor(0.04, 0.05, 0.08, 0.75)
+	box:SetBackdropBorderColor(C.goldDark[1], C.goldDark[2], C.goldDark[3], 0.8)
 end
 
 function UI.Movable(f)
@@ -58,20 +172,71 @@ function UI.Movable(f)
 	f:SetScript("OnDragStop", f.StopMovingOrSizing)
 end
 
+-- Knopf mit Goldverlauf und dunkler Schrift. Blizzards Vorlage bleibt für Klicks und Verhalten, ihre roten
+-- Texturen sind unsichtbar. Ausgeschaltet wird das Gold grau, LockHighlight hellt ihn auf (gewählt).
 function UI.Button(parent, text, width, height, small)
 	local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
 	b:SetSize(width or 90, height or 22)
-	if small then
-		b:SetNormalFontObject(GameFontNormalSmall)
-		b:SetHighlightFontObject(GameFontHighlightSmall)
-		b:SetDisabledFontObject(GameFontDisableSmall)
+	for _, key in ipairs({ "Left", "Middle", "Right" }) do
+		if b[key] then b[key]:SetAlpha(0) end
+	end
+	local edge = b:CreateTexture(nil, "BACKGROUND", nil, -8)
+	edge:SetAllPoints(b)
+	edge:SetColorTexture(C.frame[1], C.frame[2], C.frame[3], 1)
+	local rim = b:CreateTexture(nil, "BACKGROUND", nil, -7)
+	rim:SetPoint("TOPLEFT", 1, -1)
+	rim:SetPoint("BOTTOMRIGHT", -1, 1)
+	rim:SetColorTexture(C.goldDark[1], C.goldDark[2], C.goldDark[3], 1)
+	b.pmFill = b:CreateTexture(nil, "BACKGROUND", nil, -6)
+	b.pmFill:SetPoint("TOPLEFT", 2, -2)
+	b.pmFill:SetPoint("BOTTOMRIGHT", -2, 2)
+	Gradient(b.pmFill, C.goldLow, 1, C.goldBright, 1)
+	b:SetHighlightTexture(UI.WHITE, "ADD")
+	local hl = b:GetHighlightTexture()
+	if hl then
+		hl:ClearAllPoints()
+		hl:SetPoint("TOPLEFT", 2, -2)
+		hl:SetPoint("BOTTOMRIGHT", -2, 2)
+		hl:SetVertexColor(1, 0.95, 0.75, 0.25)
+	end
+	local font = small and FONTS.buttonSmall or FONTS.button
+	b:SetNormalFontObject(font)
+	b:SetHighlightFontObject(font)
+	b:SetDisabledFontObject(FONTS.buttonDisabled)
+	b:HookScript("OnDisable", function(self)
+		self.pmFill:SetDesaturated(true)
+		self.pmFill:SetAlpha(0.45)
+	end)
+	b:HookScript("OnEnable", function(self)
+		self.pmFill:SetDesaturated(false)
+		self.pmFill:SetAlpha(1)
+	end)
+	b:SetText(T(text))
+	return b
+end
+
+-- Reiter wie auf der Vorlage: nur Schrift, der gewählte (LockHighlight) und der unter der Maus in Hellgold
+-- mit goldener Unterkante
+function UI.Tab(parent, text, width, height)
+	local b = CreateFrame("Button", nil, parent)
+	b:SetSize(width or 120, height or 24)
+	b:SetNormalFontObject(FONTS.tab)
+	b:SetHighlightFontObject(FONTS.tabActive)
+	b:SetHighlightTexture(UI.WHITE, "BLEND")
+	local hl = b:GetHighlightTexture()
+	if hl then
+		hl:ClearAllPoints()
+		hl:SetPoint("BOTTOMLEFT", 8, 0)
+		hl:SetPoint("BOTTOMRIGHT", -8, 0)
+		hl:SetHeight(3)
+		hl:SetVertexColor(C.gold[1], C.gold[2], C.gold[3], 1)
 	end
 	b:SetText(T(text))
 	return b
 end
 
 function UI.Label(parent, font, width)
-	local fs = parent:CreateFontString(nil, "OVERLAY", font or "GameFontHighlightSmall")
+	local fs = parent:CreateFontString(nil, "OVERLAY", UI.Font(font or "GameFontHighlightSmall"))
 	fs:SetJustifyH("LEFT")
 	if width then fs:SetWidth(width) end
 	return fs
@@ -334,13 +499,13 @@ local function CreateRow(parent)
 	row.icon:SetSize(22, 22)
 	row.icon:SetPoint("TOPLEFT", 0, -2)
 
-	row.name = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	row.name = row:CreateFontString(nil, "OVERLAY", UI.Font("GameFontNormalSmall"))
 	row.name:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", 6, -1)
 	row.name:SetWidth(ROW_WIDTH - 28 - 110)
 	row.name:SetJustifyH("LEFT")
 	row.name:SetWordWrap(false)
 
-	row.info = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	row.info = row:CreateFontString(nil, "OVERLAY", UI.Font("GameFontHighlightSmall"))
 	row.info:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, -3)
 	row.info:SetWidth(ROW_WIDTH - 28 - 110)
 	row.info:SetJustifyH("LEFT")
@@ -381,7 +546,7 @@ local function CreateRow(parent)
 		T("Linksklick: Prio ansagen bzw. Würfelrunde starten und im Raid ansagen.\nRechtsklick: freier Wurf bzw. Rezept-Wurf, auch wenn jemand Prio hat.\nWer Prio hat und das Item nicht will, würfelt /roll 1. Dann ist die nächste Prio dran oder es gibt einen Wurf ohne Prio."))
 
 	row.sep = row:CreateTexture(nil, "BACKGROUND")
-	row.sep:SetColorTexture(1, 1, 1, 0.07)
+	row.sep:SetColorTexture(UI.COLORS.goldDark[1], UI.COLORS.goldDark[2], UI.COLORS.goldDark[3], 0.45)
 	row.sep:SetHeight(1)
 	row.sep:SetPoint("BOTTOMLEFT", 0, -3)
 	row.sep:SetPoint("BOTTOMRIGHT", 0, -3)
@@ -402,11 +567,11 @@ function UI:GetPanel()
 	p:SetHeight(120)
 	self.Movable(p)
 
-	p.title = p:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	p.title = p:CreateFontString(nil, "OVERLAY", UI.Font("GameFontNormal"))
 	p.title:SetPoint("TOPLEFT", 10, -9)
 	p.title:SetText("PrioMeister")
 
-	p.status = p:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+	p.status = p:CreateFontString(nil, "OVERLAY", UI.Font("GameFontDisableSmall"))
 	p.status:SetPoint("LEFT", p.title, "RIGHT", 8, 0)
 	p.status:SetPoint("RIGHT", p, "RIGHT", -52, 0)
 	p.status:SetJustifyH("LEFT")
@@ -699,7 +864,7 @@ function UI:GetPicker()
 	local f = self.Box("PrioMeisterPicker", UIParent, "FULLSCREEN_DIALOG")
 	f:EnableMouse(true)
 	table.insert(UISpecialFrames, "PrioMeisterPicker")
-	f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	f.title = f:CreateFontString(nil, "OVERLAY", UI.Font("GameFontNormal"))
 	f.title:SetPoint("TOPLEFT", 10, -9)
 	local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
 	close:SetSize(24, 24)
@@ -748,7 +913,7 @@ local function CreatePickerButton(f)
 	b.check:SetSize(14, 14)
 	b.check:SetPoint("LEFT", 2, 0)
 	b.check:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
-	b.text = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	b.text = b:CreateFontString(nil, "OVERLAY", UI.Font("GameFontNormalSmall"))
 	b.text:SetPoint("LEFT", 16, 0)
 	b.text:SetWidth(PICK_W - 18)
 	b.text:SetJustifyH("LEFT")
@@ -837,7 +1002,7 @@ local function CreateTextDialog(name, title)
 	f:SetToplevel(true)
 	table.insert(UISpecialFrames, name)
 
-	f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+	f.title = f:CreateFontString(nil, "OVERLAY", UI.Font("GameFontNormalLarge"))
 	f.title:SetPoint("TOP", 0, -12)
 	f.title:SetText(title)
 
@@ -848,9 +1013,7 @@ local function CreateTextDialog(name, title)
 	close:SetPoint("TOPRIGHT", -2, -2)
 
 	local box = CreateFrame("Frame", nil, f, "BackdropTemplate")
-	box:SetBackdrop(UI.BACKDROP)
-	box:SetBackdropColor(0, 0, 0, 0.6)
-	box:SetBackdropBorderColor(0.4, 0.4, 0.45, 1)
+	UI.Inset(box)
 	box:SetPoint("TOPLEFT", 12, -70)
 	box:SetPoint("BOTTOMRIGHT", -12, 76)
 	box:EnableMouse(true)
@@ -1056,7 +1219,7 @@ function UI:GetPrioTable()
 	f:SetToplevel(true)
 	table.insert(UISpecialFrames, "PrioMeisterPrioTable")
 
-	f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+	f.title = f:CreateFontString(nil, "OVERLAY", UI.Font("GameFontNormalLarge"))
 	f.title:SetPoint("TOPLEFT", 14, -12)
 	f.title:SetText(T("Prioliste"))
 	f.info = self.Label(f, "GameFontHighlightSmall", TABLE_W - 220)

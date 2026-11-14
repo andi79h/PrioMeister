@@ -128,4 +128,4 @@ Bitte über das [Formular auf GitHub](https://github.com/andi79h/PrioMeister/iss
 
 ## Lizenz
 
-MIT, siehe [LICENSE.txt](LICENSE.txt).
+MIT, siehe [LICENSE.txt](LICENSE.txt). Die Schrift TeX Gyre Pagella in `PrioMeister/Media/Fonts` stammt von GUST e-foundry und steht unter der GUST Font License, siehe [GUST-FONT-LICENSE.txt](PrioMeister/Media/Fonts/GUST-FONT-LICENSE.txt).

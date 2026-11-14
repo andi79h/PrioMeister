@@ -2057,7 +2057,28 @@ for _, frame in ipairs({ changelogFrame, _G.PrioMeisterPanel, _G.PrioMeisterPrio
 	check(frame._backdrop.bgFile == "Interface\\Buttons\\WHITE8X8" and frame._bgColor[4] == 1,
 		"deckender Hintergrund: " .. tostring(frame._name))
 end
-check(main._backdrop.bgFile == "Interface\\Tooltips\\UI-Tooltip-Background" and main._bgColor[4] < 1, "Hauptfenster leicht durchscheinend")
+check(main._backdrop.bgFile == "Interface\\Buttons\\WHITE8X8" and main._bgColor[4] < 1, "Hauptfenster leicht durchscheinend")
+-- Design „Nacht und Pergament“ (Testversion 14.11.2026): eigene Schriften, Reiter als Schrift, Goldknöpfe
+eq(UI.Font("GameFontNormal"), "PrioMeisterFontHeading", "Überschriften in eigener Schrift")
+eq(UI.Font("GameFontHighlightSmall"), "PrioMeisterFontBodySmall", "Fließtext in eigener Schrift")
+eq(UI.Font("ChatFontNormal"), "ChatFontNormal", "unbekannte Vorlage bleibt")
+for _, name in ipairs({ "PrioMeisterFontTitle", "PrioMeisterFontHeading", "PrioMeisterFontBody", "PrioMeisterFontButton",
+	"PrioMeisterFontTab", "PrioMeisterFontTabActive" }) do
+	check(_G[name] and _G[name]._kind == "Font", "Schriftobjekt " .. name)
+end
+eq(main.title._template, "PrioMeisterFontTitle", "Fenstertitel in eigener Schrift")
+check(rawget(main.tabs.raid, "Left") == nil and main.tabs.raid:GetText() == "Raid", "Reiter ohne roten Knopf")
+-- Schriftdateien liegen im Addon, sind OpenType und haben ihre Lizenz dabei
+for _, path in ipairs({ UI.FONT_SERIF_BOLD, UI.FONT_SERIF }) do
+	local file = ADDON_DIR .. "/" .. path:gsub("^Interface\\AddOns\\PrioMeister\\", ""):gsub("\\", "/")
+	local fh = io.open(file, "rb")
+	local head = fh and fh:read(4)
+	if fh then fh:close() end
+	eq(head, "OTTO", "Schriftdatei vorhanden und OpenType: " .. file)
+end
+local fontLicense = io.open(ADDON_DIR .. "/Media/Fonts/GUST-FONT-LICENSE.txt", "rb")
+check(fontLicense ~= nil, "Lizenz der Schrift liegt bei")
+if fontLicense then fontLicense:close() end
 changelogFrame:Hide()
 SlashCmdList.PRIOMEISTER("changelog")
 check(changelogFrame:IsShown(), "/pm changelog")
