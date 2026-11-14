@@ -86,6 +86,13 @@ local function CreateWidget(kind, name, parent)
 end
 mock.CreateWidget = CreateWidget
 
+-- Schriftobjekte (CreateFont) mit den Methoden aus Blizzards Dokumentation
+ALLOWED.Font = set({ "SimpleObjectAPI", "SimpleFrameScriptObjectAPI", "SimpleFontAPI" })
+function CreateFont(name)
+	assert(type(name) == "string" and name ~= "", "CreateFont braucht einen Namen")
+	return CreateWidget("Font", name)
+end
+
 function Impl:SetScript(name, fn) self._scripts[name] = fn end
 function Impl:GetScript(name) return self._scripts[name] end
 function Impl:HookScript(name, fn)

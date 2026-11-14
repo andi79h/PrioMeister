@@ -129,7 +129,7 @@ function UI:GetMain()
 	f.logo:SetSize(26, 26)
 	f.logo:SetPoint("TOPLEFT", 12, -5)
 	f.logo:SetTexture(UI.LOGO)
-	f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+	f.title = f:CreateFontString(nil, "OVERLAY", UI.Font("GameFontNormalLarge"))
 	f.title:SetPoint("LEFT", f.logo, "RIGHT", 6, 0)
 	f.title:SetText("PrioMeister " .. PM.version)
 	local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
@@ -149,7 +149,7 @@ function UI:GetMain()
 	local x = 14
 	for _, t in ipairs(TABS) do
 		if not t.gear then
-			local b = self.Button(f, t.label, 130, 22)
+			local b = self.Tab(f, t.label, 130, 24)
 			b:SetPoint("TOPLEFT", f, "TOPLEFT", x, -36)
 			b:SetScript("OnClick", function() UI:SelectTab(t.key) end)
 			f.tabs[t.key] = b
@@ -163,7 +163,7 @@ function UI:GetMain()
 	end
 	-- Trennlinie zwischen den Reitern und dem Inhalt
 	f.divider = f:CreateTexture(nil, "ARTWORK")
-	f.divider:SetColorTexture(0.55, 0.55, 0.6, 0.35)
+	f.divider:SetColorTexture(UI.COLORS.goldDark[1], UI.COLORS.goldDark[2], UI.COLORS.goldDark[3], 0.8)
 	f.divider:SetHeight(1)
 	f.divider:SetPoint("TOPLEFT", f, "TOPLEFT", 14, DIVIDER_Y)
 	f.divider:SetPoint("TOPRIGHT", f, "TOPRIGHT", -14, DIVIDER_Y)
@@ -767,9 +767,7 @@ end
 
 local function ListBox(page, name, x, width)
 	local box = CreateFrame("Frame", nil, page, "BackdropTemplate")
-	box:SetBackdrop(UI.BACKDROP)
-	box:SetBackdropColor(0, 0, 0, 0.5)
-	box:SetBackdropBorderColor(0.4, 0.4, 0.45, 1)
+	UI.Inset(box)
 	box:SetPoint("TOPLEFT", x, LIST_TOP)
 	box:SetSize(width, LIST_H)
 	local scroll = CreateFrame("ScrollFrame", name, box, "UIPanelScrollFrameTemplate")
@@ -786,7 +784,7 @@ local function CreateInstanceRow(page)
 	b:SetSize(INST_W - 40, LIST_ROW)
 	b.sel = b:CreateTexture(nil, "BACKGROUND")
 	b.sel:SetAllPoints(b)
-	b.sel:SetColorTexture(1, 0.82, 0, 0.2)
+	b.sel:SetColorTexture(UI.COLORS.gold[1], UI.COLORS.gold[2], UI.COLORS.gold[3], 0.22)
 	b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
 	b.text = UI.Label(b, "GameFontHighlightSmall", INST_W - 44)
 	b.text:SetPoint("LEFT", 2, 0)
@@ -959,7 +957,7 @@ function UI:BuildLootPage(page)
 	edit:SetPoint("RIGHT", add, "LEFT", -8, 0)
 	edit:SetAutoFocus(false)
 	-- Hinweis im leeren Feld, was hineingehört
-	edit.hint = edit:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	edit.hint = edit:CreateFontString(nil, "ARTWORK", UI.Font("GameFontDisableSmall"))
 	edit.hint:SetPoint("LEFT", edit, "LEFT", 2, 0)
 	edit.hint:SetPoint("RIGHT", edit, "RIGHT", -2, 0)
 	edit.hint:SetJustifyH("LEFT")
@@ -1312,6 +1310,9 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.33.0", "14.11.2026", {
+		"Neues Aussehen: nachtblaue Fenster im goldenen Doppelrahmen, goldene Knöpfe und Reiter mit goldener Unterkante. Überschriften und Knöpfe in TeX Gyre Pagella, einem freien Nachbau von Palatino, der Text in Arial Narrow. Nach dem Update WoW einmal neu starten, sonst fehlen die neuen Schriftdateien.",
+	} },
 	{ "1.32.0", "04.11.2026", {
 		"Würfelrunde von Hand: Ist der Plündermeister zu weit weg, lässt WoW die Beute normal auswürfeln. Mit /pm rollitem [Item] wird das Item danach trotzdem verteilt. Prios, Würfelstufen und die Klassenprüfung gelten wie sonst, /pm frei [Item] übergeht die Prios.",
 		"Das Panel zeigt die Würfe dieser Runde auch ohne Plünderfenster. „An Name“ trägt die Vergabe ein, handeln muss, wer das Item hat. Handelst du es selbst an den Gewinner, trägt das Addon den Handel ein.",
@@ -1605,7 +1606,7 @@ function UI:ShowChangelog()
 		self.Movable(f)
 		f:SetToplevel(true)
 		table.insert(UISpecialFrames, "PrioMeisterChangelog")
-		f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+		f.title = f:CreateFontString(nil, "OVERLAY", UI.Font("GameFontNormalLarge"))
 		f.title:SetPoint("TOPLEFT", 14, -12)
 		f.title:SetText("PrioMeister – Changelog")
 		local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
