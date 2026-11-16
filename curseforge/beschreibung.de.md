@@ -1,6 +1,6 @@
 # PrioMeister (Deutsch)
 
-Plündermeister-Hilfe für World of Warcraft Classic Era (1.15.x). PrioMeister liest eine Prioliste und zeigt in einem Panel neben dem Beutefenster, wer auf die Beute Prio hat. Es führt Würfelrunden mit Würfelstufen durch und protokolliert jede Vergabe. Die Oberfläche gibt es auf Deutsch und Englisch: Sie folgt der Spielsprache, unter Optionen lässt sie sich fest auf Deutsch oder Englisch stellen.
+Plündermeister-Hilfe für World of Warcraft Classic Era (1.15.x) und WoW Forever (1.60.x). PrioMeister liest eine Prioliste und zeigt in einem Panel neben dem Beutefenster, wer auf die Beute Prio hat. Es führt Würfelrunden mit Würfelstufen durch und protokolliert jede Vergabe. Die Oberfläche gibt es auf Deutsch und Englisch: Sie folgt der Spielsprache, unter Optionen lässt sie sich fest auf Deutsch oder Englisch stellen.
 
 Spieler brauchen das Addon nicht, sie tragen ihre Prios auf priomeister.de ein. Das Addon braucht, wer im Raid plündert. Wie beides zusammenspielt, erklärt die [Hilfe auf priomeister.de](https://priomeister.de/hilfe).
 
@@ -120,7 +120,9 @@ Die englischen Befehle (`/pm status`, `/pm remind`, `/pm share guild` …) gehen
 
 ## Spielversionen
 
-WoW Classic 1.15.9: Realms von Classic Era, Hardcore und Season of Discovery, die alle mit demselben Client laufen. Burning Crusade Classic Anniversary, Mists of Pandaria Classic und Retail werden nicht unterstützt.
+WoW Classic 1.15.9: Realms von Classic Era, Hardcore und Season of Discovery, die alle mit demselben Client laufen. WoW Forever 1.60.1 seit PrioMeister 1.34.0, im selben Paket. Burning Crusade Classic Anniversary, Mists of Pandaria Classic und Retail werden nicht unterstützt.
+
+Auf WoW Forever heißen Charaktere „Vorname Nachname“, so stehen sie auch auf priomeister.de und im Export. Befehle nehmen den ganzen Namen, etwa `/pm vergabe Sara Sturmwind [Item]`. Im Bosskampf sperrt Forever den Chat: Würfe liest das Addon erst nach dem Kampf, seine eigenen Nachrichten und die Sicherung bei Stellvertretern warten so lange. Ist eine Prioliste oder ein Priocheck für das andere Spiel, warnt das Addon beim Import.
 
 ## Fehler melden
 

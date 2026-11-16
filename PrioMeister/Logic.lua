@@ -58,13 +58,56 @@ local function utf8lower(s)
 end
 L.Lower = utf8lower
 
--- Vergleichsschlüssel für Spielernamen: ohne Realm, klein geschrieben.
+-- Auf WoW Forever heißen Charaktere „Vorname Nachname“. Falls eine Meldung des Spiels nur den Vornamen
+-- nennt, setzt Core für jeden Vornamen, den genau eine Person in der Gruppe trägt, ihren vollen Schlüssel
+-- (L.FirstNameAliases). In Classic Era bleibt die Tabelle leer.
+local nameAliases = {}
+function L.SetNameAliases(map) nameAliases = map or {} end
+
+-- Vergleichsschlüssel für Spielernamen: ohne Realm, klein geschrieben. Verschlüsselte Werte
+-- (Forever im Bosskampf) haben keinen.
 function L.NameKey(name)
-	if type(name) ~= "string" then return nil end
+	if type(name) ~= "string" or (issecretvalue and issecretvalue(name)) then return nil end
 	name = L.Trim(name)
 	name = name:gsub("%-.*$", "")
 	if name == "" then return nil end
-	return utf8lower(name)
+	local key = utf8lower(name)
+	return nameAliases[key] or key
+end
+
+-- Vornamen, die genau ein Schlüssel der Tabelle trägt (Schlüssel „vorname nachname“), als Verweis auf ihn.
+function L.FirstNameAliases(keys)
+	local aliases = {}
+	for key in pairs(keys) do
+		local first = key:match("^(%S+) ")
+		if first and not keys[first] then
+			aliases[first] = (aliases[first] == nil) and key or false
+		end
+	end
+	for first, key in pairs(aliases) do
+		if not key then aliases[first] = nil end
+	end
+	return aliases
+end
+
+-- Name und Rest aus Befehlen wie „/pm vergabe Name [Item]“. Mit multiword (WoW Forever, „Vorname
+-- Nachname“) reicht der Name bis zu einem Item-Link oder einer Zahl am Ende, sonst ist alles der Name.
+-- Ohne multiword ist der Name das erste Wort.
+function L.SplitName(text, multiword)
+	text = L.Trim(tostring(text or ""))
+	if not multiword then
+		local name, rest = text:match("^(%S+)%s*(.-)$")
+		return name, rest or ""
+	end
+	local cut = text:find("[|%[]") or text:find("item:", 1, true) or text:find("%s%d+%s*$")
+	local name = L.Trim(cut and text:sub(1, cut - 1) or text)
+	return (name ~= "" and name or nil), cut and L.Trim(text:sub(cut)) or ""
+end
+
+-- Spiel eines Prio-Runs aus dem Feld „spiel=“: „forever“ oder sonst „classic“.
+L.GAME_NAMES = { classic = "Classic Era", forever = "WoW Forever" }
+function L.GameOf(value)
+	return (type(value) == "string" and L.Trim(value):lower() == "forever") and "forever" or "classic"
 end
 
 -- Akzente weg, wie auf priomeister.de (klein, NFKD ohne Akzente, ß → ss, æ → ae, œ → oe,
@@ -465,7 +508,8 @@ local function parseLine(line, cols, fmt)
 	if not name or name == "" then return nil, "leer" end
 	local lname = utf8lower(name)
 	if lname == "name" or lname == "username" or lname == "spieler" then return nil, "kopf" end
-	if name:find("%d") or name:find("[%s,]") then return nil, "name" end
+	-- ohne Ziffern und Kommas; ein Leerzeichen nur zwischen Vor- und Nachnamen (WoW Forever, seit 1.34)
+	if name:find("[%d,]") or not (name:find("^%S+$") or name:find("^%S+ %S+$")) then return nil, "name" end
 
 	local rec = { name = name, p = { 0, 0, 0 }, pn = { "", "", "" } }
 	if cols then

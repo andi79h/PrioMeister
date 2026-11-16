@@ -9,7 +9,7 @@ local Popup = ns.Popup or function(name, def) StaticPopupDialogs[name] = def ret
 
 local PM = CreateFrame("Frame", "PrioMeisterEventFrame")
 ns.PM = PM
-PM.version = "1.33.0"
+PM.version = "1.34.0"
 PM.roster = {}
 PM.lootItems = {}
 PM.pending = {}
@@ -58,6 +58,50 @@ local DEFAULTS = {
 
 local LOOT_METHOD_MASTER = 2 -- Enum.LootMethod.Masterlooter
 PM.LOOT_METHOD_MASTER = LOOT_METHOD_MASTER
+
+-------------------------------------------------------------------------------
+-- WoW Forever (seit 1.34): eigener Client mit Retail-Unterbau, Interface 16001
+-------------------------------------------------------------------------------
+
+-- Spiel wie auf priomeister.de im Feld „spiel=“: „classic“ für Classic Era, „forever“ für WoW Forever.
+PM.game = (WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT) and "forever" or "classic"
+
+-- Auf Forever hat jeder Charakter Vor- und Nachnamen, eindeutig in der Region und ohne Realm. UnitName
+-- liefert dort beide getrennt, priomeister.de und Blizzard (NameUtil.FormatUnitNameForDisplay) schreiben
+-- „Vorname Nachname“. In Classic Era ist der zweite Wert der Realm.
+local function regionalNames()
+	return type(RegionalUniqueNamesEnabled) == "function" and RegionalUniqueNamesEnabled() == true
+end
+PM.RegionalNames = regionalNames
+
+-- Forever verschlüsselt manche Werte (Secret Values), etwa den Chat im Bosskampf. Damit rechnet nichts.
+local function isSecret(v)
+	return issecretvalue ~= nil and issecretvalue(v) == true
+end
+PM.IsSecret = isSecret
+
+-- Im Bosskampf sperrt Forever den Chat: Nachrichten kommen verschlüsselt an, Addon-Nachrichten gehen nicht raus.
+local function chatLocked()
+	return C_ChatInfo ~= nil and C_ChatInfo.InChatMessagingLockdown ~= nil and C_ChatInfo.InChatMessagingLockdown() == true
+end
+PM.ChatLocked = chatLocked
+
+-- Name einer Einheit ohne Realm, auf Forever mit Nachnamen. nil, wenn es keinen gibt, und nil, true, wenn
+-- das Spiel ihn gerade verschlüsselt.
+function PM:UnitFullName(unit)
+	local name, second = UnitName(unit)
+	if isSecret(name) or isSecret(second) then return nil, true end
+	if type(name) ~= "string" or name == "" then return nil end
+	if type(second) == "string" and second ~= "" and regionalNames() then
+		return name .. " " .. second
+	end
+	return name
+end
+
+function PM:PlayerName()
+	return self:UnitFullName("player") or UnitName("player")
+end
+
 -- Feste Texte nach Schlüssel, beim Zugriff in der eingestellten Sprache. english: eigene
 -- englische Texte, wenn ein deutsches Wort anderswo anders übersetzt wird („Gruppe“).
 local function Translated(texts, english)
@@ -117,12 +161,35 @@ function PM:RollCallChannel()
 	return self:GroupChannel()
 end
 
+-- Sperrt WoW Forever im Bosskampf den Chat, warten die Nachrichten und gehen danach in derselben
+-- Reihenfolge raus.
+local chatQueue = {}
+local function chatFlush()
+	if chatLocked() then
+		C_Timer.After(2, chatFlush)
+		return
+	end
+	local send = SendChatMessage or (C_ChatInfo and C_ChatInfo.SendChatMessage)
+	local queued = chatQueue
+	chatQueue = {}
+	for _, m in ipairs(queued) do
+		if send then send(m.msg, m.channel, nil, m.target) end
+	end
+end
+
 -- Sendet in den Gruppenchat oder den angegebenen Kanal (target beim Flüstern);
 -- allein oder im Testmodus nur lokal.
 function PM:Send(msg, channel, target)
 	channel = channel or self:GroupChannel()
 	if self.testMode or not channel then
 		self:Print("|cff999999[%s]|r %s", channel and self:ShareLabel(channel, target) or T("nur lokal"), msg)
+		return
+	end
+	-- Forever: Namen sind ohne Realm eindeutig, ein Flüstern an „Name-Realm“ kommt dort nicht an.
+	if channel == "WHISPER" and type(target) == "string" and regionalNames() then target = target:gsub("%-.*$", "") end
+	if chatLocked() or chatQueue[1] then
+		if not chatQueue[1] then C_Timer.After(2, chatFlush) end
+		chatQueue[#chatQueue + 1] = { msg = msg, channel = channel, target = target }
 		return
 	end
 	local send = SendChatMessage or (C_ChatInfo and C_ChatInfo.SendChatMessage)
@@ -396,6 +463,18 @@ function PM:NewRaid(silent)
 	refreshUI()
 end
 
+-- Prio-Runs auf priomeister.de gehören zu einem Spiel, Feld „spiel=classic|forever“ (fehlt es, gilt
+-- classic). Eine Liste aus dem anderen Spiel passt nicht: andere Namen, auf Forever eigene Item-IDs.
+-- Das Addon warnt und importiert trotzdem. Ohne Kommentarzeile von der Seite bleibt es still.
+function PM:CheckGame(meta)
+	if type(meta) ~= "table" then return true end
+	local game = L.GameOf(meta.spiel)
+	if game == self.game then return true end
+	self:Print("|cffff4040Achtung:|r Dieser Prio-Run ist für %s, du spielst %s. Namen und Items passen nicht zusammen.",
+		L.GAME_NAMES[game], L.GAME_NAMES[self.game])
+	return false
+end
+
 -- Ergebnis: true bei Erfolg; ein Priocheck von priomeister.de ändert die Prioliste nicht
 -- und liefert als zweiten Wert "check".
 function PM:ImportText(text, newRaid)
@@ -428,6 +507,7 @@ function PM:ImportText(text, newRaid)
 			info.meta.prios or "?", stand and (T(", letzte Änderung ") .. stand) or "")
 		self:ApplyListRules(info.meta)
 	end
+	self:CheckGame(info.meta)
 	if #info.duplicates > 0 then
 		local parts = {}
 		for _, d in ipairs(info.duplicates) do
@@ -472,15 +552,20 @@ end
 function PM:UpdateRoster()
 	local roster, order = {}, {}
 	local unknown = false
+	local regional = regionalNames()
 	if IsInRaid() then
 		for i = 1, GetNumGroupMembers() do
 			local name, rank, subgroup, _, _, classFile, _, online = GetRaidRosterInfo(i)
+			-- Forever: Name aus der Einheit, mit Nachnamen und ohne Realm. Ein Flüstern an
+			-- „Vorname Nachname-Realm“ kommt dort nicht an, deshalb auch „full“ ohne Realm.
+			if regional then name = self:UnitFullName("raid" .. i) or name end
+			if isSecret(name) then return self:RetryRoster() end
 			if isUnknown(name) then unknown, name = true, nil end
 			if name then
 				local short = Ambiguate and Ambiguate(name, "short") or name
 				local key = L.NameKey(short)
 				if key then
-					roster[key] = { name = short, full = name, class = classFile, online = online and true or false, rank = rank or 0 }
+					roster[key] = { name = short, full = regional and short or name, class = classFile, online = online and true or false, rank = rank or 0 }
 					order[#order + 1] = { name = short, group = subgroup or 1, index = i }
 				end
 			end
@@ -491,7 +576,8 @@ function PM:UpdateRoster()
 			for i = 1, GetNumSubgroupMembers() do units[#units + 1] = "party" .. i end
 		end
 		for _, unit in ipairs(units) do
-			local name = UnitName(unit)
+			local name, secret = self:UnitFullName(unit)
+			if secret then return self:RetryRoster() end
 			if isUnknown(name) then unknown, name = true, nil end
 			local key = L.NameKey(name)
 			if key then
@@ -509,6 +595,19 @@ function PM:UpdateRoster()
 	self.roster = roster
 	self.rosterOrder = order
 	self.rosterUnknown = unknown
+	-- Forever: Nennt eine Meldung nur den Vornamen, gilt er für die eine Person in der Gruppe, die so heißt.
+	if regional then L.SetNameAliases(L.FirstNameAliases(roster)) end
+end
+
+-- Verschlüsselt Forever gerade Namen in der Gruppe, bleibt die bisherige Liste, und das Addon liest
+-- sie kurz danach noch einmal.
+function PM:RetryRoster()
+	if self.rosterRetry then return end
+	self.rosterRetry = true
+	C_Timer.After(3, function()
+		PM.rosterRetry = nil
+		PM:GROUP_ROSTER_UPDATE()
+	end)
 end
 
 -- Prioliste an die Namen im Raid binden (seit 1.23): Steht jemand auf priomeister.de ohne
@@ -738,6 +837,7 @@ function PM:ApplyPrioCheck(text)
 	check.t = time()
 	self:Raid().check = check
 	self:PrintCheck()
+	self:CheckGame(check.meta)
 	refreshUI()
 	return check
 end
@@ -1205,20 +1305,29 @@ local COMM_PREFIX, COMM_PROTO = "PrioMeister", 2 -- Protokoll 2: mit Sicherung (
 -- WoW erlaubt je Präfix zehn Nachrichten am Stück, danach eine pro Sekunde.
 local sendAddonMessage = C_ChatInfo and C_ChatInfo.SendAddonMessage -- beim Laden gemerkt
 local commQueue, commBudget, commStamp, commWaiting = {}, 10, nil, false
+-- Forever lehnt Addon-Nachrichten im Bosskampf ab (Enum.SendAddonMessageResult.AddOnMessageLockdown).
+-- Sie bleiben dann in der Warteschlange und gehen nach dem Kampf raus.
+local COMM_LOCKDOWN = Enum and Enum.SendAddonMessageResult and Enum.SendAddonMessageResult.AddOnMessageLockdown
 
 local function commFlush()
 	commWaiting = false
 	local now = GetTime()
 	if commStamp then commBudget = math.min(10, commBudget + (now - commStamp)) end
 	commStamp = now
-	while commQueue[1] and commBudget >= 1 do
-		local m = table.remove(commQueue, 1)
-		sendAddonMessage(COMM_PREFIX, m.msg, m.channel, m.target)
-		commBudget = commBudget - 1
+	local locked = chatLocked()
+	while not locked and commQueue[1] and commBudget >= 1 do
+		local m = commQueue[1]
+		local result = sendAddonMessage(COMM_PREFIX, m.msg, m.channel, m.target)
+		if COMM_LOCKDOWN ~= nil and result == COMM_LOCKDOWN then
+			locked = true
+		else
+			table.remove(commQueue, 1)
+			commBudget = commBudget - 1
+		end
 	end
 	if commQueue[1] then
 		commWaiting = true
-		C_Timer.After(1, commFlush)
+		C_Timer.After(locked and 2 or 1, commFlush)
 	end
 end
 
@@ -1229,7 +1338,7 @@ function PM:CommSend(msg, channel, target)
 end
 
 function PM:InitComm()
-	self.playerKey = L.NameKey(UnitName("player"))
+	self.playerKey = L.NameKey(self:PlayerName())
 	if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
 		C_ChatInfo.RegisterAddonMessagePrefix(COMM_PREFIX)
 	end
@@ -1272,7 +1381,7 @@ function PM:CHAT_MSG_ADDON(prefix, text, channel, sender)
 	if prefix ~= COMM_PREFIX or type(text) ~= "string" or type(sender) ~= "string" then return end
 	local name = Ambiguate and Ambiguate(sender, "short") or sender
 	local key = L.NameKey(name)
-	if not key or key == (self.playerKey or L.NameKey(UnitName("player"))) then return end
+	if not key or key == (self.playerKey or L.NameKey(self:PlayerName())) then return end
 	if text:sub(1, 2) == "P\t" then return self:OnFrame(key, name, text) end
 	local f = splitTabs(text)
 	if f[1] == "HELLO" then self:OnHello(key, name, tonumber(f[2] or ""), f[3], f[4] == "?") end
@@ -1943,6 +2052,9 @@ end
 
 function PM:CHAT_MSG_SYSTEM(msg)
 	if not self:IsEnabled() then return end
+	-- WoW Forever sperrt im Bosskampf den Chat, Würfe kommen dann verschlüsselt an.
+	if isSecret(msg) then return self:NoteChatLock() end
+	self.chatLockNoted = nil
 	if not self.rollMatcher then self.rollMatcher = L.FormatToMatcher(RANDOM_ROLL_RESULT) end
 	local m = L.MatchFormat(self.rollMatcher, msg)
 	if not m then return end
@@ -1950,12 +2062,21 @@ function PM:CHAT_MSG_SYSTEM(msg)
 	if not (name and value and low and high) then return end
 	-- eigener Wurf für "Zufällig vergeben"
 	local rr = self.randomRoll
-	if rr and L.NameKey(name) == L.NameKey(UnitName("player")) and low == 1 and high == rr.n then
+	if rr and L.NameKey(name) == L.NameKey(self:PlayerName()) and low == 1 and high == rr.n then
 		self.randomRoll = nil
 		self:FinishRandomAssign(rr, value)
 		return
 	end
 	self:HandleRoll(name, value, low, high)
+end
+
+-- Läuft eine Würfelrunde, sagt das Addon einmal je Sperre, warum Würfe gerade nicht ankommen.
+function PM:NoteChatLock()
+	if self.chatLockNoted then return end
+	local s = L.ActiveSession(self:Raid())
+	if not s or s.closed then return end
+	self.chatLockNoted = true
+	self:Print("|cffffd100Bosskampf:|r WoW Forever sperrt den Chat, Würfe kann PrioMeister erst nach dem Kampf lesen. Wer jetzt würfelt, würfelt danach bitte noch einmal.")
 end
 
 -------------------------------------------------------------------------------
@@ -2555,7 +2676,7 @@ end
 
 -- /pm vergabe Name [Item]: ohne Item gilt das Item der aktiven Würfelrunde.
 function PM:ManualAward(text)
-	local name, itemText = L.Trim(text):match("^(%S+)%s*(.-)$")
+	local name, itemText = L.SplitName(text, regionalNames())
 	if not name then
 		self:Print("Aufruf: /pm vergabe Name [Item] – das Item per Shift-Klick verlinken.")
 		return
@@ -2943,9 +3064,9 @@ function PM:CurrentLootMethod()
 	local mlName
 	if method == LOOT_METHOD_MASTER then
 		if raidID and IsInRaid() then
-			mlName = GetRaidRosterInfo(raidID)
+			mlName = (regionalNames() and self:UnitFullName("raid" .. raidID)) or GetRaidRosterInfo(raidID)
 		elseif partyID then
-			mlName = (partyID == 0) and UnitName("player") or UnitName("party" .. partyID)
+			mlName = (partyID == 0) and self:PlayerName() or self:UnitFullName("party" .. partyID)
 		end
 	end
 	return method, mlName, GetLootThreshold and GetLootThreshold() or nil
@@ -2987,7 +3108,7 @@ end
 -- Setzt Plündermeister (gewählter Name oder du selbst) und danach die Grenze.
 function PM:ApplyLootSettings(threshold)
 	if not self:CanChangeLoot() then return end
-	local wanted = self.db.settings.masterLooterName or UnitName("player")
+	local wanted = self.db.settings.masterLooterName or self:PlayerName()
 	local method, mlName = self:CurrentLootMethod()
 	if method ~= LOOT_METHOD_MASTER or L.NameKey(mlName) ~= L.NameKey(wanted) then
 		if C_PartyInfo and C_PartyInfo.SetLootMethod then
@@ -3103,10 +3224,11 @@ function PM:Slash(msg)
 		elseif rest ~= "" then
 			self:PrintPlayer(rest)
 		else
-			self:PrintPlayer(UnitName("player"))
+			self:PrintPlayer(self:PlayerName())
 		end
 	elseif cmd == "stufen" or cmd == "siege" then
-		local name, n = rest:match("^(%S+)%s+(%d+)$")
+		-- Forever: „Vorname Nachname 3“
+		local name, n = rest:match(regionalNames() and "^(.-)%s+(%d+)$" or "^(%S+)%s+(%d+)$")
 		if name then self:SetWins(name, tonumber(n)) else self:PrintWins() end
 	elseif cmd == "würfeln" or cmd == "wuerfeln" or cmd == "roll" or cmd == "frei" then
 		local id = L.ItemID(rest)
@@ -3162,7 +3284,7 @@ function PM:Slash(msg)
 	elseif cmd == "test" then
 		self:ToggleTest()
 	elseif cmd == "testwurf" then
-		local name, value, high = rest:match("^(%S+)%s+(%d+)%s*(%d*)$")
+		local name, value, high = rest:match(regionalNames() and "^(.-)%s+(%d+)%s*(%d*)$" or "^(%S+)%s+(%d+)%s*(%d*)$")
 		if not name or not self.testMode then
 			self:Print("Nur im Testmodus: /pm testwurf Name 87 [99]")
 			return

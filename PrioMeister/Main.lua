@@ -1016,7 +1016,7 @@ function UI:BuildLootPage(page)
 			page.state:SetText(format(T("Aktuell: %s%s, Grenze: %s%s"), PM.METHOD_TEXT[method] or "?",
 				mlName and (" (" .. mlName .. ")") or "", threshold and PM:QualityLabel(threshold) or "?", where))
 		end
-		page.ml:SetText(s.masterLooterName or format(T("ich (%s)"), UnitName("player") or "?"))
+		page.ml:SetText(s.masterLooterName or format(T("ich (%s)"), PM:PlayerName() or "?"))
 		if page.threshold.GenerateMenu then page.threshold:GenerateMenu() end
 		if page.deQuality.GenerateMenu then page.deQuality:GenerateMenu() end
 		for q, b in pairs(page.qualityButtons) do
@@ -1310,6 +1310,11 @@ end
 -------------------------------------------------------------------------------
 
 local CHANGELOG = {
+	{ "1.34.0", "16.11.2026", {
+		"WoW Forever: PrioMeister läuft jetzt auch dort, im selben Paket wie für Classic Era. Namen gelten wie auf priomeister.de als „Vorname Nachname“, auch in Befehlen wie /pm vergabe Sara Sturmwind [Item].",
+		"Im Bosskampf sperrt WoW Forever den Chat. Würfe kann das Addon dann nicht lesen und sagt das, wenn eine Würfelrunde läuft. Nachrichten des Addons warten bis nach dem Kampf.",
+		"Ist eine Prioliste oder ein Priocheck von priomeister.de für das andere Spiel, warnt das Addon beim Import.",
+	} },
 	{ "1.33.0", "14.11.2026", {
 		"Neues Aussehen: nachtblaue Fenster im goldenen Doppelrahmen, goldene Knöpfe und Reiter mit goldener Unterkante. Überschriften und Knöpfe in TeX Gyre Pagella, einem freien Nachbau von Palatino, der Text in Arial Narrow. Nach dem Update WoW einmal neu starten, sonst fehlen die neuen Schriftdateien.",
 	} },

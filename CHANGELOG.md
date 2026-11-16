@@ -1,3 +1,5 @@
-# PrioMeister 1.33.0 (2026-11-14)
+# PrioMeister 1.34.0 (2026-11-16)
 
-- New look: night-blue windows in a golden double frame, golden buttons and tabs with a golden underline. Headings and buttons use TeX Gyre Pagella, a free Palatino clone, the text uses Arial Narrow. Restart WoW once after the update, otherwise the new font files are missing.
+- WoW Forever: PrioMeister now runs there too, in the same package as for Classic Era. Names count as “First Last” like on priomeister.de, also in commands such as /pm award Sara Sturmwind [Item].
+- During boss fights WoW Forever locks the chat. The addon cannot read rolls then and says so while a roll is running. The addon's messages wait until after the fight.
+- If a prio list or priocheck from priomeister.de is for the other game, the addon warns on import.
