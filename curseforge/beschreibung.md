@@ -1,6 +1,6 @@
 # PrioMeister
 
-Master looter helper for World of Warcraft Classic Era (1.15.x). PrioMeister reads a prio list, shows who has prio on the loot in a panel next to the loot window, runs roll rounds with roll tiers and records every award. The interface is available in English and German: it follows the game language, and in the options you can set it to English or German.
+Master looter helper for World of Warcraft Classic Era (1.15.x) and WoW Forever (1.60.x). PrioMeister reads a prio list, shows who has prio on the loot in a panel next to the loot window, runs roll rounds with roll tiers and records every award. The interface is available in English and German: it follows the game language, and in the options you can set it to English or German.
 
 Players do not need the addon, they enter their prios on priomeister.de. The addon is for whoever loots in the raid. The [help page on priomeister.de](https://priomeister.de/hilfe) explains how both work together, in English via the EN switch at the top.
 
@@ -120,7 +120,9 @@ The German commands (`/pm stand`, `/pm erinnern`, `/pm teilen gilde` …) work a
 
 ## Supported game versions
 
-WoW Classic 1.15.9: Classic Era, Hardcore and Season of Discovery realms, which all run on the same client. Burning Crusade Classic Anniversary, Mists of Pandaria Classic and retail are not supported.
+WoW Classic 1.15.9: Classic Era, Hardcore and Season of Discovery realms, which all run on the same client. WoW Forever 1.60.1 since PrioMeister 1.34.0, in the same package. Burning Crusade Classic Anniversary, Mists of Pandaria Classic and retail are not supported.
+
+On WoW Forever characters are called “First Last”, which is how priomeister.de and the export write them too. Commands take the full name, e.g. `/pm award Sara Sturmwind [Item]`. During boss fights Forever locks the chat: the addon only reads rolls after the fight, and its own messages and the backup with deputies wait until then. If a prio list or priocheck is for the other game, the addon warns on import.
 
 ## Bug reports
 
@@ -128,13 +130,13 @@ Please use the [bug report form on GitHub](https://github.com/andi79h/PrioMeiste
 
 ## License
 
-MIT, see [LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/LICENSE.txt).
+MIT, see [LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/LICENSE.txt). The font TeX Gyre Pagella in `PrioMeister/Media/Fonts` is by GUST e-foundry under the GUST Font License, see [GUST-FONT-LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/PrioMeister/Media/Fonts/GUST-FONT-LICENSE.txt).
 
 ---
 
 # PrioMeister (Deutsch)
 
-Plündermeister-Hilfe für World of Warcraft Classic Era (1.15.x). PrioMeister liest eine Prioliste und zeigt in einem Panel neben dem Beutefenster, wer auf die Beute Prio hat. Es führt Würfelrunden mit Würfelstufen durch und protokolliert jede Vergabe. Die Oberfläche gibt es auf Deutsch und Englisch: Sie folgt der Spielsprache, unter Optionen lässt sie sich fest auf Deutsch oder Englisch stellen.
+Plündermeister-Hilfe für World of Warcraft Classic Era (1.15.x) und WoW Forever (1.60.x). PrioMeister liest eine Prioliste und zeigt in einem Panel neben dem Beutefenster, wer auf die Beute Prio hat. Es führt Würfelrunden mit Würfelstufen durch und protokolliert jede Vergabe. Die Oberfläche gibt es auf Deutsch und Englisch: Sie folgt der Spielsprache, unter Optionen lässt sie sich fest auf Deutsch oder Englisch stellen.
 
 Spieler brauchen das Addon nicht, sie tragen ihre Prios auf priomeister.de ein. Das Addon braucht, wer im Raid plündert. Wie beides zusammenspielt, erklärt die [Hilfe auf priomeister.de](https://priomeister.de/hilfe).
 
@@ -254,7 +256,9 @@ Die englischen Befehle (`/pm status`, `/pm remind`, `/pm share guild` …) gehen
 
 ## Spielversionen
 
-WoW Classic 1.15.9: Realms von Classic Era, Hardcore und Season of Discovery, die alle mit demselben Client laufen. Burning Crusade Classic Anniversary, Mists of Pandaria Classic und Retail werden nicht unterstützt.
+WoW Classic 1.15.9: Realms von Classic Era, Hardcore und Season of Discovery, die alle mit demselben Client laufen. WoW Forever 1.60.1 seit PrioMeister 1.34.0, im selben Paket. Burning Crusade Classic Anniversary, Mists of Pandaria Classic und Retail werden nicht unterstützt.
+
+Auf WoW Forever heißen Charaktere „Vorname Nachname“, so stehen sie auch auf priomeister.de und im Export. Befehle nehmen den ganzen Namen, etwa `/pm vergabe Sara Sturmwind [Item]`. Im Bosskampf sperrt Forever den Chat: Würfe liest das Addon erst nach dem Kampf, seine eigenen Nachrichten und die Sicherung bei Stellvertretern warten so lange. Ist eine Prioliste oder ein Priocheck für das andere Spiel, warnt das Addon beim Import.
 
 ## Fehler melden
 
@@ -262,4 +266,4 @@ Bitte über das [Formular auf GitHub](https://github.com/andi79h/PrioMeister/iss
 
 ## Lizenz
 
-MIT, siehe [LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/LICENSE.txt).
+MIT, siehe [LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/LICENSE.txt). Die Schrift TeX Gyre Pagella in `PrioMeister/Media/Fonts` stammt von GUST e-foundry und steht unter der GUST Font License, siehe [GUST-FONT-LICENSE.txt](https://github.com/andi79h/PrioMeister/blob/main/PrioMeister/Media/Fonts/GUST-FONT-LICENSE.txt).

@@ -1266,6 +1266,60 @@ do
 	end
 end
 
+-- 1.34: WoW Forever – Vor- und Nachnamen, Vornamen als Verweis, Spiel eines Prio-Runs, Namen in Befehlen
+do
+	eq(L.NameKey("Sara Sturmwind"), "sara sturmwind", "Forever: Name mit Nachnamen")
+	eq(L.NameKey("Sara Sturmwind-CAMWOWEU5Realm7PvE"), "sara sturmwind", "Forever: Realm aus Addon-Nachrichten fällt weg")
+	local aliases = L.FirstNameAliases({ ["sara sturmwind"] = true, ["bodo eisenfaust"] = true, ["bodo glutherz"] = true,
+		gustl = true, ["hesti lichtblick"] = true, hesti = true })
+	eq(aliases.sara, "sara sturmwind", "Forever: eindeutiger Vorname zeigt auf den vollen Namen")
+	eq(aliases.bodo, nil, "Forever: doppelter Vorname bleibt offen")
+	eq(aliases.gustl, nil, "ohne Nachnamen kein Verweis")
+	eq(aliases.hesti, nil, "kein Verweis, wenn jemand nur mit Vornamen dabei ist")
+	L.SetNameAliases(aliases)
+	eq(L.NameKey("Sara"), "sara sturmwind", "Forever: Meldung nur mit Vornamen")
+	eq(L.NameKey("Bodo"), "bodo", "Forever: doppelter Vorname unverändert")
+	L.SetNameAliases(nil)
+	eq(L.NameKey("Sara"), "sara", "ohne Verweise wie bisher")
+	eq(L.GameOf("forever"), "forever", "Spiel: forever")
+	eq(L.GameOf(" Forever "), "forever", "Spiel: Forever mit Leerzeichen")
+	eq(L.GameOf("classic"), "classic", "Spiel: classic")
+	eq(L.GameOf(nil), "classic", "Spiel: ohne Feld classic")
+	local link = "|cffa335ee|Hitem:16914::::::::60:::::::|h[Krone des Netherwinds]|h|r"
+	local n, r = L.SplitName("Sara Sturmwind " .. link, true)
+	eq(n, "Sara Sturmwind", "Befehl Forever: Name vor dem Item-Link")
+	eq(r, link, "Befehl Forever: Item-Link als Rest")
+	n, r = L.SplitName("Sara Sturmwind 270227", true)
+	eq(n, "Sara Sturmwind", "Befehl Forever: Name vor der Item-ID")
+	eq(r, "270227", "Befehl Forever: Item-ID als Rest")
+	n, r = L.SplitName("  Sara Sturmwind ", true)
+	eq(n, "Sara Sturmwind", "Befehl Forever: nur der Name")
+	eq(r, "", "Befehl Forever: kein Rest")
+	n, r = L.SplitName("", true)
+	eq(n, nil, "Befehl Forever: leer")
+	n, r = L.SplitName("Gustl [Ring]", false)
+	eq(n, "Gustl", "Befehl Classic: erstes Wort ist der Name")
+	eq(r, "[Ring]", "Befehl Classic: Rest")
+	n = L.SplitName("", false)
+	eq(n, nil, "Befehl Classic: leer")
+	local m = L.FormatToMatcher("%1$s würfelt. Ergebnis: %2$d (%3$d-%4$d)")
+	local roll = L.MatchFormat(m, "Sara Sturmwind würfelt. Ergebnis: 57 (1-100)")
+	eq(roll and roll[1], "Sara Sturmwind", "Forever: Wurf mit Nachnamen im Format mit Positionen")
+	eq(roll and roll[2], 57, "Forever: Wurfwert")
+	local meta = L.ParseMeta("# PrioMeister: spieler=1; prios=1; run=Todesminen; spiel=forever")
+	eq(meta and meta.spiel, "forever", "Kommentarzeile: spiel=")
+	local chk = L.ParsePrioCheck("# priocheck;v=1;run=Todesminen;instanzen=Die Todesminen:3;spiel=forever\nSara Sturmwind;Magier;111\n")
+	eq(chk and chk.meta.spiel, "forever", "Priocheck: spiel=")
+	local p = chk and chk.players["sara sturmwind"]
+	eq(p and p.name, "Sara Sturmwind", "Priocheck: Name mit Nachnamen")
+	local players, info = L.ParsePrioList("Name;Klasse;prio1itemid;prio2itemid;prio3itemid;\nSara Sturmwind;Magier;16914;0;0;\n"
+		.. "Zwei  Leerzeichen;Magier;16914;0;0;\nDrei Teile Name;Magier;16914;0;0;\nGustl;Krieger;16914;0;0;\n")
+	eq(players["sara sturmwind"] and players["sara sturmwind"].name, "Sara Sturmwind", "Prioliste: Name mit Nachnamen")
+	check(players.gustl, "Prioliste: Name ohne Nachnamen wie bisher")
+	eq(info.players, 2, "Prioliste: nur ein Leerzeichen zwischen Vor- und Nachnamen")
+	eq(#info.skipped, 2, "Prioliste: Namen mit zwei Leerzeichen oder drei Teilen übersprungen")
+end
+
 -------------------------------------------------------------------------------
 -- Teil 2: Addon im nachgebauten Spiel
 -------------------------------------------------------------------------------
@@ -2057,7 +2111,28 @@ for _, frame in ipairs({ changelogFrame, _G.PrioMeisterPanel, _G.PrioMeisterPrio
 	check(frame._backdrop.bgFile == "Interface\\Buttons\\WHITE8X8" and frame._bgColor[4] == 1,
 		"deckender Hintergrund: " .. tostring(frame._name))
 end
-check(main._backdrop.bgFile == "Interface\\Tooltips\\UI-Tooltip-Background" and main._bgColor[4] < 1, "Hauptfenster leicht durchscheinend")
+check(main._backdrop.bgFile == "Interface\\Buttons\\WHITE8X8" and main._bgColor[4] < 1, "Hauptfenster leicht durchscheinend")
+-- Design „Nacht und Pergament“ (Testversion 14.11.2026): eigene Schriften, Reiter als Schrift, Goldknöpfe
+eq(UI.Font("GameFontNormal"), "PrioMeisterFontHeading", "Überschriften in eigener Schrift")
+eq(UI.Font("GameFontHighlightSmall"), "PrioMeisterFontBodySmall", "Fließtext in eigener Schrift")
+eq(UI.Font("ChatFontNormal"), "ChatFontNormal", "unbekannte Vorlage bleibt")
+for _, name in ipairs({ "PrioMeisterFontTitle", "PrioMeisterFontHeading", "PrioMeisterFontBody", "PrioMeisterFontButton",
+	"PrioMeisterFontTab", "PrioMeisterFontTabActive" }) do
+	check(_G[name] and _G[name]._kind == "Font", "Schriftobjekt " .. name)
+end
+eq(main.title._template, "PrioMeisterFontTitle", "Fenstertitel in eigener Schrift")
+check(rawget(main.tabs.raid, "Left") == nil and main.tabs.raid:GetText() == "Raid", "Reiter ohne roten Knopf")
+-- Schriftdateien liegen im Addon, sind OpenType und haben ihre Lizenz dabei
+for _, path in ipairs({ UI.FONT_SERIF_BOLD, UI.FONT_SERIF }) do
+	local file = ADDON_DIR .. "/" .. path:gsub("^Interface\\AddOns\\PrioMeister\\", ""):gsub("\\", "/")
+	local fh = io.open(file, "rb")
+	local head = fh and fh:read(4)
+	if fh then fh:close() end
+	eq(head, "OTTO", "Schriftdatei vorhanden und OpenType: " .. file)
+end
+local fontLicense = io.open(ADDON_DIR .. "/Media/Fonts/GUST-FONT-LICENSE.txt", "rb")
+check(fontLicense ~= nil, "Lizenz der Schrift liegt bei")
+if fontLicense then fontLicense:close() end
 changelogFrame:Hide()
 SlashCmdList.PRIOMEISTER("changelog")
 check(changelogFrame:IsShown(), "/pm changelog")
@@ -5069,6 +5144,162 @@ do
 	end)
 	check(okLoad, "ohne Main.lua keine Fehler", err)
 	check(mock.ChatContains("komplett neu starten"), "Hinweis auf Neustart")
+end
+
+-- 1.34: Prio-Run aus dem anderen Spiel – Classic Era warnt bei einem Priocheck für WoW Forever
+do
+	mock.chat = {}
+	PM:ApplyPrioCheck("# priocheck;v=1;run=Todesminen;instanzen=Die Todesminen:3;spiel=forever\nGustl;Krieger;111\n")
+	check(mock.ChatContains("Dieser Prio-Run ist für WoW Forever, du spielst Classic Era"), "Classic: Warnung bei Priocheck aus Forever")
+	mock.chat = {}
+	PM:ApplyPrioCheck("# priocheck;v=1;run=ZG;instanzen=Zul'Gurub:3\nGustl;Krieger;111\n")
+	check(not mock.ChatContains("Dieser Prio-Run ist für"), "Classic: Priocheck ohne spiel= gilt als Classic")
+end
+
+-- 1.34: WoW Forever – Spiel erkannt, Vor- und Nachnamen, Vornamen in Meldungen, Chat-Sperre im Bosskampf,
+-- Flüstern ohne Realm, Befehle mit Nachnamen, Prio-Run aus dem anderen Spiel
+do
+	mock.CloseLoot()
+	mock.ResetUI()
+	local saved = {
+		UnitName = UnitName, RANDOM_ROLL_RESULT = RANDOM_ROLL_RESULT, Enum = Enum,
+		WOW_PROJECT_ID = WOW_PROJECT_ID, WOW_PROJECT_CAMELOT = WOW_PROJECT_CAMELOT,
+		RegionalUniqueNamesEnabled = RegionalUniqueNamesEnabled, issecretvalue = issecretvalue,
+		lockdown = C_ChatInfo.InChatMessagingLockdown, sendAddon = C_ChatInfo.SendAddonMessage,
+		player = mock.player, raid = mock.raid, candidates = mock.candidates,
+	}
+	WOW_PROJECT_CAMELOT, WOW_PROJECT_ID = 18, 18
+	RegionalUniqueNamesEnabled = function() return true end
+	-- verschlüsselte Werte (Secret Values) als Tabelle { secret = true } nachgestellt
+	issecretvalue = function(v) return type(v) == "table" and v.secret == true end
+	Enum = setmetatable({ SendAddonMessageResult = { Success = 0, AddOnMessageLockdown = 11 } }, { __index = saved.Enum })
+	mock.chatLock, mock.addonLock = false, false
+	C_ChatInfo.InChatMessagingLockdown = function() return mock.chatLock end
+	C_ChatInfo.SendAddonMessage = function(prefix, msg, channel, target)
+		if mock.addonLock then return 11 end
+		return saved.sendAddon(prefix, msg, channel, target)
+	end
+	-- Forever: UnitName liefert Vor- und Nachnamen getrennt, GetRaidRosterInfo den vollen Namen
+	UnitName = function(unit)
+		local full
+		if unit == "player" then
+			full = mock.player
+		elseif unit == "NPC" then
+			full = mock.trade and mock.trade.partner
+		else
+			local i = tonumber(unit:match("^raid(%d+)$"))
+			if i then
+				full = mock.raid[i] and mock.raid[i][1]
+			else
+				i = tonumber(unit:match("^party(%d)$"))
+				full = i and mock.raid[i + 1] and mock.raid[i + 1][1]
+			end
+		end
+		if not full then return nil end
+		local first, last = full:match("^(%S+) (.+)$")
+		if first then return first, last end
+		return full
+	end
+	RANDOM_ROLL_RESULT = "%1$s würfelt. Ergebnis: %2$d (%3$d-%4$d)"
+	mock.player = "Sara Sturmwind"
+	mock.raid = { { "Sara Sturmwind", "MAGE" }, { "Bodo Eisenfaust", "WARRIOR" }, { "Bodo Glutherz", "WARRIOR" },
+		{ "Hesti Lichtblick", "PRIEST" } }
+	mock.candidates = { "Sara Sturmwind", "Bodo Eisenfaust", "Bodo Glutherz", "Hesti Lichtblick" }
+	PrioMeisterDB = nil
+	loadAddon()
+	local FL = NS.Logic
+	mock.Fire("ADDON_LOADED", "PrioMeister")
+	mock.Fire("PLAYER_LOGIN")
+	eq(PM.game, "forever", "Forever: Spiel erkannt")
+	eq(PM:PlayerName(), "Sara Sturmwind", "Forever: eigener Name mit Nachnamen")
+	eq(PM.playerKey, "sara sturmwind", "Forever: eigener Schlüssel mit Nachnamen")
+	check(PM.roster["bodo glutherz"] and PM.roster["hesti lichtblick"], "Forever: Raid mit Nachnamen")
+	eq(PM.roster["bodo glutherz"] and PM.roster["bodo glutherz"].full, "Bodo Glutherz", "Forever: Flüsterziel ohne Realm")
+	eq(FL.NameKey("Hesti"), "hesti lichtblick", "Forever: eindeutiger Vorname gilt für den vollen Namen")
+	eq(FL.NameKey("Bodo"), "bodo", "Forever: doppelter Vorname bleibt offen")
+
+	-- Namen gerade verschlüsselt: Die bisherige Liste bleibt, das Addon liest sie kurz danach noch einmal
+	local rosterInfo, unitName = GetRaidRosterInfo, UnitName
+	GetRaidRosterInfo = function(i)
+		if mock.secretNames then return { secret = true } end
+		return rosterInfo(i)
+	end
+	UnitName = function(unit)
+		if mock.secretNames and unit ~= "player" then return { secret = true } end
+		return unitName(unit)
+	end
+	mock.secretNames = true
+	mock.Fire("GROUP_ROSTER_UPDATE")
+	check(PM.roster["hesti lichtblick"] and PM.rosterRetry, "Forever: Liste bleibt bei verschlüsselten Namen")
+	mock.secretNames = false
+	mock.RunTimers()
+	check(PM.roster["hesti lichtblick"] and not PM.rosterRetry, "Forever: Liste danach neu gelesen")
+	GetRaidRosterInfo, UnitName = rosterInfo, unitName
+
+	-- Prioliste mit Nachnamen; ein Priocheck aus Classic Era bekommt eine Warnung
+	mock.chat = {}
+	PM:ImportText("Name;Klasse;prio1itemid;prio2itemid;prio3itemid;\nHesti Lichtblick;Priester;18813;0;0;\n"
+		.. "# PrioMeister: spieler=1; prios=1; run=Todesminen; spiel=forever\n", true)
+	check(PM.db.raid.players["hesti lichtblick"], "Forever: Prioliste mit Nachnamen importiert")
+	check(not mock.ChatContains("Dieser Prio-Run ist für"), "Forever: keine Warnung bei einer Liste aus Forever")
+	mock.chat = {}
+	PM:ApplyPrioCheck("# priocheck;v=1;run=ZG;instanzen=Zul'Gurub:3;spiel=classic\nHesti Lichtblick;Priester;111\n")
+	check(mock.ChatContains("Dieser Prio-Run ist für Classic Era, du spielst WoW Forever"), "Forever: Warnung bei Priocheck aus Classic")
+
+	-- Würfe mit Nachnamen im Format mit Positionen, auch nur mit Vornamen
+	mock.sent = {}
+	local s = PM:StartRoll(18205, mock.Link(18205))
+	mock.Fire("CHAT_MSG_SYSTEM", "Bodo Glutherz würfelt. Ergebnis: 57 (1-100)")
+	mock.Fire("CHAT_MSG_SYSTEM", "Hesti würfelt. Ergebnis: 80 (1-100)")
+	eq(s and #s.rolls, 2, "Forever: beide Würfe zählen")
+	eq(s and s.rolls[1] and s.rolls[1].key, "bodo glutherz", "Forever: Wurf mit Nachnamen")
+	eq(s and s.rolls[2] and s.rolls[2].key, "hesti lichtblick", "Forever: Wurf nur mit Vornamen gehört Hesti Lichtblick")
+
+	-- Bosskampf: Chat gesperrt, Würfe kommen verschlüsselt an
+	mock.chat = {}
+	mock.chatLock = true
+	mock.Fire("CHAT_MSG_SYSTEM", { secret = true })
+	mock.Fire("CHAT_MSG_SYSTEM", { secret = true })
+	eq(s and #s.rolls, 2, "Forever: verschlüsselter Wurf zählt nicht")
+	local notes = 0
+	for _, l in ipairs(mock.chat) do if l:find("sperrt den Chat", 1, true) then notes = notes + 1 end end
+	eq(notes, 1, "Forever: Hinweis auf die Chat-Sperre einmal")
+	mock.sent = {}
+	PM:Send("Nach dem Kampf")
+	eq(#mock.sent, 0, "Forever: Nachricht wartet im Bosskampf")
+	mock.RunTimers()
+	eq(#mock.sent, 0, "Forever: Nachricht wartet, solange die Sperre gilt")
+	mock.chatLock = false
+	mock.RunTimers()
+	check(mock.SentContains("Nach dem Kampf"), "Forever: Nachricht nach dem Kampf gesendet", sentText())
+
+	-- Addon-Nachrichten: im Bosskampf abgelehnt, danach gesendet
+	mock.RunTimers()
+	mock.addonSent = {}
+	mock.addonLock = true
+	PM:CommSend("TEST\t1", "RAID")
+	eq(#mock.addonSent, 0, "Forever: Addon-Nachricht im Bosskampf abgelehnt")
+	mock.addonLock = false
+	mock.RunTimers()
+	local last = mock.addonSent[#mock.addonSent]
+	eq(last and last.msg, "TEST\t1", "Forever: Addon-Nachricht nach dem Kampf gesendet")
+
+	-- Flüstern ohne Realm, Befehle mit Vor- und Nachnamen
+	mock.sent = {}
+	PM:Send("Hallo", "WHISPER", "Bodo Glutherz-CAMWOWEU5Realm7PvE")
+	eq(mock.sent[1] and mock.sent[1].target, "Bodo Glutherz", "Forever: Flüstern ohne Realm")
+	SlashCmdList.PRIOMEISTER("vergabe Bodo Glutherz " .. mock.Link(18205))
+	local aw = PM:Raid().awards[#PM:Raid().awards]
+	eq(aw and aw.key, "bodo glutherz", "Forever: /pm vergabe mit Vor- und Nachnamen")
+	SlashCmdList.PRIOMEISTER("stufen Hesti Lichtblick 2")
+	eq(PM:Raid().adjust and PM:Raid().adjust["hesti lichtblick"], 2, "Forever: /pm stufen mit Vor- und Nachnamen")
+
+	-- zurück auf Classic Era
+	UnitName, RANDOM_ROLL_RESULT, Enum = saved.UnitName, saved.RANDOM_ROLL_RESULT, saved.Enum
+	WOW_PROJECT_ID, WOW_PROJECT_CAMELOT = saved.WOW_PROJECT_ID, saved.WOW_PROJECT_CAMELOT
+	RegionalUniqueNamesEnabled, issecretvalue = saved.RegionalUniqueNamesEnabled, saved.issecretvalue
+	C_ChatInfo.InChatMessagingLockdown, C_ChatInfo.SendAddonMessage = saved.lockdown, saved.sendAddon
+	mock.player, mock.raid, mock.candidates = saved.player, saved.raid, saved.candidates
 end
 
 -- CHANGELOG.md (englisch, für CurseForge und GitHub) passt zur neuesten Version im Changelog

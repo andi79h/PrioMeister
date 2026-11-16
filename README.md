@@ -2,7 +2,7 @@
 
 *English version: [README.en.md](README.en.md). Das Addon spricht Deutsch und Englisch, die Sprache folgt der Spielsprache und lässt sich unter Optionen fest einstellen.*
 
-Plündermeister-Hilfe für WoW Classic Era (1.15.9). Das Addon liest die Prioliste von priomeister.de (gleiches Format wie sahne-team.de), sortiert die Plündermeister-Liste, prüft Würfelstufen, verteilt Kleinkram automatisch und protokolliert jede Vergabe im Raidchat.
+Plündermeister-Hilfe für WoW Classic Era (1.15.9) und WoW Forever (1.60.1). Das Addon liest die Prioliste von priomeister.de (gleiches Format wie sahne-team.de), sortiert die Plündermeister-Liste, prüft Würfelstufen, verteilt Kleinkram automatisch und protokolliert jede Vergabe im Raidchat.
 
 Spieler brauchen das Addon nicht, sie tragen ihre Prios auf priomeister.de ein. Das Addon braucht, wer im Raid plündert. Wie beides zusammenspielt, erklärt die [Hilfe auf priomeister.de](https://priomeister.de/hilfe).
 
@@ -203,7 +203,9 @@ Ab Version 1.30.0 kann ein Stellvertreter den Raid weiterführen, etwa nach eine
 
 ## Spielversionen
 
-WoW Classic 1.15.9: Realms von Classic Era, Hardcore und Season of Discovery, sie laufen alle mit demselben Client. Burning Crusade Classic Anniversary, Mists of Pandaria Classic und Retail unterstützt PrioMeister nicht.
+WoW Classic 1.15.9: Realms von Classic Era, Hardcore und Season of Discovery, sie laufen alle mit demselben Client. WoW Forever 1.60.1 seit PrioMeister 1.34.0, im selben Paket. Burning Crusade Classic Anniversary, Mists of Pandaria Classic und Retail unterstützt PrioMeister nicht.
+
+Auf WoW Forever heißen Charaktere „Vorname Nachname“, so stehen sie auch auf priomeister.de und im Export. Befehle nehmen den ganzen Namen, etwa `/pm vergabe Sara Sturmwind [Item]`. Im Bosskampf sperrt Forever den Chat: Würfe liest das Addon erst nach dem Kampf, seine eigenen Nachrichten und die Sicherung bei Stellvertretern warten so lange. Ist eine Prioliste oder ein Priocheck für das andere Spiel, warnt das Addon beim Import.
 
 ## Fehler melden
 
@@ -234,3 +236,5 @@ Das CurseForge-Projekt 1755238 steht in der TOC (`## X-Curse-Project-ID`). Hochl
 ## Lizenz
 
 MIT, siehe [LICENSE.txt](LICENSE.txt). Jeder darf das Addon nutzen, ändern und weitergeben, solange der Copyright-Hinweis erhalten bleibt.
+
+Die Schrift TeX Gyre Pagella in `PrioMeister/Media/Fonts` stammt von GUST e-foundry und steht unter der GUST Font License, siehe [GUST-FONT-LICENSE.txt](PrioMeister/Media/Fonts/GUST-FONT-LICENSE.txt).

@@ -621,14 +621,14 @@ function PM:TakeTradeIntent(canon, key)
 end
 
 function PM:TRADE_SHOW()
-	self.trade = { partner = UnitName("NPC"), items = {} }
+	self.trade = { partner = self:UnitFullName("NPC"), items = {} }
 end
 
 -- Angebotene Items merken: Nach dem Abschluss ist das Handelsfenster schon zu.
 function PM:SnapshotTrade()
 	local t = self.trade
 	if not t then return end
-	t.partner = UnitName("NPC") or t.partner
+	t.partner = self:UnitFullName("NPC") or t.partner
 	t.items = {}
 	for i = 1, TRADE_SLOTS do
 		local link = GetTradePlayerItemLink(i)
@@ -811,13 +811,13 @@ local function lootMatchers()
 end
 
 function PM:CHAT_MSG_LOOT(msg)
-	if #self.pending == 0 then return end
+	if #self.pending == 0 or self.IsSecret(msg) then return end
 	for _, m in ipairs(lootMatchers()) do
 		local r = L.MatchFormat(m.matcher, msg)
 		if r then
 			local name, link
 			if m.isSelf then
-				name, link = UnitName("player"), r[1]
+				name, link = self:PlayerName(), r[1]
 			else
 				name, link = r[1], r[2]
 			end

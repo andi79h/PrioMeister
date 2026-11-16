@@ -1,5 +1,5 @@
-# PrioMeister 1.32.0 (2026-11-04)
+# PrioMeister 1.34.0 (2026-11-16)
 
-- Roll round by hand: if the loot master is too far away, WoW falls back to normal group rolls. /pm rollitem [Item] still hands out the item afterwards. Prios, roll tiers and the class check apply as usual, /pm free [Item] skips the prios.
-- The panel shows the rolls of this round even without a loot window. “To Name” records the award, whoever has the item trades it. If you trade it to the winner yourself, the addon records the trade.
-- /pm rollrandom [Item] awards an item outside the loot randomly, like the “Award randomly” button. The award is only recorded, whoever has the item trades it.
+- WoW Forever: PrioMeister now runs there too, in the same package as for Classic Era. Names count as “First Last” like on priomeister.de, also in commands such as /pm award Sara Sturmwind [Item].
+- During boss fights WoW Forever locks the chat. The addon cannot read rolls then and says so while a roll is running. The addon's messages wait until after the fight.
+- If a prio list or priocheck from priomeister.de is for the other game, the addon warns on import.
